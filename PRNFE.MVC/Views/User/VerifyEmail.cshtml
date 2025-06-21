@@ -1,0 +1,53 @@
+@model VerifyEmailRequest
+@{
+    ViewData["Title"] = "Xác thực email";
+}
+
+<div class="auth-container bg-decoration">
+    <div class="auth-card">
+        <a href="@Url.Action("Login", "Auth")" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Quay lại đăng nhập
+        </a>
+
+        <div class="glass-card p-4">
+            <div class="text-center mb-4">
+                <div class="auth-logo">
+                    <i class="fas fa-building"></i>
+                </div>
+                <h2 class="auth-title">Xác thực email</h2>
+                <p class="auth-subtitle">Nhập mã xác thực đã được gửi đến email của bạn</p>
+            </div>
+
+            <form method="post" asp-action="VerifyEmail">
+                <div class="input-group-glass">
+                    <i class="fas fa-envelope input-icon"></i>
+                    <input type="email" asp-for="email" class="form-control glass-input" placeholder="your@email.com" value="@ViewBag.Email" required>
+                </div>
+
+                <div class="input-group-glass">
+                    <i class="fas fa-key input-icon"></i>
+                    <input type="text" asp-for="code" class="form-control glass-input" placeholder="Nhập mã xác thực" required>
+                </div>
+
+                <button type="submit" class="btn btn-gradient w-100 mb-3" id="verifyBtn">
+                    Xác thực email
+                </button>
+            </form>
+
+            @if (!string.IsNullOrEmpty(ViewBag.Message))
+            {
+                <div class="mt-3">
+                    <div class="alert @(ViewBag.IsSuccess ? "alert-success" : "alert-danger")">@ViewBag.Message</div>
+                </div>
+            }
+
+            <div class="text-center text-muted small">
+                Chưa nhận được mã?
+                <a href="@Url.Action("Register", "User")" class="text-decoration-none fw-medium" style="color: #ec4899;">
+                    Đăng ký lại
+                </a>
+            </div>
+        </div>
+    </div>
+</div> 
