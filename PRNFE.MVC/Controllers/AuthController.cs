@@ -10,20 +10,21 @@ using Microsoft.Extensions.Configuration;
 namespace PRNFE.MVC.Controllers
 {
     [Route("[controller]/[action]")]
-    public class AuthController : Controller
+    public class AuthController : BaseController
     {
-        private readonly HttpClient _httpClient;
-        private readonly string _apiBaseUrl;
-        
-        public AuthController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        public AuthController(IHttpClientFactory httpClientFactory, IConfiguration configuration) 
+            : base(httpClientFactory, configuration)
         {
-            _httpClient = httpClientFactory.CreateClient();
-            _apiBaseUrl = configuration["ApiSettings:BaseUrl"];
         }
 
         [HttpGet]
         public IActionResult Login()
         {
+            // Redirect if already logged in
+            if (IsAuthenticated())
+            {
+                return RedirectToAction("Index", "Home");
+            }
             return View();
         }
 
@@ -32,54 +33,76 @@ namespace PRNFE.MVC.Controllers
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.Message = "Dữ liệu không hợp lệ!";
-                ViewBag.IsSuccess = false;
+                TempData["Message"] = "Dữ liệu không hợp lệ!";
+                TempData["IsSuccess"] = false;
                 return View(model);
             }
 
             try
             {
+                var apiUrl = $"{_apiBaseUrl}/api/Auth/login";
                 var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/Auth/login", content);
+                var response = await _httpClient.PostAsync(apiUrl, content);
                 var result = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var loginResponse = JsonConvert.DeserializeObject<ApiResponse<LoginResponse>>(result);
-                    if (loginResponse.success && loginResponse.data?.accessToken != null)
+                    var apiResponse = JsonConvert.DeserializeObject<ApiResponse<LoginResponse>>(result);
+                    if (apiResponse.success)
                     {
-                        // Lưu token vào session
-                        HttpContext.Session.SetString("AccessToken", loginResponse.data.accessToken);
+                        // Store tokens in cookies
+                        var accessTokenOptions = new CookieOptions
+                        {
+                            HttpOnly = true,
+                            Secure = true,
+                            SameSite = SameSiteMode.Strict,
+                            Expires = DateTime.UtcNow.AddHours(1) // 1 hour expiry
+                        };
+
+                        var refreshTokenOptions = new CookieOptions
+                        {
+                            HttpOnly = true,
+                            Secure = true,
+                            SameSite = SameSiteMode.Strict,
+                            Expires = DateTime.UtcNow.AddDays(7) // 7 days expiry
+                        };
+
+                        Response.Cookies.Append("AccessToken", apiResponse.data.accessToken, accessTokenOptions);
+                        Response.Cookies.Append("RefreshToken", apiResponse.data.refreshToken, refreshTokenOptions);
+                        
                         return RedirectToAction("Index", "Home");
                     }
                     else
                     {
-                        ViewBag.Message = loginResponse.message ?? "Đăng nhập thất bại!";
-                        ViewBag.IsSuccess = false;
+                        TempData["Message"] = apiResponse.message ?? "Đăng nhập thất bại!";
+                        TempData["IsSuccess"] = false;
                     }
                 }
                 else
                 {
-                    ViewBag.Message = "Có lỗi xảy ra, vui lòng thử lại sau!";
-                    ViewBag.IsSuccess = false;
+                    TempData["Message"] = $"Có lỗi xảy ra (HTTP {response.StatusCode}), vui lòng thử lại sau!";
+                    TempData["IsSuccess"] = false;
                 }
             }
-            catch
+            catch (HttpRequestException)
             {
-                ViewBag.Message = "Có lỗi xảy ra, vui lòng thử lại sau!";
-                ViewBag.IsSuccess = false;
+                TempData["Message"] = "Không thể kết nối đến API server. Vui lòng kiểm tra kết nối!";
+                TempData["IsSuccess"] = false;
+            }
+            catch (Exception)
+            {
+                TempData["Message"] = "Có lỗi xảy ra, vui lòng thử lại sau!";
+                TempData["IsSuccess"] = false;
             }
 
             return View(model);
         }
 
         [HttpPost]
-        public async Task<IActionResult> LoginApi([FromBody] LoginRequest model)
+        public new IActionResult Logout()
         {
-            var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/Auth/login", content);
-            var result = await response.Content.ReadAsStringAsync();
-            return Content(result, "application/json");
+            base.Logout();
+            return RedirectToAction("Login");
         }
     }
 } 

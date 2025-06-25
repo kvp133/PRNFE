@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
+using PRNFE.MVC.Models.Location;
 using Microsoft.Extensions.Configuration;
 
 namespace PRNFE.MVC.Controllers
@@ -22,9 +23,67 @@ namespace PRNFE.MVC.Controllers
         }
 
         [HttpGet]
-        public IActionResult Register()
+        public async Task<IActionResult> Register()
         {
+            try
+            {
+                // Lấy danh sách tỉnh/thành phố
+                var provincesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Location/provinces");
+                if (provincesResponse.IsSuccessStatusCode)
+                {
+                    var provincesJson = await provincesResponse.Content.ReadAsStringAsync();
+                    var provinces = JsonConvert.DeserializeObject<List<Province>>(provincesJson);
+                    ViewBag.Provinces = provinces;
+                }
+            }
+            catch
+            {
+                ViewBag.Provinces = new List<Province>();
+            }
+            
             return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDistricts(string provinceCode)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Location/districts/{provinceCode}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var districts = JsonConvert.DeserializeObject<List<District>>(json);
+                    return Json(districts);
+                }
+            }
+            catch
+            {
+                // Silent fail
+            }
+            
+            return Json(new List<District>());
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetWards(string districtCode)
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Location/wards/{districtCode}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var wards = JsonConvert.DeserializeObject<List<Ward>>(json);
+                    return Json(wards);
+                }
+            }
+            catch
+            {
+                // Silent fail
+            }
+            
+            return Json(new List<Ward>());
         }
 
         [HttpPost]
@@ -206,9 +265,10 @@ namespace PRNFE.MVC.Controllers
                     var apiResponse = JsonConvert.DeserializeObject<ApiResponse<object>>(result);
                     if (apiResponse.success)
                     {
-                        ViewBag.Message = "Xác thực email thành công!";
+                        ViewBag.Message = "Xác thực email thành công! Tài khoản của bạn đã được kích hoạt.";
                         ViewBag.IsSuccess = true;
-                        return RedirectToAction("Login", "Auth");
+                        ViewBag.Email = model.email;
+                        return View(model);
                     }
                     else
                     {
@@ -228,6 +288,7 @@ namespace PRNFE.MVC.Controllers
                 ViewBag.IsSuccess = false;
             }
 
+            ViewBag.Email = model.email;
             return View(model);
         }
 

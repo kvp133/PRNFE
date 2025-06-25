@@ -7,6 +7,8 @@ namespace PRNFE.MVC.Models.Request
         public string email { get; set; }
         public string phone { get; set; }
         public string dob { get; set; }
+        public string provinceCode { get; set; }
+        public string districtCode { get; set; }
         public string wardId { get; set; }
         public string password { get; set; }
     }

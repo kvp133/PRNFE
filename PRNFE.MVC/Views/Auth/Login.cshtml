@@ -36,10 +36,10 @@
                 <button type="submit" class="btn btn-gradient w-100 mb-3" id="loginBtn">Đăng nhập</button>
             </form>
 
-            @if (!string.IsNullOrEmpty(ViewBag.Message))
+            @if (!string.IsNullOrEmpty(TempData["Message"]?.ToString()))
             {
                 <div class="mt-3">
-                    <div class="alert @(ViewBag.IsSuccess ? "alert-success" : "alert-danger")">@ViewBag.Message</div>
+                    <div class="alert @(TempData["IsSuccess"]?.ToString() == "True" ? "alert-success" : "alert-danger")">@TempData["Message"]</div>
                 </div>
             }
 
