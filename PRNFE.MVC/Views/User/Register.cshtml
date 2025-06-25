@@ -45,9 +45,35 @@
                     <input type="date" class="form-control glass-input" asp-for="dob" placeholder="Ngày sinh" required>
                 </div>
 
+                <!-- Tỉnh/Thành phố -->
                 <div class="input-group-glass">
                     <i class="fas fa-map-marker-alt input-icon"></i>
-                    <input type="text" class="form-control glass-input" asp-for="wardId" placeholder="Mã phường" required>
+                    <select class="form-control glass-input" id="provinceCode" asp-for="provinceCode" required>
+                        <option value="">Chọn Tỉnh/Thành phố</option>
+                        @if (ViewBag.Provinces != null)
+                        {
+                            foreach (var province in ViewBag.Provinces)
+                            {
+                                <option value="@province.code">@province.fullName</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Quận/Huyện -->
+                <div class="input-group-glass">
+                    <i class="fas fa-map-marker-alt input-icon"></i>
+                    <select class="form-control glass-input" id="districtCode" asp-for="districtCode" required disabled>
+                        <option value="">Chọn Quận/Huyện</option>
+                    </select>
+                </div>
+
+                <!-- Xã/Phường -->
+                <div class="input-group-glass">
+                    <i class="fas fa-map-marker-alt input-icon"></i>
+                    <select class="form-control glass-input" id="wardSelect" asp-for="wardId" required disabled>
+                        <option value="">Chọn Xã/Phường</option>
+                    </select>
                 </div>
 
                 <div class="input-group-glass">
@@ -131,6 +157,72 @@
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
             }
+        }
+
+        // Location dropdown functionality
+        document.getElementById('provinceCode').addEventListener('change', function() {
+            const provinceCode = this.value;
+            const districtSelect = document.getElementById('districtCode');
+            const wardSelect = document.getElementById('wardSelect');
+            
+            // Reset district and ward
+            districtSelect.innerHTML = '<option value="">Chọn Quận/Huyện</option>';
+            wardSelect.innerHTML = '<option value="">Chọn Xã/Phường</option>';
+            districtSelect.disabled = true;
+            wardSelect.disabled = true;
+            
+            if (provinceCode) {
+                districtSelect.disabled = false;
+                loadDistricts(provinceCode);
+            }
+        });
+
+        document.getElementById('districtCode').addEventListener('change', function() {
+            const districtCode = this.value;
+            const wardSelect = document.getElementById('wardSelect');
+            
+            // Reset ward
+            wardSelect.innerHTML = '<option value="">Chọn Xã/Phường</option>';
+            wardSelect.disabled = true;
+            
+            if (districtCode) {
+                wardSelect.disabled = false;
+                loadWards(districtCode);
+            }
+        });
+
+        function loadDistricts(provinceCode) {
+            fetch(`@Url.Action("GetDistricts", "User")?provinceCode=${provinceCode}`)
+                .then(response => response.json())
+                .then(districts => {
+                    const districtSelect = document.getElementById('districtCode');
+                    districts.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.code;
+                        option.textContent = district.fullName;
+                        districtSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading districts:', error);
+                });
+        }
+
+        function loadWards(districtCode) {
+            fetch(`@Url.Action("GetWards", "User")?districtCode=${districtCode}`)
+                .then(response => response.json())
+                .then(wards => {
+                    const wardSelect = document.getElementById('wardSelect');
+                    wards.forEach(ward => {
+                        const option = document.createElement('option');
+                        option.value = ward.code;
+                        option.textContent = ward.fullName;
+                        wardSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading wards:', error);
+                });
         }
 
         // Client-side validation
