@@ -1,0 +1,92 @@
+﻿@model ServiceRequest
+@{
+    ViewData["Title"] = "Quản lý dịch vụ";
+}
+
+<div class="auth-container bg-decoration">
+    <div class="auth-card">
+        <a href="/" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Về trang chủ
+        </a>
+
+        <div class="glass-card p-4">
+            <div class="text-center mb-4">
+                <div class="auth-logo">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h2 class="auth-title">Quản lý dịch vụ</h2>
+                <p class="auth-subtitle">Thêm dịch vụ mới vào hệ thống</p>
+            </div>
+
+            <form method="post" asp-action="Manager">
+                <div class="input-group-glass">
+                    <i class="fas fa-tag input-icon"></i>
+                    <input type="text" class="form-control glass-input" asp-for="ServiceName" placeholder="Tên dịch vụ (VD: Điện, Nước, Internet)" required>
+                    <span asp-validation-for="ServiceName" class="text-danger small"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-ruler input-icon"></i>
+                            <select class="form-control glass-input" asp-for="Unit" required>
+                                <option value="">Chọn đơn vị tính</option>
+                                <option value="kWh">kWh (Điện)</option>
+                                <option value="m³">m³ (Nước)</option>
+                                <option value="tháng">Tháng</option>
+                                <option value="người">Người</option>
+                                <option value="gói">Gói</option>
+                                <option value="lần">Lần</option>
+                            </select>
+                            <span asp-validation-for="Unit" class="text-danger small"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-money-bill input-icon"></i>
+                            <input type="number" class="form-control glass-input" asp-for="PricePerUnit" placeholder="Giá mỗi đơn vị" step="0.01" min="0" required>
+                            <span asp-validation-for="PricePerUnit" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" asp-for="IsMandatory">
+                            <label class="form-check-label" asp-for="IsMandatory">
+                                <i class="fas fa-exclamation-circle me-1"></i>
+                                Dịch vụ bắt buộc
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" asp-for="IsPerResident">
+                            <label class="form-check-label" asp-for="IsPerResident">
+                                <i class="fas fa-users me-1"></i>
+                                Tính theo đầu người
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-gradient w-100 mb-3">
+                    <i class="fas fa-plus me-2"></i>
+                    Thêm dịch vụ
+                </button>
+            </form>
+
+            @if (!string.IsNullOrEmpty(ViewBag.Message))
+            {
+                <div class="mt-3">
+                    <div class="alert @(ViewBag.IsSuccess ? "alert-success" : "alert-danger")">
+                        <i class="fas @(ViewBag.IsSuccess ? "fa-check-circle" : "fa-exclamation-triangle") me-2"></i>
+                        @ViewBag.Message
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

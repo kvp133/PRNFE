@@ -1,0 +1,204 @@
+﻿@* @model BillRequest *@
+@* @{ *@
+@*     ViewData["Title"] = "Quản lý hóa đơn"; *@
+@* } *@
+
+@* <div class="auth-container bg-decoration"> *@
+@*     <div class="auth-card"> *@
+@*         <a href="/" class="back-link"> *@
+@*             <i class="fas fa-arrow-left"></i> *@
+@*             Về trang chủ *@
+@*         </a> *@
+
+@*         <div class="glass-card p-4"> *@
+@*             <div class="text-center mb-4"> *@
+@*                 <div class="auth-logo"> *@
+@*                     <i class="fas fa-file-invoice-dollar"></i> *@
+@*                 </div> *@
+@*                 <h2 class="auth-title">Quản lý hóa đơn</h2> *@
+@*                 <p class="auth-subtitle">Tạo hóa đơn mới cho phòng</p> *@
+@*             </div> *@
+
+@*             <form method="post" asp-action="Manager"> *@
+@*                 <div class="row"> *@
+@*                     <div class="col-md-6"> *@
+@*                         <div class="input-group-glass"> *@
+@*                             <i class="fas fa-door-open input-icon"></i> *@
+@*                             <select class="form-control glass-input" asp-for="RoomId" required> *@
+@*                                 <option value="">Chọn phòng</option> *@
+@*                                 <!-- TODO: Load rooms from API --> *@
+@*                             </select> *@
+@*                             <span asp-validation-for="RoomId" class="text-danger small"></span> *@
+@*                         </div> *@
+@*                     </div> *@
+@*                     <div class="col-md-6"> *@
+@*                         <div class="input-group-glass"> *@
+@*                             <i class="fas fa-calendar input-icon"></i> *@
+@*                             <input type="month" class="form-control glass-input" asp-for="BillMonth" required> *@
+@*                             <span asp-validation-for="BillMonth" class="text-danger small"></span> *@
+@*                         </div> *@
+@*                     </div> *@
+@*                 </div> *@
+
+@*                 <div class="row"> *@
+@*                     <div class="col-md-6"> *@
+@*                         <div class="input-group-glass"> *@
+@*                             <i class="fas fa-money-bill input-icon"></i> *@
+@*                             <input type="number" class="form-control glass-input" asp-for="TotalAmount" placeholder="Tổng tiền" step="0.01" min="0" required> *@
+@*                             <span asp-validation-for="TotalAmount" class="text-danger small"></span> *@
+@*                         </div> *@
+@*                     </div> *@
+@*                     <div class="col-md-6"> *@
+@*                         <div class="input-group-glass"> *@
+@*                             <i class="fas fa-info-circle input-icon"></i> *@
+@*                             <select class="form-control glass-input" asp-for="Status" required> *@
+@*                                 <option value="Pending">Chờ thanh toán</option> *@
+@*                                 <option value="Paid">Đã thanh toán</option> *@
+@*                                 <option value="Cancelled">Đã hủy</option> *@
+@*                             </select> *@
+@*                             <span asp-validation-for="Status" class="text-danger small"></span> *@
+@*                         </div> *@
+@*                     </div> *@
+@*                 </div> *@
+
+@*                 <button type="submit" class="btn btn-gradient w-100 mb-3"> *@
+@*                     <i class="fas fa-file-invoice me-2"></i> *@
+@*                     Tạo hóa đơn *@
+@*                 </button> *@
+@*             </form> *@
+
+@*             @if (!string.IsNullOrEmpty(ViewBag.Message)) *@
+@*             { *@
+@*                 <div class="mt-3"> *@
+@*                     <div class="alert @(ViewBag.IsSuccess ? "alert-success" : "alert-danger")"> *@
+@*                         <i class="fas @(ViewBag.IsSuccess ? "fa-check-circle" : "fa-exclamation-triangle") me-2"></i> *@
+@*                         @ViewBag.Message *@
+@*                     </div> *@
+@*                 </div> *@
+@*             } *@
+@*         </div> *@
+@*     </div> *@
+@* </div> *@
+
+
+
+
+@model BillRequest
+@{
+    ViewData["Title"] = "Quản lý hóa đơn";
+}
+
+<div class="auth-container bg-decoration">
+    <div class="auth-card">
+        <a href="/" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Về trang chủ
+        </a>
+
+        <div class="glass-card p-4">
+            <div class="text-center mb-4">
+                <div class="auth-logo">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                </div>
+                <h2 class="auth-title">Quản lý hóa đơn</h2>
+                <p class="auth-subtitle">Tạo hóa đơn mới cho phòng</p>
+            </div>
+
+            <form method="post" asp-action="Manager">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-door-open input-icon"></i>
+                            <select class="form-control glass-input" asp-for="RoomId" required>
+                                <option value="">Chọn phòng</option>
+                                <!-- TODO: Load rooms from API -->
+                            </select>
+                            <span asp-validation-for="RoomId" class="text-danger small"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-calendar input-icon"></i>
+                            <input type="month" class="form-control glass-input" asp-for="BillMonth" required>
+                            <span asp-validation-for="BillMonth" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-money-bill input-icon"></i>
+                            <input type="number" class="form-control glass-input" asp-for="TotalAmount" placeholder="Tổng tiền" step="0.01" min="0" required>
+                            <span asp-validation-for="TotalAmount" class="text-danger small"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-info-circle input-icon"></i>
+                            <select class="form-control glass-input" asp-for="Status" required>
+                                <option value="Pending">Chờ thanh toán</option>
+                                <option value="Paid">Đã thanh toán</option>
+                                <option value="Cancelled">Đã hủy</option>
+                            </select>
+                            <span asp-validation-for="Status" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-gradient w-100 mb-3">
+                    <i class="fas fa-file-invoice me-2"></i>
+                    Tạo hóa đơn
+                </button>
+
+                <div class="divider">
+                    <span>Hoặc</span>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <a href="@Url.Action("Manager", "BillDetail")" class="btn social-btn w-100">
+                            <i class="fas fa-list-alt me-2"></i>
+                            Chi tiết hóa đơn
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="@Url.Action("List", "Bill")" class="btn social-btn w-100">
+                            <i class="fas fa-file-invoice me-2"></i>
+                            Danh sách hóa đơn
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            @if (!string.IsNullOrEmpty(ViewBag.Message))
+            {
+                <div class="mt-3">
+                    <div class="alert @(ViewBag.IsSuccess ? "alert-success" : "alert-danger")">
+                        <i class="fas @(ViewBag.IsSuccess ? "fa-check-circle" : "fa-exclamation-triangle") me-2"></i>
+                        @ViewBag.Message
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .social-btn {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        padding: 12px;
+        color: #374151;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+        .social-btn:hover {
+            background: rgba(236, 72, 153, 0.1);
+            border-color: #ec4899;
+            color: #ec4899;
+            transform: translateY(-2px);
+        }
+</style>
