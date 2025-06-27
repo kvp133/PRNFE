@@ -1,0 +1,409 @@
+﻿@model PRNFE.MVC.Models.Request.ResidentUpdateRequest
+
+@{
+    ViewData["Title"] = "Chỉnh sửa cư dân";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Chỉnh sửa cư dân: @Model.FullName</h3>
+                    <div class="card-tools">
+                     
+                        <a href="@Url.Action("Index")" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Quay lại
+                        </a>
+                    </div>
+                </div>
+
+            @* <form asp-action="Edit" asp-route-id="@Model.UserId" method="post"> *@
+                <!-- Sửa form -->
+                <form asp-action="Edit" asp-route-id="@ViewBag.ResidentId" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="card-body">
+                        @if (ViewBag.IsSuccess == false)
+                        {
+                            <div class="alert alert-danger">
+                                @ViewBag.Message
+                            </div>
+                        }
+
+                        <!-- Basic Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5><i class="fas fa-user"></i> Thông tin cơ bản</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label asp-for="UserId" class="form-label"></label>
+                                            <input asp-for="UserId" class="form-control" readonly />
+                                            <span asp-validation-for="UserId" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label asp-for="FullName" class="form-label"></label>
+                                            <input asp-for="FullName" class="form-control" />
+                                            <span asp-validation-for="FullName" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label asp-for="PhoneNumber" class="form-label"></label>
+                                            <input asp-for="PhoneNumber" class="form-control" />
+                                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label asp-for="Email" class="form-label"></label>
+                                            <input asp-for="Email" class="form-control" />
+                                            <span asp-validation-for="Email" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label asp-for="DateOfBirth" class="form-label"></label>
+                                            <input asp-for="DateOfBirth" class="form-control" type="date" />
+                                            <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label asp-for="Gender" class="form-label"></label>
+                                            <select asp-for="Gender" class="form-select">
+                                                <option value="true">Nam</option>
+                                                <option value="false">Nữ</option>
+                                            </select>
+                                            <span asp-validation-for="Gender" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label asp-for="Address" class="form-label"></label>
+                                    <textarea asp-for="Address" class="form-control" rows="3"></textarea>
+                                    <span asp-validation-for="Address" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rooms Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5><i class="fas fa-home"></i> Thông tin phòng</h5>
+                                <button type="button" class="btn btn-sm btn-success" onclick="addRoom()">
+                                    <i class="fas fa-plus"></i> Thêm phòng
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="rooms-container">
+                                    @for (int i = 0; i < Model.Rooms.Count; i++)
+                                    {
+                                        <div class="room-item mb-2">
+                                            <div class="input-group">
+                                                <span class="input-group-text">Room ID</span>
+                                                <input asp-for="Rooms[i].RoomId" class="form-control" type="number" />
+                                                <button type="button" class="btn btn-danger" onclick="removeRoom(this)">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                            <span asp-validation-for="Rooms[i].RoomId" class="text-danger"></span>
+                                        </div>
+                                    }
+                                </div>
+                                @if (!Model.Rooms.Any())
+                                {
+                                    <p class="text-muted">Chưa có phòng nào được gán.</p>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Vehicles Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5><i class="fas fa-car"></i> Thông tin phương tiện</h5>
+                                <button type="button" class="btn btn-sm btn-success" onclick="addVehicle()">
+                                    <i class="fas fa-plus"></i> Thêm phương tiện
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="vehicles-container">
+                                    @for (int i = 0; i < Model.Vehicles.Count; i++)
+                                    {
+                                        <div class="vehicle-item mb-3">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Loại xe</label>
+                                                    <select asp-for="Vehicles[i].Type" class="form-select">
+                                                        <option value="0">Xe máy</option>
+                                                        <option value="1">Ô tô</option>
+                                                        <option value="2">Xe đạp</option>
+                                                    </select>
+                                                    <span asp-validation-for="Vehicles[i].Type" class="text-danger"></span>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Biển số xe</label>
+                                                    <input asp-for="Vehicles[i].LicensePlate" class="form-control" />
+                                                    <span asp-validation-for="Vehicles[i].LicensePlate" class="text-danger"></span>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label">&nbsp;</label>
+                                                    <button type="button" class="btn btn-danger d-block" onclick="removeVehicle(this)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                @if (!Model.Vehicles.Any())
+                                {
+                                    <p class="text-muted">Chưa có phương tiện nào.</p>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Temporary Stay Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5><i class="fas fa-clock"></i> Thông tin lưu trú tạm thời</h5>
+                                @if (Model.TemporaryStay == null)
+                                {
+                                    <button type="button" class="btn btn-sm btn-success" onclick="addTemporaryStay()">
+                                        <i class="fas fa-plus"></i> Thêm lưu trú tạm thời
+                                    </button>
+                                }
+                            </div>
+                            <div class="card-body">
+                                <div id="temporary-stay-container">
+                                    @if (Model.TemporaryStay != null)
+                                    {
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label asp-for="TemporaryStay.FromDate" class="form-label"></label>
+                                                    <input asp-for="TemporaryStay.FromDate" class="form-control" type="date" />
+                                                    <span asp-validation-for="TemporaryStay.FromDate" class="text-danger"></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label asp-for="TemporaryStay.ToDate" class="form-label"></label>
+                                                    <input asp-for="TemporaryStay.ToDate" class="form-control" type="date" />
+                                                    <span asp-validation-for="TemporaryStay.ToDate" class="text-danger"></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label asp-for="TemporaryStay.Status" class="form-label"></label>
+                                                    <select asp-for="TemporaryStay.Status" class="form-select">
+                                                        <option value="0">Chờ duyệt</option>
+                                                        <option value="1">Đã duyệt</option>
+                                                        <option value="2">Từ chối</option>
+                                                    </select>
+                                                    <span asp-validation-for="TemporaryStay.Status" class="text-danger"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label asp-for="TemporaryStay.Note" class="form-label"></label>
+                                            <textarea asp-for="TemporaryStay.Note" class="form-control" rows="3"></textarea>
+                                            <span asp-validation-for="TemporaryStay.Note" class="text-danger"></span>
+                                        </div>
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="removeTemporaryStay()">
+                                            <i class="fas fa-trash"></i> Xóa lưu trú tạm thời
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">Không có thông tin lưu trú tạm thời.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Lưu thay đổi
+                                </button>
+                                <button type="reset" class="btn btn-secondary">
+                                    <i class="fas fa-undo"></i> Đặt lại
+                                </button>
+                            </div>
+        
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let roomIndex = @Model.Rooms.Count;
+        let vehicleIndex = @Model.Vehicles.Count;
+
+        function addRoom() {
+            const container = document.getElementById('rooms-container');
+            const roomHtml = `
+                <div class="room-item mb-2">
+                    <div class="input-group">
+                        <span class="input-group-text">Room ID</span>
+                        <input name="Rooms[${roomIndex}].RoomId" class="form-control" type="number" required />
+                        <button type="button" class="btn btn-danger" onclick="removeRoom(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', roomHtml);
+            roomIndex++;
+        }
+
+        function removeRoom(button) {
+            button.closest('.room-item').remove();
+            reindexRooms();
+        }
+
+        function reindexRooms() {
+            const roomItems = document.querySelectorAll('.room-item');
+            roomItems.forEach((item, index) => {
+                const input = item.querySelector('input');
+                input.name = `Rooms[${index}].RoomId`;
+            });
+            roomIndex = roomItems.length;
+        }
+
+        function addVehicle() {
+            const container = document.getElementById('vehicles-container');
+            const vehicleHtml = `
+                <div class="vehicle-item mb-3">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Loại xe</label>
+                            <select name="Vehicles[${vehicleIndex}].Type" class="form-select" required>
+                                <option value="0">Xe máy</option>
+                                <option value="1">Ô tô</option>
+                                <option value="2">Xe đạp</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Biển số xe</label>
+                            <input name="Vehicles[${vehicleIndex}].LicensePlate" class="form-control" required />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-danger d-block" onclick="removeVehicle(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', vehicleHtml);
+            vehicleIndex++;
+        }
+
+        function removeVehicle(button) {
+            button.closest('.vehicle-item').remove();
+            reindexVehicles();
+        }
+
+        function reindexVehicles() {
+            const vehicleItems = document.querySelectorAll('.vehicle-item');
+            vehicleItems.forEach((item, index) => {
+                const typeSelect = item.querySelector('select');
+                const licensePlateInput = item.querySelector('input');
+                typeSelect.name = `Vehicles[${index}].Type`;
+                licensePlateInput.name = `Vehicles[${index}].LicensePlate`;
+            });
+            vehicleIndex = vehicleItems.length;
+        }
+
+        function addTemporaryStay() {
+            const container = document.getElementById('temporary-stay-container');
+            const tempStayHtml = `
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Từ ngày</label>
+                            <input name="TemporaryStay.FromDate" class="form-control" type="date" required />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Đến ngày</label>
+                            <input name="TemporaryStay.ToDate" class="form-control" type="date" required />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái</label>
+                            <select name="TemporaryStay.Status" class="form-select">
+                                <option value="0">Chờ duyệt</option>
+                                <option value="1">Đã duyệt</option>
+                                <option value="2">Từ chối</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Ghi chú</label>
+                    <textarea name="TemporaryStay.Note" class="form-control" rows="3"></textarea>
+                </div>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeTemporaryStay()">
+                    <i class="fas fa-trash"></i> Xóa lưu trú tạm thời
+                </button>
+            `;
+            container.innerHTML = tempStayHtml;
+        }
+
+        function removeTemporaryStay() {
+            const container = document.getElementById('temporary-stay-container');
+            container.innerHTML = '<p class="text-muted">Không có thông tin lưu trú tạm thời.</p>';
+        }
+
+        // Form validation
+        $(document).ready(function() {
+            $('form').on('submit', function(e) {
+                let isValid = true;
+
+                // Validate required fields
+                $(this).find('input[required], select[required], textarea[required]').each(function() {
+                    if (!$(this).val()) {
+                        isValid = false;
+                        $(this).addClass('is-invalid');
+                    } else {
+                        $(this).removeClass('is-invalid');
+                    }
+                });
+
+                // Validate date range for temporary stay
+                const fromDate = $('input[name="TemporaryStay.FromDate"]').val();
+                const toDate = $('input[name="TemporaryStay.ToDate"]').val();
+
+                if (fromDate && toDate && new Date(fromDate) >= new Date(toDate)) {
+                    alert('Ngày kết thúc phải sau ngày bắt đầu!');
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+                    alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
+                }
+            });
+        });
+    </script>
+}

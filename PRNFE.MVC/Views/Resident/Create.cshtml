@@ -1,0 +1,290 @@
+﻿@model ResidentRequest
+@{
+    ViewData["Title"] = "Thêm cư dân mới";
+}
+
+<div class="auth-container bg-decoration">
+    <div class="auth-card" style="max-width: 900px;">
+        <a href="@Url.Action("Index", "Resident")" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Về danh sách cư dân
+        </a>
+
+        <div class="glass-card p-4">
+            <div class="text-center mb-4">
+                <div class="auth-logo">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h2 class="auth-title">Thêm cư dân mới</h2>
+                <p class="auth-subtitle">Nhập thông tin cư dân mới vào hệ thống</p>
+            </div>
+
+            <form method="post" asp-action="Create">
+                <!-- Basic Information -->
+                <div class="section-header">
+                    <h5><i class="fas fa-user me-2"></i>Thông tin cơ bản</h5>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-id-badge input-icon"></i>
+                            <input type="number" class="form-control glass-input" asp-for="UserId" placeholder="User ID" required>
+                            <span asp-validation-for="UserId" class="text-danger small"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" class="form-control glass-input" asp-for="FullName" placeholder="Họ và tên" required>
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-phone input-icon"></i>
+                            <input type="tel" class="form-control glass-input" asp-for="PhoneNumber" placeholder="Số điện thoại" required>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input type="email" class="form-control glass-input" asp-for="Email" placeholder="Email" required>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-calendar input-icon"></i>
+                            <input type="date" class="form-control glass-input" asp-for="DateOfBirth" required>
+                            <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-venus-mars input-icon"></i>
+                            <select class="form-control glass-input" asp-for="Gender" required>
+                                <option value="">Chọn giới tính</option>
+                                <option value="true">Nam</option>
+                                <option value="false">Nữ</option>
+                            </select>
+                            <span asp-validation-for="Gender" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group-glass">
+                    <i class="fas fa-map-marker-alt input-icon"></i>
+                    <input type="text" class="form-control glass-input" asp-for="Address" placeholder="Địa chỉ" required>
+                    <span asp-validation-for="Address" class="text-danger small"></span>
+                </div>
+
+                <!-- Rooms Section -->
+                <div class="section-header mt-4">
+                    <h5><i class="fas fa-door-open me-2"></i>Phòng ở</h5>
+                </div>
+
+                <div id="roomsContainer">
+                    <div class="room-item">
+                        <div class="input-group-glass">
+                            <i class="fas fa-door-open input-icon"></i>
+                            <input type="number" class="form-control glass-input" name="Rooms[0].RoomId" placeholder="Room ID" min="1">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-room" style="display: none;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addRoom()">
+                    <i class="fas fa-plus me-1"></i>
+                    Thêm phòng
+                </button>
+
+                <!-- Vehicles Section -->
+                <div class="section-header">
+                    <h5><i class="fas fa-car me-2"></i>Phương tiện</h5>
+                </div>
+
+                <div id="vehiclesContainer">
+                    <div class="vehicle-item">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group-glass">
+                                    <i class="fas fa-car input-icon"></i>
+                                    <select class="form-control glass-input" name="Vehicles[0].Type">
+                                        <option value="">Chọn loại xe</option>
+                                        <option value="0">Xe máy</option>
+                                        <option value="1">Ô tô</option>
+                                        <option value="2">Xe đạp</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group-glass">
+                                    <i class="fas fa-id-card input-icon"></i>
+                                    <input type="text" class="form-control glass-input" name="Vehicles[0].LicensePlate" placeholder="Biển số xe">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-vehicle" style="display: none;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addVehicle()">
+                    <i class="fas fa-plus me-1"></i>
+                    Thêm phương tiện
+                </button>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-gradient">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Thêm cư dân
+                    </button>
+                    <a href="@Url.Action("Index", "Resident")" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>
+                        Hủy
+                    </a>
+                </div>
+            </form>
+
+            @if (!string.IsNullOrEmpty(ViewBag.Message))
+            {
+                <div class="mt-3">
+                    <div class="alert @(ViewBag.IsSuccess ? "alert-success" : "alert-danger")">
+                        <i class="fas @(ViewBag.IsSuccess ? "fa-check-circle" : "fa-exclamation-triangle") me-2"></i>
+                        @ViewBag.Message
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .section-header {
+        border-bottom: 2px solid #ec4899;
+        margin-bottom: 15px;
+        padding-bottom: 5px;
+    }
+
+        .section-header h5 {
+            color: #ec4899;
+            margin: 0;
+        }
+
+    .room-item, .vehicle-item {
+        margin-bottom: 10px;
+    }
+
+    .remove-room, .remove-vehicle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        let roomIndex = 1;
+        let vehicleIndex = 1;
+
+        function addRoom() {
+            const container = document.getElementById('roomsContainer');
+            const newRoom = document.createElement('div');
+            newRoom.className = 'room-item';
+            newRoom.innerHTML = `
+                <div class="input-group-glass">
+                    <i class="fas fa-door-open input-icon"></i>
+                    <input type="number" class="form-control glass-input" name="Rooms[${roomIndex}].RoomId" placeholder="Room ID" min="1">
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-room" onclick="removeRoom(this)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(newRoom);
+            roomIndex++;
+            updateRemoveButtons();
+        }
+
+        function addVehicle() {
+            const container = document.getElementById('vehiclesContainer');
+            const newVehicle = document.createElement('div');
+            newVehicle.className = 'vehicle-item';
+            newVehicle.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-car input-icon"></i>
+                            <select class="form-control glass-input" name="Vehicles[${vehicleIndex}].Type">
+                                <option value="">Chọn loại xe</option>
+                                <option value="0">Xe máy</option>
+                                <option value="1">Ô tô</option>
+                                <option value="2">Xe đạp</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group-glass">
+                            <i class="fas fa-id-card input-icon"></i>
+                            <input type="text" class="form-control glass-input" name="Vehicles[${vehicleIndex}].LicensePlate" placeholder="Biển số xe">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-vehicle" onclick="removeVehicle(this)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(newVehicle);
+            vehicleIndex++;
+            updateRemoveButtons();
+        }
+
+        function removeRoom(button) {
+            button.closest('.room-item').remove();
+            updateRemoveButtons();
+        }
+
+        function removeVehicle(button) {
+            button.closest('.vehicle-item').remove();
+            updateRemoveButtons();
+        }
+
+        function updateRemoveButtons() {
+            const roomItems = document.querySelectorAll('.room-item');
+            const vehicleItems = document.querySelectorAll('.vehicle-item');
+
+            roomItems.forEach((item, index) => {
+                const removeBtn = item.querySelector('.remove-room');
+                if (removeBtn) {
+                    removeBtn.style.display = roomItems.length > 1 ? 'block' : 'none';
+                }
+            });
+
+            vehicleItems.forEach((item, index) => {
+                const removeBtn = item.querySelector('.remove-vehicle');
+                if (removeBtn) {
+                    removeBtn.style.display = vehicleItems.length > 1 ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Initialize remove buttons visibility
+        document.addEventListener('DOMContentLoaded', function() {
+            updateRemoveButtons();
+        });
+    </script>
+
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
