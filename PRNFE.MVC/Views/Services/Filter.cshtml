@@ -1,0 +1,288 @@
+﻿@model PRNFE.MVC.Models.Request.FilterServiceRequest
+
+@{
+    ViewData["Title"] = "Lọc và tìm kiếm dịch vụ";
+    var filteredServices = ViewBag.FilteredServices as List<PRNFE.MVC.Models.Response.ServiceResponse>;
+    var filterApplied = ViewBag.FilterApplied as bool? ?? false;
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-filter me-2"></i>@ViewData["Title"]
+                        </h4>
+                        <a href="@Url.Action("Index", "Services")" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(TempData["Message"]?.ToString()))
+                    {
+                        <div class="alert @(TempData["IsSuccess"]?.ToString() == "True" ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+                            <i class="fas @(TempData["IsSuccess"]?.ToString() == "True" ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
+                            @TempData["Message"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form method="post" asp-action="Filter" id="filterForm">
+                        <!-- Search Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">
+                                    <i class="fas fa-search me-2"></i>Tìm kiếm
+                                </h5>
+                                <div class="card border-primary">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <div class="mb-3">
+                                                    <label asp-for="Name" class="form-label">
+                                                        <i class="fas fa-tag me-1"></i>Tên dịch vụ
+                                                    </label>
+                                                    <input asp-for="Name" class="form-control form-control-lg" placeholder="Nhập tên dịch vụ cần tìm..." />
+                                                    <span asp-validation-for="Name" class="text-danger small"></span>
+                                                    <div class="form-text">Tìm kiếm theo tên dịch vụ (không phân biệt chữ hoa/thường)</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label class="form-label">
+                                                        <i class="fas fa-magic me-1"></i>Tìm kiếm nhanh
+                                                    </label>
+                                                    <div class="d-grid gap-2">
+                                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="quickSearch('Internet')">
+                                                            <i class="fas fa-wifi me-1"></i>Internet
+                                                        </button>
+                                                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="quickSearch('Điện')">
+                                                            <i class="fas fa-bolt me-1"></i>Điện
+                                                        </button>
+                                                        <button type="button" class="btn btn-outline-info btn-sm" onclick="quickSearch('Nước')">
+                                                            <i class="fas fa-tint me-1"></i>Nước
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filter Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-success mb-3">
+                                    <i class="fas fa-sliders-h me-2"></i>Bộ lọc nâng cao
+                                </h5>
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label asp-for="IsMandatory" class="form-label">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Loại dịch vụ
+                                                    </label>
+                                                    <select asp-for="IsMandatory" class="form-select">
+                                                        <option value="">-- Tất cả loại dịch vụ --</option>
+                                                        <option value="true">Dịch vụ bắt buộc</option>
+                                                        <option value="false">Dịch vụ tùy chọn</option>
+                                                    </select>
+                                                    <div class="form-text">Lọc theo tính chất bắt buộc của dịch vụ</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label asp-for="IsActive" class="form-label">
+                                                        <i class="fas fa-power-off me-1"></i>Trạng thái hoạt động
+                                                    </label>
+                                                    <select asp-for="IsActive" class="form-select">
+                                                        <option value="">-- Tất cả trạng thái --</option>
+                                                        <option value="true">Đang hoạt động</option>
+                                                        <option value="false">Tạm dừng</option>
+                                                    </select>
+                                                    <div class="form-text">Lọc theo trạng thái hoạt động</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    <label asp-for="PageSize" class="form-label">
+                                                        <i class="fas fa-list me-1"></i>Số kết quả mỗi trang
+                                                    </label>
+                                                    <select asp-for="PageSize" class="form-select">
+                                                        <option value="5">5 kết quả</option>
+                                                        <option value="10" selected>10 kết quả</option>
+                                                        <option value="20">20 kết quả</option>
+                                                        <option value="50">50 kết quả</option>
+                                                        <option value="100">100 kết quả</option>
+                                                    </select>
+                                                    <div class="form-text">Số lượng dịch vụ hiển thị mỗi trang</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <a href="@Url.Action("Index", "Services")" class="btn btn-secondary">
+                                    <i class="fas fa-times me-1"></i> Hủy bỏ
+                                </a>
+                                <button type="button" class="btn btn-outline-warning ms-2" onclick="clearForm()">
+                                    <i class="fas fa-eraser me-1"></i> Xóa tất cả bộ lọc
+                                </button>
+                            </div>
+                            <div>
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <i class="fas fa-filter me-1"></i> Áp dụng bộ lọc
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Filter Results -->
+            @if (filterApplied && filteredServices != null)
+            {
+                <div class="card mt-4 shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Kết quả lọc (@filteredServices.Count dịch vụ)
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (filteredServices.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Tên dịch vụ</th>
+                                            <th>Đơn vị</th>
+                                            <th>Giá</th>
+                                            <th>Loại</th>
+                                            <th>Trạng thái</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var service in filteredServices)
+                                        {
+                                            <tr>
+                                                <td><strong>#@service.Id</strong></td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="fas fa-cog text-primary me-2"></i>
+                                                        <strong>@service.Name</strong>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-light text-dark">@service.Unit</span>
+                                                </td>
+                                                <td>
+                                                    <span class="text-success fw-bold">@service.PricePerUnit.ToString("N0") VNĐ</span>
+                                                </td>
+                                                <td>
+                                                    @if (service.IsMandatory)
+                                                    {
+                                                        <span class="badge bg-warning">
+                                                            <i class="fas fa-exclamation-triangle me-1"></i>Bắt buộc
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-info">
+                                                            <i class="fas fa-hand-paper me-1"></i>Tùy chọn
+                                                        </span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (service.IsActive)
+                                                    {
+                                                        <span class="badge bg-success">
+                                                            <i class="fas fa-check-circle me-1"></i>Hoạt động
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary">
+                                                            <i class="fas fa-pause-circle me-1"></i>Tạm dừng
+                                                        </span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="@Url.Action("Details", "Services", new { id = service.Id })"
+                                                           class="btn btn-outline-info" title="Xem chi tiết">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="@Url.Action("Edit", "Services", new { id = service.Id })"
+                                                           class="btn btn-outline-warning" title="Chỉnh sửa">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">Không tìm thấy dịch vụ nào</h5>
+                                <p class="text-muted">Thử thay đổi điều kiện lọc để tìm thấy kết quả phù hợp</p>
+                                <button type="button" class="btn btn-outline-primary" onclick="clearForm()">
+                                    <i class="fas fa-eraser me-1"></i>Xóa bộ lọc
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('filterForm');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Đang lọc...';
+
+                setTimeout(function() {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-filter me-1"></i> Áp dụng bộ lọc';
+                }, 3000);
+            });
+        });
+
+        function quickSearch(term) {
+            document.querySelector('input[name="Name"]').value = term;
+        }
+
+        function clearForm() {
+            document.querySelector('input[name="Name"]').value = '';
+            document.querySelector('select[name="IsMandatory"]').value = '';
+            document.querySelector('select[name="IsActive"]').value = '';
+            document.querySelector('select[name="PageSize"]').value = '10';
+        }
+    </script>
+}
