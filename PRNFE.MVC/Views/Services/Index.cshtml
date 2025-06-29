@@ -117,7 +117,10 @@
                                                        class="btn btn-outline-warning" title="Chỉnh sửa">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
-                                                   
+                                                    <button type="button" class="btn btn-outline-danger"
+                                                            onclick="confirmDelete(@item.Id, '@item.Name')" title="Xóa">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>

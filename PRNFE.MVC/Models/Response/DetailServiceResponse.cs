@@ -10,19 +10,27 @@
         public bool IsActive { get; set; }
         public DateTime CreateAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public List<RoomServiceResponse>? Rooms { get; set; }
+        public List<RoomServiceDetailResponse>? Rooms { get; set; }
     }
 
-    public class RoomServiceResponse
+    public class RoomServiceDetailResponse
+    {
+        public int RoomId { get; set; }
+        public decimal CustomPrice { get; set; }
+        public RoomDetailInfo? Room { get; set; }
+    }
+
+    public class RoomDetailInfo
     {
         public int Id { get; set; }
-        public decimal CustomPrice { get; set; }
-        public RoomInfo? Room { get; set; }
-    }
-
-    public class RoomInfo
-    {
+        public int TenantId { get; set; }
         public string RoomNumber { get; set; } = string.Empty;
-        public int? Floor { get; set; }
+        public int Floor { get; set; }
+        public decimal Area { get; set; }
+        public int RoomTypeId { get; set; }
+        public int MaxOpt { get; set; }
+        public int Status { get; set; }
+        public DateTime CreateAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
     }
 }

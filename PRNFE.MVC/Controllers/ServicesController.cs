@@ -374,6 +374,41 @@ namespace PRNFE.MVC.Controllers
                 Console.WriteLine($"Error: {ex.Message}");
                 return Json(new { success = false, message = "Có lỗi xảy ra" });
             }
+
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateCustomPrice([FromBody] UpdateCustomPriceRequest request)
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PutAsync($"{_apiBaseUrl}/api/Services/{request.ServiceId}/rooms/{request.RoomId}/custom-price", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return Json(new { success = true });
+                }
+                else
+                {
+                    return Json(new { success = false });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                return Json(new { success = false });
+            }
+        }
+
+        // Thêm model request
+        public class UpdateCustomPriceRequest
+        {
+            public int ServiceId { get; set; }
+            public int RoomId { get; set; }
+            public decimal CustomPrice { get; set; }
         }
     }
 }
