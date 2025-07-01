@@ -18,7 +18,7 @@ namespace PRNFE.MVC.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int size = 10)
+        public async Task<IActionResult> Index(int page = 1, int size = 30)
         {
             try
             {
@@ -52,9 +52,20 @@ namespace PRNFE.MVC.Controllers
             return View(new List<ServiceResponse>());
         }
 
+
         [HttpGet]
         public IActionResult Create()
         {
+            // Check if buildingId exists in cookies
+            var buildingId = Request.Cookies["buildingId"];
+            if (string.IsNullOrEmpty(buildingId))
+            {
+                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Index");
+            }
+
+            ViewBag.BuildingId = buildingId;
             return View(new CreateServiceRequest());
         }
 
@@ -64,15 +75,38 @@ namespace PRNFE.MVC.Controllers
         {
             if (!ModelState.IsValid)
             {
+                var buildingId = Request.Cookies["buildingId"];
+                ViewBag.BuildingId = buildingId;
                 return View(request);
             }
 
             try
             {
+                // Get buildingId from cookies
+                var buildingId = Request.Cookies["buildingId"];
+                if (string.IsNullOrEmpty(buildingId))
+                {
+                    TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                    TempData["IsSuccess"] = false;
+                    ViewBag.BuildingId = buildingId;
+                    return View(request);
+                }
+
+                // Create HttpClient with cookies
+                using var httpClient = _httpClientFactory.CreateClient();
+                httpClient.BaseAddress = new Uri(_apiBaseUrl);
+
+                // Add cookies to the request
+                httpClient.DefaultRequestHeaders.Add("Cookie", $"buildingId={buildingId}");
+
+                // Alternative: Add cookie header manually
+                var cookieHeader = string.Join("; ", Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
+                httpClient.DefaultRequestHeaders.Add("Cookie", cookieHeader);
+
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/Services", content);
+                var response = await httpClient.PostAsync("/api/Services", content);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -85,6 +119,10 @@ namespace PRNFE.MVC.Controllers
                     var errorContent = await response.Content.ReadAsStringAsync();
                     TempData["Message"] = $"Không thể tạo dịch vụ: {errorContent}";
                     TempData["IsSuccess"] = false;
+
+                    // Log for debugging
+                    Console.WriteLine($"API Error: {errorContent}");
+                    Console.WriteLine($"BuildingId from cookie: {buildingId}");
                 }
             }
             catch (Exception ex)
@@ -94,9 +132,96 @@ namespace PRNFE.MVC.Controllers
                 Console.WriteLine($"Error: {ex.Message}");
             }
 
+            var buildingIdForView = Request.Cookies["buildingId"];
+            ViewBag.BuildingId = buildingIdForView;
             return View(request);
         }
 
+        // Alternative approach: Override the base HTTP client configuration
+        private async Task<HttpResponseMessage> SendRequestWithCookies(HttpMethod method, string endpoint, object data = null)
+        {
+            using var httpClient = _httpClientFactory.CreateClient();
+            httpClient.BaseAddress = new Uri(_apiBaseUrl);
+
+            // Add all cookies from the current request
+            var cookieHeader = string.Join("; ", Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
+            if (!string.IsNullOrEmpty(cookieHeader))
+            {
+                httpClient.DefaultRequestHeaders.Add("Cookie", cookieHeader);
+            }
+
+            HttpContent content = null;
+            if (data != null)
+            {
+                var json = JsonConvert.SerializeObject(data);
+                content = new StringContent(json, Encoding.UTF8, "application/json");
+            }
+
+            var request = new HttpRequestMessage(method, endpoint)
+            {
+                Content = content
+            };
+
+            return await httpClient.SendAsync(request);
+        }
+
+        // Updated Create method using the helper
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateWithHelper(CreateServiceRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var buildingId = Request.Cookies["buildingId"];
+                ViewBag.BuildingId = buildingId;
+                return View("Create", request);
+            }
+
+            try
+            {
+                // Check buildingId exists
+                var buildingId = Request.Cookies["buildingId"];
+                if (string.IsNullOrEmpty(buildingId))
+                {
+                    TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                    TempData["IsSuccess"] = false;
+                    ViewBag.BuildingId = buildingId;
+                    return View("Create", request);
+                }
+
+                Console.WriteLine($"Creating service with buildingId: {buildingId}");
+                Console.WriteLine($"Request data: {JsonConvert.SerializeObject(request)}");
+
+                var response = await SendRequestWithCookies(HttpMethod.Post, "/api/Services", request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["Message"] = "Tạo dịch vụ thành công!";
+                    TempData["IsSuccess"] = true;
+                    return RedirectToAction(nameof(Index));
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    TempData["Message"] = $"Không thể tạo dịch vụ: {errorContent}";
+                    TempData["IsSuccess"] = false;
+
+                    Console.WriteLine($"API Error Response: {errorContent}");
+                    Console.WriteLine($"Response Status: {response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["Message"] = "Có lỗi xảy ra khi tạo dịch vụ!";
+                TempData["IsSuccess"] = false;
+                Console.WriteLine($"Exception: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+            }
+
+            var buildingIdForView = Request.Cookies["buildingId"];
+            ViewBag.BuildingId = buildingIdForView;
+            return View("Create", request);
+        }
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
@@ -128,87 +253,141 @@ namespace PRNFE.MVC.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Edit(int id)
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services/{id}");
+        //[HttpGet]
+        //public async Task<IActionResult> Edit(int id)
+        //{
+        //    try
+        //    {
+        //        var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services/{id}");
 
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var service = JsonConvert.DeserializeObject<ServiceResponse>(json);
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            var json = await response.Content.ReadAsStringAsync();
+        //            var service = JsonConvert.DeserializeObject<DetailServiceResponse>(json);
 
-                    if (service != null)
-                    {
-                        var updateRequest = new UpdateServiceRequest
-                        {
-                            Name = service.Name,
-                            Unit = service.Unit,
-                            PricePerUnit = service.PricePerUnit,
-                            IsMandatory = service.IsMandatory,
-                            IsActive = service.IsActive
-                        };
+        //            if (service != null)
+        //            {
+        //                var updateRequest = new UpdateServiceRequest
+        //                {
+        //                    Name = service.Name,
+        //                    Unit = service.Unit,
+        //                    PricePerUnit = service.PricePerUnit,
+        //                    IsMandatory = service.IsMandatory,
+        //                    IsActive = service.IsActive,
+        //                    RoomServices = service.RoomServices?.Select(rs => new RoomInServiceRequest
+        //                    {
+        //                        RoomId = rs.RoomId,
+        //                        CustomPrice = rs.CustomPrice,
+        //                        Room = rs.Room != null ? new RoomDetailRequest
+        //                        {
+        //                            Id = rs.Room.Id,
+        //                            TenantId = rs.Room.TenantId,
+        //                            RoomNumber = rs.Room.RoomNumber,
+        //                            Floor = rs.Room.Floor,
+        //                            Area = rs.Room.Area,
+        //                            RoomTypeId = rs.Room.RoomTypeId,
+        //                            MaxOpt = rs.Room.MaxOpt,
+        //                            Status = rs.Room.Status,
+        //                            CreateAt = rs.Room.CreateAt,
+        //                            UpdatedAt = rs.Room.UpdatedAt
+        //                        } : null
+        //                    }).ToList() ?? new List<RoomInServiceRequest>()
+        //                };
 
-                        ViewBag.ServiceId = id;
-                        return View(updateRequest);
-                    }
-                }
+        //                ViewBag.ServiceId = id;
+        //                ViewBag.AvailableRooms = await GetAvailableRooms();
+        //                return View(updateRequest);
+        //            }
+        //        }
 
-                TempData["Message"] = "Không tìm thấy dịch vụ!";
-                TempData["IsSuccess"] = false;
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Có lỗi xảy ra khi tải thông tin dịch vụ!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
+        //        TempData["Message"] = "Không tìm thấy dịch vụ!";
+        //        TempData["IsSuccess"] = false;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        TempData["Message"] = "Có lỗi xảy ra khi tải thông tin dịch vụ!";
+        //        TempData["IsSuccess"] = false;
+        //        Console.WriteLine($"Error: {ex.Message}");
+        //    }
 
-            return RedirectToAction(nameof(Index));
-        }
+        //    return RedirectToAction(nameof(Index));
+        //}
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, UpdateServiceRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                ViewBag.ServiceId = id;
-                return View(request);
-            }
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Edit(int id, UpdateServiceRequest request)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        ViewBag.ServiceId = id;
+        //        ViewBag.AvailableRooms = await GetAvailableRooms();
+        //        return View(request);
+        //    }
 
-            try
-            {
-                var json = JsonConvert.SerializeObject(request);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+        //    try
+        //    {
+        //        // Transform to match API expected format exactly
+        //        var apiRequest = new
+        //        {
+        //            name = request.Name,
+        //            unit = request.Unit,
+        //            pricePerUnit = request.PricePerUnit,
+        //            isMandatory = request.IsMandatory,
+        //            isActive = request.IsActive,
+        //            roomServices = request.RoomServices.Select(rs => new
+        //            {
+        //                roomId = rs.RoomId,
+        //                customPrice = rs.CustomPrice,
+        //                room = rs.Room != null ? new
+        //                {
+        //                    id = rs.Room.Id,
+        //                    tenantId = rs.Room.TenantId,
+        //                    roomNumber = rs.Room.RoomNumber,
+        //                    floor = rs.Room.Floor,
+        //                    area = rs.Room.Area,
+        //                    roomTypeId = rs.Room.RoomTypeId,
+        //                    maxOpt = rs.Room.MaxOpt,
+        //                    status = rs.Room.Status,
+        //                    createAt = rs.Room.CreateAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+        //                    updatedAt = rs.Room.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+        //                } : null
+        //            }).ToArray()
+        //        };
 
-                var response = await _httpClient.PutAsync($"{_apiBaseUrl}/api/Services/{id}", content);
+        //        var json = JsonConvert.SerializeObject(apiRequest, new JsonSerializerSettings
+        //        {
+        //            DateFormatHandling = DateFormatHandling.IsoDateFormat,
+        //            DateTimeZoneHandling = DateTimeZoneHandling.Utc
+        //        });
 
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Message"] = "Cập nhật dịch vụ thành công!";
-                    TempData["IsSuccess"] = true;
-                    return RedirectToAction(nameof(Details), new { id = id });
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["Message"] = $"Không thể cập nhật dịch vụ: {errorContent}";
-                    TempData["IsSuccess"] = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Có lỗi xảy ra khi cập nhật dịch vụ!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
+        //        var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            ViewBag.ServiceId = id;
-            return View(request);
-        }
+        //        var response = await _httpClient.PutAsync($"{_apiBaseUrl}/api/Services/{id}", content);
+
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            TempData["Message"] = "Cập nhật dịch vụ thành công!";
+        //            TempData["IsSuccess"] = true;
+        //            return RedirectToAction(nameof(Details), new { id = id });
+        //        }
+        //        else
+        //        {
+        //            var errorContent = await response.Content.ReadAsStringAsync();
+        //            TempData["Message"] = $"Không thể cập nhật dịch vụ: {errorContent}";
+        //            TempData["IsSuccess"] = false;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        TempData["Message"] = "Có lỗi xảy ra khi cập nhật dịch vụ!";
+        //        TempData["IsSuccess"] = false;
+        //        Console.WriteLine($"Error: {ex.Message}");
+        //    }
+
+        //    ViewBag.ServiceId = id;
+        //    ViewBag.AvailableRooms = await GetAvailableRooms();
+        //    return View(request);
+        //}
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -252,35 +431,48 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                // Build query parameters
-                var queryParams = new List<string>();
-
-                if (!string.IsNullOrEmpty(request.Name))
+                // Validate building ID
+                if (!ValidateBuildingId())
                 {
-                    queryParams.Add($"name={Uri.EscapeDataString(request.Name)}");
+                    TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                    TempData["IsSuccess"] = false;
+                    return View(request);
                 }
 
-                if (request.IsMandatory.HasValue)
+                // Create filter object matching API structure
+                var filterDto = new
                 {
-                    queryParams.Add($"isMandatory={request.IsMandatory.Value}");
-                }
+                    name = request.Name ?? string.Empty,
+                    isMandatory = request.IsMandatory
+                    // Note: API doesn't support isActive filter based on your API structure
+                };
 
-                if (request.IsActive.HasValue)
-                {
-                    queryParams.Add($"isActive={request.IsActive.Value}");
-                }
+                using var httpClient = CreateHttpClientWithCookies();
 
-                queryParams.Add($"pageSize={request.PageSize}");
+                var json = JsonConvert.SerializeObject(filterDto);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var queryString = string.Join("&", queryParams);
-                var apiUrl = $"{_apiBaseUrl}/api/Services/filter?{queryString}";
+                Console.WriteLine($"Sending filter request: {json}");
+                Console.WriteLine($"BuildingId: {GetBuildingId()}");
 
-                var response = await _httpClient.GetAsync(apiUrl);
+                var response = await httpClient.PostAsync("api/Services/filter", content);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var services = JsonConvert.DeserializeObject<List<ServiceResponse>>(json);
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var services = JsonConvert.DeserializeObject<List<ServiceResponse>>(responseJson);
+
+                    // Apply client-side filtering for IsActive since API doesn't support it
+                    if (request.IsActive.HasValue)
+                    {
+                        services = services?.Where(s => s.IsActive == request.IsActive.Value).ToList();
+                    }
+
+                    // Apply PageSize limit
+                    if (services != null && services.Count > request.PageSize)
+                    {
+                        services = services.Take(request.PageSize).ToList();
+                    }
 
                     ViewBag.FilteredServices = services ?? new List<ServiceResponse>();
                     ViewBag.FilterApplied = true;
@@ -289,10 +481,14 @@ namespace PRNFE.MVC.Controllers
                 }
                 else
                 {
+                    var errorContent = await response.Content.ReadAsStringAsync();
                     ViewBag.FilteredServices = new List<ServiceResponse>();
                     ViewBag.FilterApplied = true;
-                    TempData["Message"] = "Không tìm thấy dịch vụ nào phù hợp!";
+                    TempData["Message"] = $"Không thể lọc dịch vụ: {errorContent}";
                     TempData["IsSuccess"] = false;
+
+                    Console.WriteLine($"API Error: {response.StatusCode}");
+                    Console.WriteLine($"Error Content: {errorContent}");
                 }
             }
             catch (Exception ex)
@@ -302,11 +498,11 @@ namespace PRNFE.MVC.Controllers
                 TempData["Message"] = "Có lỗi xảy ra khi lọc dịch vụ!";
                 TempData["IsSuccess"] = false;
                 Console.WriteLine($"Error: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
             }
 
             return View(request);
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleStatus(int id)

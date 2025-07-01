@@ -16,6 +16,8 @@ namespace PRNFE.MVC.Models.Request
         public decimal PricePerUnit { get; set; }
 
         public bool IsMandatory { get; set; } = false;
+        public bool IsActive { get; set; }
+
     }
 
     public class UpdateServiceRequest

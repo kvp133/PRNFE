@@ -3,7 +3,6 @@
 @{
     ViewData["Title"] = "Chi tiết dịch vụ";
 
-    // Helper function to get room status text and color
     string GetRoomStatusText(int status) => status switch
     {
         0 => "Trống",
@@ -23,9 +22,9 @@
     };
 }
 
-<div class="container">
+<div class="container py-4">
     <div class="row justify-content-center">
-        <div class="col-md-12">
+        <div class="col-12">
             <!-- Header Card -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white">
@@ -56,7 +55,7 @@
 
             <div class="row">
                 <!-- Main Information -->
-                <div class="col-md-8">
+                <div class="col-lg-8">
                     <div class="card shadow-sm mb-4">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0">
@@ -65,138 +64,75 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted">
-                                            <i class="fas fa-hashtag me-1"></i>ID Dịch vụ
-                                        </label>
-                                        <div class="form-control-plaintext fw-bold">#@Model.Id</div>
-                                    </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">
+                                        <i class="fas fa-hashtag me-1"></i>ID Dịch vụ
+                                    </label>
+                                    <div class="fw-bold">#@Model.Id</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted">
-                                            <i class="fas fa-tag me-1"></i>Tên dịch vụ
-                                        </label>
-                                        <div class="form-control-plaintext fw-bold text-primary">@Model.Name</div>
-                                    </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">
+                                        <i class="fas fa-tag me-1"></i>Tên dịch vụ
+                                    </label>
+                                    <div class="fw-bold text-primary">@Model.Name</div>
                                 </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted">
-                                            <i class="fas fa-ruler me-1"></i>Đơn vị tính
-                                        </label>
-                                        <div class="form-control-plaintext">
-                                            <span class="badge bg-light text-dark fs-6">@Model.Unit</span>
-                                        </div>
-                                    </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">
+                                        <i class="fas fa-ruler me-1"></i>Đơn vị tính
+                                    </label>
+                                    <span class="badge bg-light text-dark fs-6">@Model.Unit</span>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted">
-                                            <i class="fas fa-money-bill-wave me-1"></i>Giá mỗi đơn vị
-                                        </label>
-                                        <div class="form-control-plaintext">
-                                            <span class="h5 text-success fw-bold">@Model.PricePerUnit.ToString("N2") VNĐ</span>
-                                        </div>
-                                    </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">
+                                        <i class="fas fa-money-bill-wave me-1"></i>Giá mỗi đơn vị
+                                    </label>
+                                    <span class="h5 text-success fw-bold">@Model.PricePerUnit.ToString("N2") VNĐ</span>
                                 </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>Loại dịch vụ
-                                        </label>
-                                        <div class="form-control-plaintext">
-                                            @if (Model.IsMandatory)
-                                            {
-                                                <span class="badge bg-warning fs-6">
-                                                    <i class="fas fa-exclamation-triangle me-1"></i>Bắt buộc
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-info fs-6">
-                                                    <i class="fas fa-hand-paper me-1"></i>Tùy chọn
-                                                </span>
-                                            }
-                                        </div>
-                                    </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>Loại dịch vụ
+                                    </label>
+                                    <span class="badge @(Model.IsMandatory ? "bg-warning" : "bg-info") fs-6">
+                                        <i class="fas @(Model.IsMandatory ? "fa-exclamation-triangle" : "fa-hand-paper") me-1"></i>
+                                        @(Model.IsMandatory ? "Bắt buộc" : "Tùy chọn")
+                                    </span>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted">
-                                            <i class="fas fa-power-off me-1"></i>Trạng thái
-                                        </label>
-                                        <div class="form-control-plaintext">
-                                            @if (Model.IsActive)
-                                            {
-                                                <span class="badge bg-success fs-6">
-                                                    <i class="fas fa-check-circle me-1"></i>Đang hoạt động
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-secondary fs-6">
-                                                    <i class="fas fa-pause-circle me-1"></i>Tạm dừng
-                                                </span>
-                                            }
-                                        </div>
-                                    </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">
+                                        <i class="fas fa-power-off me-1"></i>Trạng thái
+                                    </label>
+                                    <span class="badge @(Model.IsActive ? "bg-success" : "bg-secondary") fs-6">
+                                        <i class="fas @(Model.IsActive ? "fa-check-circle" : "fa-pause-circle") me-1"></i>
+                                        @(Model.IsActive ? "Đang hoạt động" : "Tạm dừng")
+                                    </span>
                                 </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted">
-                                            <i class="fas fa-calendar-plus me-1"></i>Ngày tạo
-                                        </label>
-                                        <div class="form-control-plaintext">@Model.CreateAt.ToString("dd/MM/yyyy HH:mm")</div>
-                                    </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">
+                                        <i class="fas fa-calendar-plus me-1"></i>Ngày tạo
+                                    </label>
+                                    <div>@Model.CreateAt.ToString("dd/MM/yyyy HH:mm")</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted">
-                                            <i class="fas fa-calendar-edit me-1"></i>Cập nhật lần cuối
-                                        </label>
-                                        <div class="form-control-plaintext">
-                                            @if (Model.UpdatedAt.HasValue)
-                                            {
-                                                @Model.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">Chưa cập nhật</span>
-                                            }
-                                        </div>
-                                    </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">
+                                        <i class="fas fa-calendar-edit me-1"></i>Cập nhật lần cuối
+                                    </label>
+                                    <div>@(Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa cập nhật")</div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Rooms Using This Service -->
-                    @if (Model.Rooms != null && Model.Rooms.Any())
+                    @if (Model.Rooms?.Any() == true)
                     {
                         <div class="card shadow-sm">
                             <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0">
                                     <i class="fas fa-home me-2"></i>Phòng sử dụng dịch vụ (@Model.Rooms.Count())
                                 </h5>
-                                <div class="btn-group btn-group-sm">
-                                    <button type="button" class="btn btn-light btn-sm" onclick="exportRoomList()">
-                                        <i class="fas fa-download me-1"></i>Xuất danh sách
-                                    </button>
-                                    <button type="button" class="btn btn-light btn-sm" onclick="toggleView()">
-                                        <i class="fas fa-th me-1"></i>Đổi view
-                                    </button>
-                                </div>
+                                <button type="button" class="btn btn-light btn-sm" onclick="toggleView()">
+                                    <i class="fas fa-th me-1"></i>Đổi view
+                                </button>
                             </div>
                             <div class="card-body p-0">
                                 <!-- Table View -->
@@ -212,7 +148,7 @@
                                                 <th>Trạng thái</th>
                                                 <th>Giá dịch vụ</th>
                                                 <th>Tiết kiệm/Phụ thu</th>
-                                                <th>Thao tác</th>
+                                                @* <th>Thao tác</th> *@
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -220,13 +156,10 @@
                                             {
                                                 var room = roomService.Room;
                                                 var priceDifference = roomService.CustomPrice - Model.PricePerUnit;
-
                                                 <tr>
                                                     <td>
                                                         <div class="d-flex align-items-center">
-                                                            <div class="room-icon me-2">
-                                                                <i class="fas fa-door-open text-primary"></i>
-                                                            </div>
+                                                            <i class="fas fa-door-open text-primary me-2"></i>
                                                             <div>
                                                                 <strong class="text-primary">@room?.RoomNumber</strong>
                                                                 <br>
@@ -235,80 +168,60 @@
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <span class="badge bg-light text-dark">
-                                                            <i class="fas fa-building me-1"></i>Tầng @room?.Floor
-                                                        </span>
+                                                        <span class="badge bg-light text-dark">Tầng @room?.Floor</span>
+                                                    </td>
+                                                    <td>@room?.Area.ToString("N1") m²</td>
+                                                    <td>
+                                                        <span class="badge bg-info">@room?.TenantId</span>
                                                     </td>
                                                     <td>
-                                                        <span class="fw-medium">@room?.Area.ToString("N1") m²</span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge bg-info">
-                                                            <i class="fas fa-user me-1"></i>@room?.TenantId
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge bg-secondary">
-                                                            <i class="fas fa-users me-1"></i>@room?.MaxOpt người
-                                                        </span>
+                                                        <span class="badge bg-secondary">@room?.MaxOpt người</span>
                                                     </td>
                                                     <td>
                                                         <span class="badge bg-@GetRoomStatusColor(room?.Status ?? 0)">
-                                                            <i class="fas fa-circle me-1"></i>@GetRoomStatusText(room?.Status ?? 0)
+                                                            @GetRoomStatusText(room?.Status ?? 0)
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <div class="price-info">
-                                                            <div class="fw-bold text-success">@roomService.CustomPrice.ToString("N2") VNĐ</div>
-                                                            <small class="text-muted">/@Model.Unit</small>
-                                                        </div>
+                                                        <div class="fw-bold text-success">@roomService.CustomPrice.ToString("N2") VNĐ</div>
+                                                        <small class="text-muted">/@Model.Unit</small>
                                                     </td>
                                                     <td>
                                                         @if (Math.Abs(priceDifference) < 0.01m)
                                                         {
-                                                            <span class="badge bg-light text-dark">
-                                                                <i class="fas fa-equals me-1"></i>Giá chuẩn
-                                                            </span>
+                                                            <span class="badge bg-light text-dark">Giá chuẩn</span>
                                                         }
                                                         else if (priceDifference > 0)
                                                         {
-                                                            <span class="badge bg-danger">
-                                                                <i class="fas fa-arrow-up me-1"></i>+@priceDifference.ToString("N2") VNĐ
-                                                            </span>
+                                                            <span class="badge bg-danger">+@priceDifference.ToString("N2") VNĐ</span>
                                                         }
                                                         else
                                                         {
-                                                            <span class="badge bg-success">
-                                                                <i class="fas fa-arrow-down me-1"></i>@priceDifference.ToString("N2") VNĐ
-                                                            </span>
+                                                            <span class="badge bg-success">@priceDifference.ToString("N2") VNĐ</span>
                                                         }
                                                     </td>
-                                                    <td>
-                                                        <div class="btn-group btn-group-sm">
-                                                            <button type="button" class="btn btn-outline-info"
-                                                                    onclick="viewRoomDetails(@room?.Id)" title="Xem chi tiết phòng">
-                                                                <i class="fas fa-eye"></i>
-                                                            </button>
-                                                            <button type="button" class="btn btn-outline-warning"
-                                                                    onclick="editCustomPrice(@roomService.RoomId, @roomService.CustomPrice)"
-                                                                    title="Chỉnh sửa giá">
-                                                                <i class="fas fa-edit"></i>
-                                                            </button>
-                                                        </div>
-                                                    </td>
+                                                    @* <td> *@
+                                                    @*     <div class="btn-group btn-group-sm"> *@
+                                                    @*         <button type="button" class="btn btn-outline-info" onclick="viewRoomDetails(@room?.Id)" title="Xem chi tiết phòng"> *@
+                                                    @*             <i class="fas fa-eye"></i> *@
+                                                    @*         </button> *@
+                                                    @*         <button type="button" class="btn btn-outline-warning" onclick="editCustomPrice(@roomService.RoomId, @roomService.CustomPrice)" title="Chỉnh sửa giá"> *@
+                                                    @*             <i class="fas fa-edit"></i> *@
+                                                    @*         </button> *@
+                                                    @*     </div> *@
+                                                    @* </td> *@
                                                 </tr>
                                             }
                                         </tbody>
                                     </table>
                                 </div>
 
-                                <!-- Card View (Hidden by default) -->
+                                <!-- Card View -->
                                 <div id="cardView" class="row p-3" style="display: none;">
                                     @foreach (var roomService in Model.Rooms.OrderBy(r => r.Room?.Floor).ThenBy(r => r.Room?.RoomNumber))
                                     {
                                         var room = roomService.Room;
                                         var priceDifference = roomService.CustomPrice - Model.PricePerUnit;
-
                                         <div class="col-md-6 col-lg-4 mb-3">
                                             <div class="card h-100 border-@GetRoomStatusColor(room?.Status ?? 0)">
                                                 <div class="card-header bg-@GetRoomStatusColor(room?.Status ?? 0) text-white">
@@ -334,35 +247,24 @@
                                                             <div class="fw-bold">#@room?.TenantId</div>
                                                         </div>
                                                     </div>
-
                                                     <div class="text-center mb-3">
                                                         <div class="text-muted small">Giá dịch vụ</div>
                                                         <div class="h5 text-success mb-1">@roomService.CustomPrice.ToString("N2") VNĐ</div>
                                                         @if (Math.Abs(priceDifference) >= 0.01m)
                                                         {
-                                                            <div class="small">
-                                                                @if (priceDifference > 0)
-                                                                {
-                                                                    <span class="text-danger">+@priceDifference.ToString("N2") VNĐ so với giá chuẩn</span>
-                                                                }
-                                                                else
-                                                                {
-                                                                    <span class="text-success">@priceDifference.ToString("N2") VNĐ so với giá chuẩn</span>
-                                                                }
+                                                            <div class="small text-@(priceDifference > 0 ? "danger" : "success")">
+                                                                @(priceDifference > 0 ? "+" : "")@priceDifference.ToString("N2") VNĐ so với giá chuẩn
                                                             </div>
                                                         }
                                                     </div>
-
-                                                    <div class="d-grid gap-2">
-                                                        <button type="button" class="btn btn-outline-info btn-sm"
-                                                                onclick="viewRoomDetails(@room?.Id)">
-                                                            <i class="fas fa-eye me-1"></i>Xem chi tiết
-                                                        </button>
-                                                        <button type="button" class="btn btn-outline-warning btn-sm"
-                                                                onclick="editCustomPrice(@roomService.RoomId, @roomService.CustomPrice)">
-                                                            <i class="fas fa-edit me-1"></i>Chỉnh sửa giá
-                                                        </button>
-                                                    </div>
+                                                    @* <div class="d-grid gap-2"> *@
+                                                    @*     <button type="button" class="btn btn-outline-info btn-sm" onclick="viewRoomDetails(@room?.Id)"> *@
+                                                    @*         <i class="fas fa-eye me-1"></i>Xem chi tiết *@
+                                                    @*     </button> *@
+                                                    @*     <button type="button" class="btn btn-outline-warning btn-sm" onclick="editCustomPrice(@roomService.RoomId, @roomService.CustomPrice)"> *@
+                                                    @*         <i class="fas fa-edit me-1"></i>Chỉnh sửa giá *@
+                                                    @*     </button> *@
+                                                    @* </div> *@
                                                 </div>
                                             </div>
                                         </div>
@@ -382,7 +284,6 @@
                             <div class="card-body text-center py-5">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <h6 class="text-muted">Chưa có phòng nào sử dụng dịch vụ này</h6>
-                                <p class="text-muted">Dịch vụ sẽ được áp dụng khi có phòng đăng ký sử dụng</p>
                                 <a href="#" class="btn btn-outline-primary">
                                     <i class="fas fa-plus me-1"></i>Thêm phòng sử dụng
                                 </a>
@@ -391,36 +292,8 @@
                     }
                 </div>
 
-                <!-- Sidebar -->
-                <div class="col-md-4">
-                    <!-- Quick Actions -->
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-info text-white">
-                            <h6 class="mb-0">
-                                <i class="fas fa-bolt me-2"></i>Thao tác nhanh
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <a href="@Url.Action("Edit", "Services", new { id = Model.Id })" class="btn btn-warning">
-                                    <i class="fas fa-edit me-2"></i>Chỉnh sửa dịch vụ
-                                </a>
-                                <button type="button" class="btn btn-outline-secondary" onclick="toggleStatus(@Model.Id)">
-                                    <i class="fas fa-power-off me-2"></i>
-                                    @(Model.IsActive ? "Tạm dừng" : "Kích hoạt") dịch vụ
-                                </button>
-                                <button type="button" class="btn btn-outline-primary" onclick="copyServiceInfo()">
-                                    <i class="fas fa-copy me-2"></i>Sao chép thông tin
-                                </button>
-                                <hr>
-                                <button type="button" class="btn btn-outline-danger" onclick="confirmDelete(@Model.Id, '@Model.Name')">
-                                    <i class="fas fa-trash me-2"></i>Xóa dịch vụ
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Service Statistics -->
+                <!-- Sidebar Statistics -->
+                <div class="col-lg-4">
                     <div class="card shadow-sm mb-4">
                         <div class="card-header bg-secondary text-white">
                             <h6 class="mb-0">
@@ -430,24 +303,20 @@
                         <div class="card-body">
                             <div class="row text-center mb-3">
                                 <div class="col-6">
-                                    <div class="border-end">
-                                        <div class="h4 text-primary mb-1">@(Model.Rooms?.Count() ?? 0)</div>
-                                        <small class="text-muted">Phòng sử dụng</small>
-                                    </div>
+                                    <div class="h4 text-primary mb-1">@(Model.Rooms?.Count() ?? 0)</div>
+                                    <small class="text-muted">Phòng sử dụng</small>
                                 </div>
                                 <div class="col-6">
                                     <div class="h4 text-success mb-1">@Model.PricePerUnit.ToString("N0")</div>
                                     <small class="text-muted">VNĐ/@Model.Unit</small>
                                 </div>
                             </div>
-
-                            @if (Model.Rooms != null && Model.Rooms.Any())
+                            @if (Model.Rooms?.Any() == true)
                             {
                                 var totalRevenue = Model.Rooms.Sum(r => r.CustomPrice);
                                 var avgPrice = Model.Rooms.Average(r => r.CustomPrice);
                                 var minPrice = Model.Rooms.Min(r => r.CustomPrice);
                                 var maxPrice = Model.Rooms.Max(r => r.CustomPrice);
-
                                 <hr>
                                 <div class="small">
                                     <div class="d-flex justify-content-between mb-1">
@@ -471,11 +340,9 @@
                         </div>
                     </div>
 
-                    <!-- Room Status Distribution -->
-                    @if (Model.Rooms != null && Model.Rooms.Any())
+                    @if (Model.Rooms?.Any() == true)
                     {
                         var statusGroups = Model.Rooms.GroupBy(r => r.Room?.Status ?? 0).ToList();
-
                         <div class="card shadow-sm">
                             <div class="card-header bg-dark text-white">
                                 <h6 class="mb-0">
@@ -486,7 +353,6 @@
                                 @foreach (var group in statusGroups.OrderBy(g => g.Key))
                                 {
                                     var percentage = (double)group.Count() / Model.Rooms.Count * 100;
-
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <span class="badge bg-@GetRoomStatusColor(group.Key)">
@@ -495,8 +361,7 @@
                                             <span class="fw-bold">@group.Count() phòng</span>
                                         </div>
                                         <div class="progress" style="height: 8px;">
-                                            <div class="progress-bar bg-@GetRoomStatusColor(group.Key)"
-                                                 style="width: @percentage.ToString("F1")%"></div>
+                                            <div class="progress-bar bg-@GetRoomStatusColor(group.Key)" style="width: @percentage.ToString("F1")%"></div>
                                         </div>
                                         <small class="text-muted">@percentage.ToString("F1")%</small>
                                     </div>
@@ -545,179 +410,59 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Xác nhận xóa dịch vụ
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-center mb-3">
-                    <i class="fas fa-trash-alt fa-3x text-danger"></i>
-                </div>
-                <p class="text-center">Bạn có chắc chắn muốn xóa dịch vụ "<span id="serviceName"></span>" không?</p>
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Cảnh báo:</strong> Việc xóa dịch vụ sẽ ảnh hưởng đến @(Model.Rooms?.Count() ?? 0) phòng đang sử dụng.
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
-                <form id="deleteForm" method="post" style="display: inline;">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-danger">Xóa vĩnh viễn</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
     <script>
-                function confirmDelete(serviceId, serviceName) {
-                    document.getElementById('serviceName').textContent = serviceName;
-                    document.getElementById('deleteForm').action = '@Url.Action("Delete", "Services")/' + serviceId;
-                    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-                }
-
-                function toggleStatus(serviceId) {
-                    if (confirm('Bạn có chắc chắn muốn thay đổi trạng thái của dịch vụ này?')) {
-                        fetch('@Url.Action("ToggleStatus", "Services")/' + serviceId, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                location.reload();
-                            } else {
-                                alert('Có lỗi xảy ra khi thay đổi trạng thái dịch vụ!');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Có lỗi xảy ra khi thay đổi trạng thái dịch vụ!');
-                        });
-                    }
-                }
-
-                function copyServiceInfo() {
-                    const serviceInfo = `
-        Thông tin dịch vụ:
-        - ID: #@Model.Id
-        - Tên: @Model.Name
-        - Đơn vị: @Model.Unit
-        - Giá: @Model.PricePerUnit.ToString("N2") VNĐ
-        - Loại: @(Model.IsMandatory ? "Bắt buộc" : "Tùy chọn")
-        - Trạng thái: @(Model.IsActive ? "Đang hoạt động" : "Tạm dừng")
-        - Số phòng sử dụng: @(Model.Rooms?.Count() ?? 0)
-                    `.trim();
-
-                    navigator.clipboard.writeText(serviceInfo).then(function() {
-                        const btn = event.target;
-                        const originalText = btn.innerHTML;
-                        btn.innerHTML = '<i class="fas fa-check me-2"></i>Đã sao chép!';
-                        btn.classList.remove('btn-outline-primary');
-                        btn.classList.add('btn-success');
-
-                        setTimeout(function() {
-                            btn.innerHTML = originalText;
-                            btn.classList.remove('btn-success');
-                            btn.classList.add('btn-outline-primary');
-                        }, 2000);
-                    }).catch(function(err) {
-                        alert('Không thể sao chép thông tin: ' + err);
-                    });
-                }
-
-                function toggleView() {
-                    const tableView = document.getElementById('tableView');
-                    const cardView = document.getElementById('cardView');
-
-                    if (tableView.style.display === 'none') {
-                        tableView.style.display = 'block';
-                        cardView.style.display = 'none';
-                    } else {
-                        tableView.style.display = 'none';
-                        cardView.style.display = 'block';
-                    }
-                }
-
-                function viewRoomDetails(roomId) {
-                    // Redirect to room details page or open modal
-                    window.open('/Rooms/Details/' + roomId, '_blank');
-                }
-
-                function editCustomPrice(roomId, currentPrice) {
-                    document.getElementById('editRoomId').value = roomId;
-                    document.getElementById('editCustomPrice').value = currentPrice;
-                    new bootstrap.Modal(document.getElementById('editPriceModal')).show();
-                }
-
-                function saveCustomPrice() {
-                    const roomId = document.getElementById('editRoomId').value;
-                    const newPrice = document.getElementById('editCustomPrice').value;
-
-                    if (!newPrice || newPrice < 0) {
-                        alert('Vui lòng nhập giá hợp lệ!');
-                        return;
-                    }
-
-                    // Call API to update custom price
-                    fetch('@Url.Action("UpdateCustomPrice", "Services")', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                        },
-                        body: JSON.stringify({
-                            serviceId: @Model.Id,
-                            roomId: roomId,
-                            customPrice: parseFloat(newPrice)
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            bootstrap.Modal.getInstance(document.getElementById('editPriceModal')).hide();
-                            location.reload();
-                        } else {
-                            alert('Có lỗi xảy ra khi cập nhật giá!');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Có lỗi xảy ra khi cập nhật giá!');
-                    });
-                }
-
-                function exportRoomList() {
-                    // Export room list to CSV or Excel
-                    const csvContent = "data:text/csv;charset=utf-8,"
-                        + "Phòng,Tầng,Diện tích,Tenant ID,Sức chứa,Trạng thái,Giá dịch vụ\n"
-        @if (Model.Rooms != null)
-        {
-            foreach (var room in Model.Rooms)
-            {
-                <text>+ "@room.Room?.RoomNumber,@room.Room?.Floor,@room.Room?.Area,@room.Room?.TenantId,@room.Room?.MaxOpt,@GetRoomStatusText(room.Room?.Status ?? 0),@room.CustomPrice\n"</text>
-            }
+        function toggleView() {
+            const tableView = document.getElementById('tableView');
+            const cardView = document.getElementById('cardView');
+            tableView.style.display = tableView.style.display === 'none' ? 'block' : 'none';
+            cardView.style.display = cardView.style.display === 'none' ? 'block' : 'none';
         }
-                        ;
 
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
-                    link.setAttribute("download", "danh_sach_phong_dich_vu_@Model.Name");
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+        function viewRoomDetails(roomId) {
+            window.open('/Rooms/Details/' + roomId, '_blank');
+        }
+
+        function editCustomPrice(roomId, currentPrice) {
+            document.getElementById('editRoomId').value = roomId;
+            document.getElementById('editCustomPrice').value = currentPrice;
+            new bootstrap.Modal(document.getElementById('editPriceModal')).show();
+        }
+
+        function saveCustomPrice() {
+            const roomId = document.getElementById('editRoomId').value;
+            const newPrice = document.getElementById('editCustomPrice').value;
+
+            if (!newPrice || newPrice < 0) {
+                alert('Vui lòng nhập giá hợp lệ!');
+                return;
+            }
+
+            fetch('@Url.Action("UpdateCustomPrice", "Services")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({
+                    serviceId: @Model.Id,
+                    roomId: roomId,
+                    customPrice: parseFloat(newPrice)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('editPriceModal')).hide();
+                    location.reload();
+                } else {
+                    alert('Có lỗi xảy ra khi cập nhật giá!');
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi cập nhật giá!');
+            });
+        }
     </script>
 }

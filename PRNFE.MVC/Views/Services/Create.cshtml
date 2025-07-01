@@ -2,8 +2,17 @@
 
 @{
     ViewData["Title"] = "Tạo dịch vụ mới";
+    var buildingId = ViewBag.BuildingId?.ToString();
 }
 
+<!-- Debug info (remove in production) -->
+<div class="alert alert-info">
+    <strong>Debug Info:</strong><br>
+    Building ID from Cookie: @buildingId<br>
+    All Cookies: @string.Join(", ", Context.Request.Cookies.Select(c => $"{c.Key}={c.Value}"))
+</div>
+
+<!-- Rest of your create form... -->
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -11,10 +20,10 @@
                 <div class="card-header bg-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <h4 class="mb-0">
-                            <i class="fas fa-plus-circle me-2"></i>@ViewData["Title"]
+                            <i class="fas fa-plus me-2"></i>@ViewData["Title"]
                         </h4>
                         <a href="@Url.Action("Index", "Services")" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                            <i class="fas fa-arrow-left"></i> Quay lại
                         </a>
                     </div>
                 </div>
@@ -35,7 +44,7 @@
                                     <label asp-for="Name" class="form-label">
                                         <i class="fas fa-tag me-1 text-primary"></i>Tên dịch vụ <span class="text-danger">*</span>
                                     </label>
-                                    <input asp-for="Name" class="form-control" placeholder="Nhập tên dịch vụ (VD: Internet, Điện, Nước)" />
+                                    <input asp-for="Name" class="form-control" placeholder="Nhập tên dịch vụ" />
                                     <span asp-validation-for="Name" class="text-danger small"></span>
                                 </div>
                             </div>
@@ -46,7 +55,6 @@
                                     </label>
                                     <input asp-for="Unit" class="form-control" placeholder="VD: tháng, lần, m³, kWh" />
                                     <span asp-validation-for="Unit" class="text-danger small"></span>
-                                    <div class="form-text">Đơn vị để tính phí dịch vụ</div>
                                 </div>
                             </div>
                         </div>
@@ -62,7 +70,6 @@
                                         <span class="input-group-text">VNĐ</span>
                                     </div>
                                     <span asp-validation-for="PricePerUnit" class="text-danger small"></span>
-                                    <div class="form-text">Nhập giá tiền cho mỗi đơn vị</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -71,17 +78,20 @@
                                         <i class="fas fa-cog me-1 text-warning"></i>Tùy chọn dịch vụ
                                     </label>
                                     <div class="card border-light bg-light p-3">
-                                        <div class="form-check">
+                                        <div class="form-check mb-2">
                                             <input asp-for="IsMandatory" class="form-check-input" />
                                             <label asp-for="IsMandatory" class="form-check-label fw-medium">
                                                 <i class="fas fa-exclamation-triangle text-warning me-1"></i>
                                                 Dịch vụ bắt buộc
                                             </label>
                                         </div>
-                                        <small class="text-muted mt-2 d-block">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            Dịch vụ bắt buộc sẽ được áp dụng tự động cho tất cả phòng trong tòa nhà
-                                        </small>
+                                        <div class="form-check">
+                                            <input asp-for="IsActive" class="form-check-input" />
+                                            <label asp-for="IsActive" class="form-check-label fw-medium">
+                                                <i class="fas fa-power-off text-success me-1"></i>
+                                                Dịch vụ đang hoạt động
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -100,36 +110,6 @@
                     </form>
                 </div>
             </div>
-
-            <!-- Help Card -->
-            <div class="card mt-4 border-info">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0">
-                        <i class="fas fa-lightbulb me-2"></i>Gợi ý
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="text-info">Ví dụ dịch vụ thường dùng:</h6>
-                            <ul class="list-unstyled">
-                                <li><i class="fas fa-wifi text-primary me-2"></i>Internet - tháng</li>
-                                <li><i class="fas fa-bolt text-warning me-2"></i>Điện - kWh</li>
-                                <li><i class="fas fa-tint text-info me-2"></i>Nước - m³</li>
-                                <li><i class="fas fa-broom text-success me-2"></i>Dọn dẹp - lần</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-info">Lưu ý:</h6>
-                            <ul class="list-unstyled">
-                                <li><i class="fas fa-check text-success me-2"></i>Tên dịch vụ nên rõ ràng, dễ hiểu</li>
-                                <li><i class="fas fa-check text-success me-2"></i>Đơn vị tính phù hợp với loại dịch vụ</li>
-                                <li><i class="fas fa-check text-success me-2"></i>Giá cả hợp lý và cạnh tranh</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -144,31 +124,16 @@
             const form = document.getElementById('createServiceForm');
             const submitBtn = document.getElementById('submitBtn');
 
-            // Format price input
-            const priceInput = document.querySelector('input[name="PricePerUnit"]');
-            if (priceInput) {
-                priceInput.addEventListener('input', function(e) {
-                    let value = e.target.value;
-                    if (value < 0) {
-                        e.target.value = 0;
-                    }
-                });
-            }
-
-            // Form submission
             form.addEventListener('submit', function(e) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Đang tạo...';
 
-                // Re-enable button after 3 seconds to prevent permanent disable
+                // Re-enable after timeout to prevent permanent disable
                 setTimeout(function() {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Tạo dịch vụ';
-                }, 3000);
+                }, 5000);
             });
-
-            // Auto-focus first input
-            document.querySelector('input[name="Name"]').focus();
         });
     </script>
 }
