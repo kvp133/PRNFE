@@ -18,7 +18,7 @@ namespace PRNFE.MVC.Controllers
             
             if (userInfo == null)
             {
-                return RedirectToAction("Login", "Auth");
+                return View();
             }
 
             // Route based on user role
