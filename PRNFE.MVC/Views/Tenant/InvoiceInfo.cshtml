@@ -1,0 +1,290 @@
+@{
+    ViewData["Title"] = "Thông tin hóa đơn";
+    var userInfo = ViewBag.UserInfo as PRNFE.MVC.Models.JwtTokenModel;
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Thông tin hóa đơn</h3>
+                    <div class="card-tools">
+                        <span class="badge badge-primary">Người thuê: @userInfo?.full_name</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info"><i class="fas fa-file-invoice"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Hóa đơn tháng này</span>
+                                    <span class="info-box-number" id="currentMonthInvoice">1</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success"><i class="fas fa-check-circle"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Đã thanh toán</span>
+                                    <span class="info-box-number" id="paidInvoices">8</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-warning"><i class="fas fa-clock"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Chờ thanh toán</span>
+                                    <span class="info-box-number" id="pendingInvoices">1</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-danger"><i class="fas fa-exclamation-triangle"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Quá hạn</span>
+                                    <span class="info-box-number" id="overdueInvoices">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Danh sách hóa đơn</h5>
+                                    <div class="card-tools">
+                                        <div class="btn-group">
+                                            <button class="btn btn-outline-primary btn-sm" onclick="filterInvoices('all')">Tất cả</button>
+                                            <button class="btn btn-outline-success btn-sm" onclick="filterInvoices('paid')">Đã thanh toán</button>
+                                            <button class="btn btn-outline-warning btn-sm" onclick="filterInvoices('pending')">Chờ thanh toán</button>
+                                            <button class="btn btn-outline-danger btn-sm" onclick="filterInvoices('overdue')">Quá hạn</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-striped" id="invoicesTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã hóa đơn</th>
+                                                    <th>Tháng</th>
+                                                    <th>Tiền phòng</th>
+                                                    <th>Tiền điện</th>
+                                                    <th>Tiền nước</th>
+                                                    <th>Tiền dịch vụ</th>
+                                                    <th>Tổng cộng</th>
+                                                    <th>Hạn thanh toán</th>
+                                                    <th>Trạng thái</th>
+                                                    <th>Thao tác</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Data will be loaded here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Detail Modal -->
+<div class="modal fade" id="invoiceDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chi tiết hóa đơn</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="invoiceDetailContent">
+                    <!-- Invoice detail will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="printInvoice()">In hóa đơn</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadDashboardData();
+            loadInvoices();
+        });
+
+        function loadDashboardData() {
+            // Simulate loading dashboard data
+            $('#currentMonthInvoice').text('1');
+            $('#paidInvoices').text('8');
+            $('#pendingInvoices').text('1');
+            $('#overdueInvoices').text('0');
+        }
+
+        function loadInvoices() {
+            // Simulate loading invoices data
+            const invoices = [
+                {
+                    id: 1,
+                    code: 'HD001',
+                    month: '12/2024',
+                    roomFee: 2000000,
+                    electricityFee: 150000,
+                    waterFee: 80000,
+                    serviceFee: 100000,
+                    total: 2330000,
+                    dueDate: '15/12/2024',
+                    status: 'Chờ thanh toán'
+                },
+                {
+                    id: 2,
+                    code: 'HD002',
+                    month: '11/2024',
+                    roomFee: 2000000,
+                    electricityFee: 120000,
+                    waterFee: 75000,
+                    serviceFee: 100000,
+                    total: 2295000,
+                    dueDate: '15/11/2024',
+                    status: 'Đã thanh toán'
+                },
+                {
+                    id: 3,
+                    code: 'HD003',
+                    month: '10/2024',
+                    roomFee: 2000000,
+                    electricityFee: 180000,
+                    waterFee: 90000,
+                    serviceFee: 100000,
+                    total: 2370000,
+                    dueDate: '15/10/2024',
+                    status: 'Đã thanh toán'
+                }
+            ];
+
+            displayInvoices(invoices);
+        }
+
+        function displayInvoices(invoices) {
+            let html = '';
+            invoices.forEach(function(invoice) {
+                const statusClass = getStatusClass(invoice.status);
+                html += `
+                    <tr>
+                        <td>${invoice.code}</td>
+                        <td>${invoice.month}</td>
+                        <td>${formatCurrency(invoice.roomFee)}</td>
+                        <td>${formatCurrency(invoice.electricityFee)}</td>
+                        <td>${formatCurrency(invoice.waterFee)}</td>
+                        <td>${formatCurrency(invoice.serviceFee)}</td>
+                        <td><strong>${formatCurrency(invoice.total)}</strong></td>
+                        <td>${invoice.dueDate}</td>
+                        <td><span class="badge ${statusClass}">${invoice.status}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewInvoiceDetail(${invoice.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${invoice.status === 'Chờ thanh toán' ? 
+                                `<button class="btn btn-sm btn-outline-success" onclick="payInvoice(${invoice.id})">
+                                    <i class="fas fa-credit-card"></i>
+                                </button>` : ''
+                            }
+                        </td>
+                    </tr>
+                `;
+            });
+            $('#invoicesTable tbody').html(html);
+        }
+
+        function getStatusClass(status) {
+            switch(status) {
+                case 'Đã thanh toán': return 'badge-success';
+                case 'Chờ thanh toán': return 'badge-warning';
+                case 'Quá hạn': return 'badge-danger';
+                default: return 'badge-secondary';
+            }
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        }
+
+        function filterInvoices(filter) {
+            // Implement filter logic here
+            loadInvoices(); // Reload with filter
+        }
+
+        function viewInvoiceDetail(id) {
+            // Simulate loading invoice detail
+            const invoiceDetail = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Thông tin hóa đơn</h6>
+                        <p><strong>Mã hóa đơn:</strong> HD${id.toString().padStart(3, '0')}</p>
+                        <p><strong>Tháng:</strong> 12/2024</p>
+                        <p><strong>Ngày tạo:</strong> 01/12/2024</p>
+                        <p><strong>Hạn thanh toán:</strong> 15/12/2024</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Chi tiết phí</h6>
+                        <p><strong>Tiền phòng:</strong> ${formatCurrency(2000000)}</p>
+                        <p><strong>Tiền điện:</strong> ${formatCurrency(150000)}</p>
+                        <p><strong>Tiền nước:</strong> ${formatCurrency(80000)}</p>
+                        <p><strong>Tiền dịch vụ:</strong> ${formatCurrency(100000)}</p>
+                        <hr>
+                        <p><strong>Tổng cộng:</strong> ${formatCurrency(2330000)}</p>
+                    </div>
+                </div>
+            `;
+            $('#invoiceDetailContent').html(invoiceDetail);
+            $('#invoiceDetailModal').modal('show');
+        }
+
+        function payInvoice(id) {
+            if (confirm('Bạn có chắc chắn muốn thanh toán hóa đơn này?')) {
+                // Simulate payment process
+                showAlert('Thanh toán thành công', 'success');
+                loadInvoices(); // Reload to update status
+            }
+        }
+
+        function printInvoice() {
+            window.print();
+        }
+
+        function showAlert(message, type) {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="close" data-dismiss="alert">
+                        <span>&times;</span>
+                    </button>
+                </div>
+            `;
+            $('.container-fluid').prepend(alertHtml);
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        }
+    </script>
+} 

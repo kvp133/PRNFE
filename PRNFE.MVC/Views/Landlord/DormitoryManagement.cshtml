@@ -1,0 +1,275 @@
+@{
+    ViewData["Title"] = "Quản lý trọ";
+    var userInfo = ViewBag.UserInfo as PRNFE.MVC.Models.JwtTokenModel;
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Quản lý trọ</h3>
+                    <div class="card-tools">
+                        <span class="badge badge-success">Chủ trọ: @userInfo?.full_name</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info"><i class="fas fa-building"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Tổng số trọ</span>
+                                    <span class="info-box-number" id="totalDormitories">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-success"><i class="fas fa-door-open"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Phòng đang thuê</span>
+                                    <span class="info-box-number" id="occupiedRooms">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-warning"><i class="fas fa-door-closed"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Phòng trống</span>
+                                    <span class="info-box-number" id="vacantRooms">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-danger"><i class="fas fa-users"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Tổng người thuê</span>
+                                    <span class="info-box-number" id="totalTenants">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Danh sách trọ</h5>
+                                    <div class="card-tools">
+                                        <button class="btn btn-primary btn-sm" onclick="showAddDormitoryModal()">
+                                            <i class="fas fa-plus"></i> Thêm trọ mới
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-striped" id="dormitoriesTable">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã trọ</th>
+                                                    <th>Tên trọ</th>
+                                                    <th>Địa chỉ</th>
+                                                    <th>Số phòng</th>
+                                                    <th>Phòng đang thuê</th>
+                                                    <th>Phòng trống</th>
+                                                    <th>Trạng thái</th>
+                                                    <th>Thao tác</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Data will be loaded here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Dormitory Modal -->
+<div class="modal fade" id="addDormitoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thêm trọ mới</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addDormitoryForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Tên trọ</label>
+                                <input type="text" class="form-control" id="dormitoryName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Mã trọ</label>
+                                <input type="text" class="form-control" id="dormitoryCode" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Địa chỉ</label>
+                        <textarea class="form-control" id="dormitoryAddress" rows="3" required></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Số tầng</label>
+                                <input type="number" class="form-control" id="dormitoryFloors" min="1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Số phòng mỗi tầng</label>
+                                <input type="number" class="form-control" id="roomsPerFloor" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Mô tả</label>
+                        <textarea class="form-control" id="dormitoryDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="addDormitory()">Thêm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadDashboardData();
+            loadDormitories();
+        });
+
+        function loadDashboardData() {
+            // Simulate loading dashboard data
+            $('#totalDormitories').text('5');
+            $('#occupiedRooms').text('18');
+            $('#vacantRooms').text('7');
+            $('#totalTenants').text('25');
+        }
+
+        function loadDormitories() {
+            // Simulate loading dormitories data
+            const dormitories = [
+                {
+                    id: 1,
+                    code: 'TR001',
+                    name: 'Trọ An Bình',
+                    address: '123 Đường ABC, Quận 1, TP.HCM',
+                    totalRooms: 10,
+                    occupiedRooms: 8,
+                    vacantRooms: 2,
+                    status: 'Hoạt động'
+                },
+                {
+                    id: 2,
+                    code: 'TR002',
+                    name: 'Trọ Hòa Bình',
+                    address: '456 Đường XYZ, Quận 2, TP.HCM',
+                    totalRooms: 15,
+                    occupiedRooms: 10,
+                    vacantRooms: 5,
+                    status: 'Hoạt động'
+                }
+            ];
+
+            displayDormitories(dormitories);
+        }
+
+        function displayDormitories(dormitories) {
+            let html = '';
+            dormitories.forEach(function(dormitory) {
+                html += `
+                    <tr>
+                        <td>${dormitory.code}</td>
+                        <td>${dormitory.name}</td>
+                        <td>${dormitory.address}</td>
+                        <td>${dormitory.totalRooms}</td>
+                        <td><span class="badge badge-success">${dormitory.occupiedRooms}</span></td>
+                        <td><span class="badge badge-warning">${dormitory.vacantRooms}</span></td>
+                        <td><span class="badge badge-info">${dormitory.status}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewDormitory(${dormitory.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="manageRooms(${dormitory.id})">
+                                <i class="fas fa-door-open"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="editDormitory(${dormitory.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            $('#dormitoriesTable tbody').html(html);
+        }
+
+        function showAddDormitoryModal() {
+            $('#addDormitoryModal').modal('show');
+        }
+
+        function addDormitory() {
+            const dormitoryData = {
+                name: $('#dormitoryName').val(),
+                code: $('#dormitoryCode').val(),
+                address: $('#dormitoryAddress').val(),
+                floors: $('#dormitoryFloors').val(),
+                roomsPerFloor: $('#roomsPerFloor').val(),
+                description: $('#dormitoryDescription').val()
+            };
+
+            // Simulate API call
+            showAlert('Thêm trọ thành công', 'success');
+            $('#addDormitoryModal').modal('hide');
+            loadDormitories();
+        }
+
+        function viewDormitory(id) {
+            window.location.href = `/Landlord/DormitoryDetail/${id}`;
+        }
+
+        function manageRooms(id) {
+            window.location.href = `/Landlord/RoomManagement?dormitoryId=${id}`;
+        }
+
+        function editDormitory(id) {
+            window.location.href = `/Landlord/EditDormitory/${id}`;
+        }
+
+        function showAlert(message, type) {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="close" data-dismiss="alert">
+                        <span>&times;</span>
+                    </button>
+                </div>
+            `;
+            $('.container-fluid').prepend(alertHtml);
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        }
+    </script>
+} 

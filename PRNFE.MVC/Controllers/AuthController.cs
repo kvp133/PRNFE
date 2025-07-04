@@ -70,6 +70,38 @@ namespace PRNFE.MVC.Controllers
                         Response.Cookies.Append("AccessToken", apiResponse.data.accessToken, accessTokenOptions);
                         Response.Cookies.Append("RefreshToken", apiResponse.data.refreshToken, refreshTokenOptions);
                         
+                        // Parse JWT token to determine redirect based on role
+                        try
+                        {
+                            var tokenParts = apiResponse.data.accessToken.Split('.');
+                            if (tokenParts.Length == 3)
+                            {
+                                var payload = tokenParts[1];
+                                var padded = payload.Length % 4 == 0 ? payload : payload + new string('=', 4 - payload.Length % 4);
+                                var bytes = System.Convert.FromBase64String(padded.Replace('-', '+').Replace('_', '/'));
+                                var json = System.Text.Encoding.UTF8.GetString(bytes);
+                                var tokenData = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.JwtTokenModel>(json);
+                                
+                                // Redirect based on role
+                                if (tokenData.IsAdmin)
+                                {
+                                    return RedirectToAction("UserManagement", "Admin");
+                                }
+                                else if (tokenData.IsLandlord)
+                                {
+                                    return RedirectToAction("DormitoryManagement", "Landlord");
+                                }
+                                else if (tokenData.IsTenant)
+                                {
+                                    return RedirectToAction("InvoiceInfo", "Tenant");
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // If token parsing fails, redirect to home
+                        }
+                        
                         return RedirectToAction("Index", "Home");
                     }
                     else
