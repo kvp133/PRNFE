@@ -3,6 +3,7 @@
     string userName = null;
     string fullName = null;
     string email = null;
+    bool isAdmin = false;
     if (isAuthenticated)
     {
         try
@@ -21,6 +22,34 @@
                     userName = obj["user_name"]?.ToString();
                     fullName = obj["full_name"]?.ToString();
                     email = obj["email"]?.ToString();
+                    var roles = obj["role"] ?? obj["roles"];
+                    if (roles != null)
+                    {
+                        if (roles.Type == Newtonsoft.Json.Linq.JTokenType.Array)
+                        {
+                            foreach (var r in roles)
+                            {
+                                if (r != null && r.ToString().ToLower().Contains("admin"))
+                                {
+                                    isAdmin = true;
+                                    break;
+                                }
+                            }
+                        }
+                        else if (roles.Type == Newtonsoft.Json.Linq.JTokenType.String)
+                        {
+                            if (roles.ToString().ToLower().Contains("admin"))
+                                isAdmin = true;
+                        }
+                    }
+                    if (obj["isAdmin"] != null && obj["isAdmin"].ToString().ToLower() == "true")
+                    {
+                        isAdmin = true;
+                    }
+                    if (obj["flag_admin"] != null && obj["flag_admin"].ToString().ToLower() == "true")
+                    {
+                        isAdmin = true;
+                    }
                 }
             }
         }
@@ -32,68 +61,66 @@
 }
 
 <nav class="navbar navbar-expand-lg glass-nav fixed-top">
-    <div class="container">
+    <div class="container d-flex justify-content-between align-items-center">
         <a class="navbar-brand d-flex align-items-center" href="@Url.Action("Index", "Home")">
             <i class="fas fa-building me-2 text-pink"></i>
             TroManager
         </a>
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav mx-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="@Url.Action("Index", "Home")#features">Tính năng</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="@Url.Action("Index", "Home")#pricing">Bảng giá</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="@Url.Action("Index", "Home")#contact">Liên hệ</a>
-                </li>
-            </ul>
-
-            <div class="d-flex gap-2">
-                @if (isAuthenticated)
-                {
-                    <div class="dropdown">
-                        <button class="btn btn-outline-glass dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle me-1"></i>
-                            @(string.IsNullOrEmpty(fullName) ? userName : fullName)
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li>
-                                <a class="dropdown-item" href="#">
-                                    <i class="fas fa-user me-2"></i>
-                                    Thông tin cá nhân
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="#">
-                                    <i class="fas fa-key me-2"></i>
-                                    Đổi mật khẩu
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="post" action="@Url.Action("Logout", "Auth")" style="display: inline;">
-                                    <button type="submit" class="dropdown-item text-danger">
-                                        <i class="fas fa-sign-out-alt me-2"></i>
-                                        Đăng xuất
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
-                }
-                else
-                {
-                    <a href="@Url.Action("Login", "Auth")" class="btn btn-outline-glass">Đăng nhập</a>
-                    <a href="@Url.Action("Register", "User")" class="btn btn-gradient">Dùng thử miễn phí</a>
-                }
-            </div>
+        <div class="flex-grow-1 d-flex align-items-center">
+            @if (!isAdmin)
+            {
+                <ul class="navbar-nav mx-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="@Url.Action("Index", "Home")#features">Tính năng</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="@Url.Action("Index", "Home")#pricing">Bảng giá</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="@Url.Action("Index", "Home")#contact">Liên hệ</a>
+                    </li>
+                </ul>
+            }
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            @if (isAuthenticated)
+            {
+                <div class="dropdown">
+                    <button class="btn btn-outline-glass dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i>
+                        @(string.IsNullOrEmpty(fullName) ? userName : fullName)
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-user me-2"></i>
+                                Thông tin cá nhân
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-key me-2"></i>
+                                Đổi mật khẩu
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="@Url.Action("Logout", "Auth")" style="display: inline;">
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="fas fa-sign-out-alt me-2"></i>
+                                    Đăng xuất
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            }
+            else
+            {
+                <a href="@Url.Action("Login", "Auth")" class="btn btn-outline-glass">Đăng nhập</a>
+                <a href="@Url.Action("Register", "User")" class="btn btn-gradient">Dùng thử miễn phí</a>
+            }
         </div>
     </div>
 </nav> 

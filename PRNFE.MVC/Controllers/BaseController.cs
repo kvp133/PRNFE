@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PRNFE.MVC.Models.Response;
+using PRNFE.MVC.Models;
 using Newtonsoft.Json.Linq;
 
 namespace PRNFE.MVC.Controllers
@@ -119,6 +120,11 @@ namespace PRNFE.MVC.Controllers
         {
             Response.Cookies.Delete("AccessToken");
             Response.Cookies.Delete("RefreshToken");
+        }
+
+        protected JwtTokenModel GetUserInfo()
+        {
+            return HttpContext.Items["UserInfo"] as JwtTokenModel;
         }
 
         protected (string userName, string email, string fullName) GetUserInfoFromToken()

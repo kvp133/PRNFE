@@ -1,0 +1,173 @@
+@{
+    ViewData["Title"] = "Admin Panel";
+    var userInfo = ViewBag.UserInfo;
+}
+
+@await Html.PartialAsync("_Header")
+
+<div class="admin-container bg-decoration">
+    <!-- Horizontal Card Menu -->
+    <div class="container-fluid mb-4">
+        <div class="d-flex flex-wrap gap-3 justify-content-center">
+            <a class="card card-menu text-center text-decoration-none flex-grow-1 flex-shrink-0" href="/Admin/UserManagement" id="userManagementLink" style="min-width: 180px; max-width: 220px;">
+                <div class="card-body py-4">
+                    <i class="fas fa-users fa-2x mb-2 text-primary"></i>
+                    <div class="fw-bold mt-2">Quản lý người dùng</div>
+                </div>
+            </a>
+            <a class="card card-menu text-center text-decoration-none flex-grow-1 flex-shrink-0" href="/Admin/PermissionManagement" id="permissionManagementLink" style="min-width: 180px; max-width: 220px;">
+                <div class="card-body py-4">
+                    <i class="fas fa-key fa-2x mb-2 text-success"></i>
+                    <div class="fw-bold mt-2">Quản lý quyền</div>
+                </div>
+            </a>
+            <a class="card card-menu text-center text-decoration-none flex-grow-1 flex-shrink-0" href="/Admin/Dashboard" style="min-width: 180px; max-width: 220px;">
+                <div class="card-body py-4">
+                    <i class="fas fa-chart-bar fa-2x mb-2 text-info"></i>
+                    <div class="fw-bold mt-2">Dashboard</div>
+                </div>
+            </a>
+            <a class="card card-menu text-center text-decoration-none flex-grow-1 flex-shrink-0" href="/Admin/Settings" style="min-width: 180px; max-width: 220px;">
+                <div class="card-body py-4">
+                    <i class="fas fa-cog fa-2x mb-2 text-warning"></i>
+                    <div class="fw-bold mt-2">Cài đặt hệ thống</div>
+                </div>
+            </a>
+        </div>
+    </div>
+    <!-- Main Content -->
+    <div class="admin-content">
+        <div class="container-fluid">
+            <!-- Loading Overlay -->
+            <div id="loadingOverlay" class="loading-overlay d-none">
+                <div class="text-center">
+                    <div class="loading-spinner mb-3"></div>
+                    <div class="text-muted">Đang xử lý...</div>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div id="contentArea">
+                <!-- Default content -->
+                <div class="text-center py-5">
+                    <i class="fas fa-shield-alt fa-5x text-pink mb-4"></i>
+                    <h2 class="admin-title">Chào mừng đến Admin Panel</h2>
+                    <p class="text-muted">Chọn một mục từ menu bên trái để bắt đầu</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Role Management Modal -->
+<div class="modal fade" id="roleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content glass-modal">
+            <div class="modal-header">
+                <h5 class="modal-title" id="roleModalTitle">Thêm Role mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="roleForm">
+                    <input type="hidden" id="roleId">
+                    <div class="mb-3">
+                        <label class="form-label">Tên Role <span class="text-danger">*</span></label>
+                        <input type="text" id="roleName" class="form-control glass-input" placeholder="Nhập tên role..." required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea id="roleDescription" class="form-control glass-input" rows="3" placeholder="Mô tả về role..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-glass" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-gradient" onclick="saveRole()">
+                    <span id="saveRoleText">Lưu Role</span>
+                    <span id="saveRoleSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Permission Assignment Modal -->
+<div class="modal fade" id="permissionModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content glass-modal">
+            <div class="modal-header">
+                <h5 class="modal-title">Quản lý Permissions - <span id="permissionRoleName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Available Permissions</h6>
+                        <div class="mb-3">
+                            <input type="text" id="permissionSearch" class="form-control glass-input" placeholder="Tìm kiếm permission..." onkeyup="filterPermissions()">
+                        </div>
+                        <div id="availablePermissions" class="permission-list" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Permissions will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Selected Permissions</h6>
+                        <div id="selectedPermissions" class="selected-permissions" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Selected permissions will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-glass" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-gradient" onclick="savePermissions()">
+                    <span id="savePermissionText">Lưu Permissions</span>
+                    <span id="savePermissionSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Assignment Modal -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content glass-modal">
+            <div class="modal-header">
+                <h5 class="modal-title">Quản lý Users - <span id="userRoleName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Available Users</h6>
+                        <div class="mb-3">
+                            <input type="text" id="userSearch" class="form-control glass-input" placeholder="Tìm kiếm user..." onkeyup="filterUsers()">
+                        </div>
+                        <div id="availableUsers" class="user-list" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Users will be loaded here -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Assigned Users</h6>
+                        <div id="assignedUsers" class="assigned-users" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Assigned users will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-glass" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-gradient" onclick="saveUserAssignments()">
+                    <span id="saveUserText">Lưu thay đổi</span>
+                    <span id="saveUserSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin-panel.js"></script>
+}
