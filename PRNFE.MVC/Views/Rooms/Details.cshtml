@@ -1,0 +1,747 @@
+﻿@model PRNFE.MVC.Models.Response.DetailRoomResponse
+@using PRNFE.MVC.Controllers
+
+@{
+    ViewData["Title"] = "Chi tiết phòng";
+    var roomTypes = ViewBag.RoomTypes as List<PRNFE.MVC.Controllers.RoomTypeOption> ?? new List<PRNFE.MVC.Controllers.RoomTypeOption>();
+    var availableResidents = ViewBag.AvailableResidents as List<PRNFE.MVC.Controllers.ResidentOption> ?? new List<PRNFE.MVC.Controllers.ResidentOption>();
+    var availableServices = ViewBag.AvailableServices as List<PRNFE.MVC.Controllers.ServiceOption> ?? new List<PRNFE.MVC.Controllers.ServiceOption>();
+}
+
+<style>
+    .btn-pink {
+        background-color: #e91e63 !important;
+        color: #fff !important;
+        border: none;
+    }
+
+        .btn-pink:hover, .btn-pink:focus {
+            background-color: #ad1457 !important;
+            color: #fff !important;
+        }
+
+    .btn-outline-pink {
+        color: #e91e63 !important;
+        border-color: #e91e63 !important;
+        background: #fff !important;
+    }
+
+        .btn-outline-pink:hover, .btn-outline-pink:focus {
+            color: #fff !important;
+            background-color: #e91e63 !important;
+            border-color: #e91e63 !important;
+        }
+
+    .badge-pink {
+        background: #e91e63 !important;
+        color: #fff !important;
+    }
+
+    .badge-pink-light {
+        background: rgba(233,30,99,0.08) !important;
+        color: #e91e63 !important;
+        border: 1px solid #e91e63 !important;
+    }
+
+    .text-pink {
+        color: #e91e63 !important;
+    }
+
+    .bg-pink-light {
+        background: rgba(233,30,99,0.08) !important;
+    }
+
+    .border-pink {
+        border-color: #e91e63 !important;
+    }
+
+    /* timeline and general */
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -35px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #e91e63;
+    }
+
+    .timeline-item:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        left: -30px;
+        top: 17px;
+        width: 2px;
+        height: calc(100% + 5px);
+        background-color: #eee;
+    }
+
+    .timeline-content {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 3px solid #e91e63;
+    }
+
+    .sticky-top {
+        z-index: 1020;
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(233,30,99,0.09);
+    }
+
+    .table-responsive {
+        border-radius: 0.375rem;
+    }
+
+    .btn-primary, .btn-primary:focus, .btn-primary:active {
+        background: #e91e63 !important;
+        border-color: #e91e63 !important;
+        color: #fff !important;
+    }
+
+        .btn-primary:hover {
+            background: #ad1457 !important;
+            border-color: #ad1457 !important;
+            color: #fff !important;
+        }
+
+    .btn-info, .btn-info:focus, .btn-info:active {
+        background: #f06292 !important;
+        border-color: #f06292 !important;
+        color: #fff !important;
+    }
+
+        .btn-info:hover {
+            background: #c2185b !important;
+            border-color: #c2185b !important;
+            color: #fff !important;
+        }
+
+    .btn-warning, .btn-warning:focus, .btn-warning:active {
+        background: #f8bbd0 !important;
+        border-color: #f8bbd0 !important;
+        color: #e91e63 !important;
+    }
+
+        .btn-warning:hover {
+            background: #f06292 !important;
+            border-color: #f06292 !important;
+            color: #fff !important;
+        }
+
+    .btn-secondary, .btn-secondary:focus, .btn-secondary:active {
+        background: #fce4ec !important;
+        border-color: #fce4ec !important;
+        color: #e91e63 !important;
+    }
+
+        .btn-secondary:hover {
+            background: #f06292 !important;
+            border-color: #f06292 !important;
+            color: #fff !important;
+        }
+
+    .btn-danger, .btn-danger:focus, .btn-danger:active {
+        background: #e57373 !important;
+        border-color: #e57373 !important;
+        color: #fff !important;
+    }
+
+        .btn-danger:hover {
+            background: #b71c1c !important;
+            border-color: #b71c1c !important;
+            color: #fff !important;
+        }
+    /* badge status */
+    .bg-success, .badge.bg-success {
+        background: #43a047 !important;
+        color: #fff !important;
+    }
+
+    .bg-secondary, .badge.bg-secondary {
+        background: #bdbdbd !important;
+        color: #fff !important;
+    }
+
+    .bg-warning, .badge.bg-warning {
+        background: #ffd54f !important;
+        color: #fff !important;
+    }
+
+    .bg-info, .badge.bg-info {
+        background: #e91e63 !important;
+        color: #fff !important;
+    }
+    /* center and black text for statistics/room type */
+    .center-black {
+        text-align: center !important;
+        color: #222 !important;
+    }
+
+        .center-black .h4, .center-black .h5, .center-black .h6, .center-black span, .center-black small {
+            color: #222 !important;
+        }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-pink text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0" style="color: #222;">
+                                <i class="fas fa-home me-2"></i>@ViewData["Title"] - Phòng @Model.RoomNumber
+                            </h4>
+                            <small class="mb-0" style="color: #222;" >Tầng @Model.Floor | @Model.Area m² | Tối đa @Model.MaxOpt người</small>
+                        </div>
+                        <div class="btn-group">
+                            <a href="@Url.Action("Edit", "Rooms", new { id = Model.Id })" class="btn btn-warning btn-sm">
+                                <i class="fas fa-edit me-1"></i>Chỉnh sửa
+                            </a>
+                            <a href="@Url.Action("Maintenance", "Rooms", new { roomId = Model.Id })" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-tools me-1"></i>Bảo trì
+                            </a>
+                            <a href="@Url.Action("Index", "Rooms")" class="btn btn-outline-pink btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Danh sách
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(TempData["Message"]?.ToString()))
+            {
+                <div class="alert @(TempData["IsSuccess"]?.ToString() == "True" ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+                    <i class="fas @(TempData["IsSuccess"]?.ToString() == "True" ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
+                    @TempData["Message"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <div class="row">
+                <!-- Main Content -->
+                <div class="col-lg-8">
+                    <!-- Room Information -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-pink-light">
+                            <h5 class="mb-0 text-pink">
+                                <i class="fas fa-info-circle me-2"></i>Thông tin phòng
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong><i class="fas fa-door-open me-2"></i>Số phòng:</strong></td>
+                                            <td>@Model.RoomNumber</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong><i class="fas fa-building me-2"></i>Tầng:</strong></td>
+                                            <td>@Model.Floor</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong><i class="fas fa-expand-arrows-alt me-2"></i>Diện tích:</strong></td>
+                                            <td>@Model.Area m²</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong><i class="fas fa-users me-2"></i>Sức chứa:</strong></td>
+                                            <td>@Model.MaxOpt người</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong><i class="fas fa-user-tie me-2"></i>Tenant ID:</strong></td>
+                                            <td>@Model.TenantId</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong><i class="fas fa-tag me-2"></i>Loại phòng:</strong></td>
+                                            <td>
+                                                @{
+                                                    var roomType = roomTypes.FirstOrDefault(rt => rt.Id == Model.RoomTypeId);
+                                                }
+                                                <span class="badge badge-pink-light">@((roomType?.Name) ?? $"Loại #{Model.RoomTypeId}")</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong><i class="fas fa-flag me-2"></i>Trạng thái:</strong></td>
+                                            <td>
+                                                <span class="badge badge-pink-light fs-6">
+                                                    @RoomsController.GetRoomStatusText(Model.Status)
+                                                </span>
+                                                <button class="btn btn-outline-pink btn-sm ms-2" onclick="changeStatus()">
+                                                    <i class="fas fa-edit"></i> Đổi
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong><i class="fas fa-calendar me-2"></i>Ngày tạo:</strong></td>
+                                            <td>@Model.CreateAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Residents -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-pink-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-pink">
+                                <i class="fas fa-user-friends me-2"></i>Cư dân (@(Model.Residents?.Count ?? 0))
+                            </h5>
+                            <a href="@Url.Action("Edit", "Rooms", new { id = Model.Id })" class="btn btn-pink btn-sm">
+                                <i class="fas fa-edit me-1"></i>Quản lý
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.Residents?.Any() == true)
+                            {
+                                <div class="row">
+                                    @foreach (var resident in Model.Residents)
+                                    {
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card h-100 @(resident.IsActive ? "border-pink" : "border-secondary")">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <div>
+                                                            <h6 class="card-title mb-1 text-pink">@(resident.Resident?.FullName ?? "Cư dân #" + resident.ResidentId)</h6>
+                                                            <p class="card-text small text-muted mb-1">
+                                                                <i class="fas fa-envelope me-1"></i>@(resident.Resident?.Email ?? "N/A")
+                                                            </p>
+                                                            <p class="card-text small text-muted mb-1">
+                                                                <i class="fas fa-phone me-1"></i>@(resident.Resident?.Phone ?? "N/A")
+                                                            </p>
+                                                        </div>
+                                                        <span class="badge @(resident.IsActive ? "badge-pink" : "badge-pink-light")">
+                                                            @(resident.IsActive ? "Hoạt động" : "Không hoạt động")
+                                                        </span>
+                                                    </div>
+                                                    <hr class="my-2">
+                                                    <div class="small">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span><strong>Ngày vào:</strong></span>
+                                                            <span>@resident.JoinDate.ToString("dd/MM/yyyy")</span>
+                                                        </div>
+                                                        @if (resident.LeaveDate.HasValue)
+                                                        {
+                                                            <div class="d-flex justify-content-between">
+                                                                <span><strong>Ngày ra:</strong></span>
+                                                                <span>@resident.LeaveDate.Value.ToString("dd/MM/yyyy")</span>
+                                                            </div>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(resident.Notes))
+                                                        {
+                                                            <div class="mt-2">
+                                                                <strong>Ghi chú:</strong> @resident.Notes
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-4">
+                                    <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                                    <h6 class="text-muted">Chưa có cư dân nào</h6>
+                                    <a href="@Url.Action("Edit", "Rooms", new { id = Model.Id })" class="btn btn-pink btn-sm">
+                                        <i class="fas fa-plus me-1"></i>Thêm cư dân
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Services -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-pink-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-pink">
+                                <i class="fas fa-concierge-bell me-2"></i>Dịch vụ (@(Model.Services?.Count ?? 0))
+                            </h5>
+                            <a href="@Url.Action("Edit", "Rooms", new { id = Model.Id })" class="btn btn-pink btn-sm">
+                                <i class="fas fa-edit me-1"></i>Quản lý
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.Services?.Any() == true)
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Dịch vụ</th>
+                                                <th>Giá gốc</th>
+                                                <th>Giá tùy chỉnh</th>
+                                                <th>Trạng thái</th>
+                                                <th>Thời gian</th>
+                                                <th>Ghi chú</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var service in Model.Services)
+                                            {
+                                                <tr class="@(service.IsActive ? "" : "table-secondary")">
+                                                    <td>
+                                                        <strong class="text-pink">@(service.Service?.Name ?? "Dịch vụ #" + service.ServiceId)</strong><br>
+                                                        <small class="text-muted">@(service.Service?.Unit ?? "")</small>
+                                                    </td>
+                                                    <td>@(service.Service?.PricePerUnit.ToString("N0") ?? "0") VNĐ</td>
+                                                    <td>
+                                                        <strong class="@(service.CustomPrice != service.Service?.PricePerUnit ? "text-warning" : "text-pink")">
+                                                            @service.CustomPrice.ToString("N0") VNĐ
+                                                        </strong>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge @(service.IsActive ? "badge-pink" : "badge-pink-light")">
+                                                            @(service.IsActive ? "Hoạt động" : "Tạm dừng")
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <small>
+                                                            <strong>Từ:</strong> @service.StartDate.ToString("dd/MM/yyyy")<br>
+                                                            @if (service.EndDate.HasValue)
+                                                            {
+                                                                <strong>Đến:</strong> @service.EndDate.Value.ToString("dd/MM/yyyy")
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">Không giới hạn</span>
+                                                            }
+                                                        </small>
+                                                    </td>
+                                                    <td>
+                                                        <small>@(string.IsNullOrEmpty(service.Notes) ? "Không có" : service.Notes)</small>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                @if (Model.Services.Any())
+                                {
+                                    <div class="mt-3 p-3 bg-pink-light rounded center-black">
+                                        <div class="row text-center">
+                                            <div class="col-md-4">
+                                                <h6>Tổng dịch vụ</h6>
+                                                <span class="h5">@Model.Services.Count</span>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <h6>Đang hoạt động</h6>
+                                                <span class="h5">@Model.Services.Count(s => s.IsActive)</span>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <h6>Tổng chi phí/tháng</h6>
+                                                <span class="h5">@Model.Services.Where(s => s.IsActive).Sum(s => s.CustomPrice).ToString("N0") VNĐ</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center py-4">
+                                    <i class="fas fa-concierge-bell fa-3x text-muted mb-3"></i>
+                                    <h6 class="text-muted">Chưa có dịch vụ nào</h6>
+                                    <a href="@Url.Action("Edit", "Rooms", new { id = Model.Id })" class="btn btn-pink btn-sm">
+                                        <i class="fas fa-plus me-1"></i>Thêm dịch vụ
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Room History -->
+                    @if (Model.History?.Any() == true)
+                    {
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-pink-light">
+                                <h5 class="mb-0 text-pink">
+                                    <i class="fas fa-history me-2"></i>Lịch sử hoạt động
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="timeline">
+                                    @foreach (var history in Model.History.Take(10))
+                                    {
+                                        <div class="timeline-item">
+                                            <div class="timeline-marker"></div>
+                                            <div class="timeline-content">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <h6 class="mb-1 text-pink">@history.Action</h6>
+                                                        <p class="mb-1 text-muted">@history.Description</p>
+                                                        @if (!string.IsNullOrEmpty(history.OldValue) && !string.IsNullOrEmpty(history.NewValue))
+                                                        {
+                                                            <small class="text-muted">
+                                                                <strong>Từ:</strong> @history.OldValue → <strong>Thành:</strong> @history.NewValue
+                                                            </small>
+                                                        }
+                                                    </div>
+                                                    <small class="text-muted">@history.PerformedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                                </div>
+                                                <small class="text-pink">Bởi: @history.PerformedBy</small>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (Model.History.Count > 10)
+                                {
+                                    <div class="text-center mt-3">
+                                        <button class="btn btn-outline-pink btn-sm" onclick="loadMoreHistory()">
+                                            <i class="fas fa-chevron-down me-1"></i>Xem thêm (@(Model.History.Count - 10) mục)
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Sidebar -->
+                <div class="col-lg-4">
+                    <!-- Statistics -->
+                    @if (Model.Statistics != null)
+                    {
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-pink-light">
+                                <h5 class="mb-0 text-pink center-black">
+                                    <i class="fas fa-chart-bar me-2"></i>Thống kê
+                                </h5>
+                            </div>
+                            <div class="card-body center-black">
+                                <div class="row text-center">
+                                    <div class="col-6 mb-3">
+                                        <div class="border-end">
+                                            <div class="h4 mb-1">@Model.Statistics.ActiveResidents</div>
+                                            <small class="text-muted">Cư dân hiện tại</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <div class="h4 mb-1">@Model.Statistics.ActiveServices</div>
+                                        <small class="text-muted">Dịch vụ hoạt động</small>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <div class="border-end">
+                                            <div class="h4 mb-1">@Model.Statistics.OccupancyRate%</div>
+                                            <small class="text-muted">Tỷ lệ lấp đầy</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <div class="h4 mb-1">@Model.Statistics.MonthlyRevenue.ToString("N0")</div>
+                                        <small class="text-muted">Doanh thu/tháng</small>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <div class="text-center">
+                                    <div class="h5 mb-1">@Model.Statistics.TotalServiceCost.ToString("N0") VNĐ</div>
+                                    <small class="text-muted">Tổng chi phí dịch vụ</small>
+                                </div>
+
+                                <div class="mt-3 text-center">
+                                    <small class="text-muted">
+                                        Cập nhật lần cuối: @Model.Statistics.LastUpdated.ToString("dd/MM/yyyy HH:mm")
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Room Type Info -->
+                    @{
+                        var currentRoomType = roomTypes.FirstOrDefault(rt => rt.Id == Model.RoomTypeId);
+                    }
+                    @if (currentRoomType != null)
+                    {
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-pink-light">
+                                <h5 class="mb-0 text-pink center-black">
+                                    <i class="fas fa-tag me-2"></i>Thông tin loại phòng
+                                </h5>
+                            </div>
+                            <div class="card-body center-black">
+                                <h6>@currentRoomType.Name</h6>
+                                <p class="text-muted small">@currentRoomType.Description</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Status Modal -->
+<div class="modal fade" id="changeStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-pink text-white">
+                <h5 class="modal-title">Thay đổi trạng thái phòng</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Trạng thái hiện tại:</label>
+                    <span class="badge badge-pink-light fs-6 ms-2">
+                        @RoomsController.GetRoomStatusText(Model.Status)
+                    </span>
+                </div>
+
+                <div class="mb-3">
+                    <label for="newStatus" class="form-label">Trạng thái mới:</label>
+                    <select id="newStatus" class="form-select">
+                        @{
+                            var statusOptions = new Dictionary<int, string>
+                        {
+                        {0, "Trống"},
+                        {1, "Đã thuê"},
+                        {2, "Đã đặt"},
+                        {3, "Bảo trì"},
+                        {4, "Không sử dụng"},
+                        {5, "Chờ dọn dẹp"},
+                        {6, "Sắp hết hạn"},
+                        {7, "Tạm khóa"}
+                        };
+                        }
+                        @foreach (var status in statusOptions)
+                        {
+                            <option value="@status.Key" selected="@(Model.Status == status.Key)">@status.Value</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-pink" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-pink" onclick="confirmChangeStatus()">Cập nhật</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Xác nhận xóa phòng
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-home fa-3x text-danger"></i>
+                </div>
+                <p class="text-center">Bạn có chắc chắn muốn xóa phòng <strong id="roomNumberToDelete"></strong> không?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan đến phòng.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-pink" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Hủy bỏ
+                </button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-pink">
+                        <i class="fas fa-trash me-1"></i> Xóa vĩnh viễn
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function changeStatus() {
+            new bootstrap.Modal(document.getElementById('changeStatusModal')).show();
+        }
+
+        function confirmChangeStatus() {
+            const newStatus = document.getElementById('newStatus').value;
+            const currentStatus = @Model.Status;
+
+            if (newStatus == currentStatus) {
+                alert('Trạng thái mới phải khác trạng thái hiện tại');
+                return;
+            }
+
+            // Send AJAX request to update status
+            fetch('@Url.Action("UpdateRoomStatus", "Rooms")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                body: JSON.stringify({
+                    roomId: @Model.Id,
+                    status: parseInt(newStatus)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Không thể cập nhật trạng thái');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra');
+            });
+
+            bootstrap.Modal.getInstance(document.getElementById('changeStatusModal')).hide();
+        }
+
+        function confirmDelete(roomId, roomNumber) {
+            document.getElementById('roomNumberToDelete').textContent = roomNumber;
+            document.getElementById('deleteForm').action = '@Url.Action("Delete", "Rooms")/' + roomId;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+
+        function loadMoreHistory() {
+            // Implementation for loading more history items
+            alert('Chức năng đang được phát triển');
+        }
+
+        // Auto-refresh statistics every 5 minutes
+        setInterval(function() {
+            fetch('@Url.Action("GetRoomDetails", "Rooms")?roomId=@Model.Id')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.room.statistics) {
+                        // Update statistics display (implement here if needed)
+                        console.log('Statistics updated');
+                    }
+                })
+                .catch(error => console.error('Error refreshing statistics:', error));
+        }, 300000); // 5 minutes
+    </script>
+}

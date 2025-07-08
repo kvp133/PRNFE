@@ -1,0 +1,622 @@
+﻿@model PRNFE.MVC.Models.Request.UpdateRoomRequest
+
+@{
+    ViewData["Title"] = "Chỉnh sửa phòng";
+    var roomId = ViewBag.RoomId as int? ?? 0;
+    var roomTypes = ViewBag.RoomTypes as List<PRNFE.MVC.Controllers.RoomTypeOption> ?? new List<PRNFE.MVC.Controllers.RoomTypeOption>();
+    var availableResidents = ViewBag.AvailableResidents as List<PRNFE.MVC.Controllers.ResidentOption> ?? new List<PRNFE.MVC.Controllers.ResidentOption>();
+    var availableServices = ViewBag.AvailableServices as List<PRNFE.MVC.Controllers.ServiceOption> ?? new List<PRNFE.MVC.Controllers.ServiceOption>();
+    var roomHistory = ViewBag.RoomHistory as List<PRNFE.MVC.Models.Response.RoomHistoryResponse> ?? new List<PRNFE.MVC.Models.Response.RoomHistoryResponse>();
+}
+
+<style>
+    .btn-pink {
+        background-color: #e91e63 !important;
+        color: #fff !important;
+        border: none;
+    }
+
+        .btn-pink:hover, .btn-pink:focus {
+            background-color: #ad1457 !important;
+            color: #fff !important;
+        }
+
+    .btn-outline-pink {
+        color: #e91e63 !important;
+        border-color: #e91e63 !important;
+        background: #fff !important;
+    }
+
+        .btn-outline-pink:hover, .btn-outline-pink:focus {
+            color: #fff !important;
+            background-color: #e91e63 !important;
+            border-color: #e91e63 !important;
+        }
+
+    .badge-pink {
+        background: #e91e63 !important;
+        color: #fff !important;
+    }
+
+    .badge-pink-light {
+        background: rgba(233,30,99,0.08) !important;
+        color: #e91e63 !important;
+        border: 1px solid #e91e63 !important;
+    }
+
+    .text-pink {
+        color: #e91e63 !important;
+    }
+
+    .bg-pink-light {
+        background: rgba(233,30,99,0.08) !important;
+    }
+
+    .border-pink {
+        border-color: #e91e63 !important;
+    }
+
+    .resident-item, .service-item {
+        background-color: #f8f9fa;
+        transition: all 0.3s ease;
+    }
+
+        .resident-item:hover, .service-item:hover {
+            background-color: #e9ecef;
+        }
+
+    .sticky-top {
+        z-index: 1020;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-pink text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class ="mb-0" style="color: #222;">
+                            <i class="fas fa-edit me-2"></i>@ViewData["Title"] - Phòng @Model.RoomNumber
+                        </h4>
+                        <div class="btn-group">
+                            <a href="@Url.Action("Details", "Rooms", new { id = roomId })" class="btn btn-outline-pink btn-sm">
+                                <i class="fas fa-eye me-1"></i>Chi tiết
+                            </a>
+                            <a href="@Url.Action("Index", "Rooms")" class="btn btn-outline-pink btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>Danh sách
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(TempData["Message"]?.ToString()))
+            {
+                <div class="alert @(TempData["IsSuccess"]?.ToString() == "True" ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+                    <i class="fas @(TempData["IsSuccess"]?.ToString() == "True" ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
+                    @TempData["Message"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <form asp-action="Edit" asp-route-id="@roomId" method="post" id="editRoomForm">
+                @Html.AntiForgeryToken()
+
+                <div class="row">
+                    <!-- Main Content -->
+                    <div class="col-lg-8">
+                        <!-- Basic Information -->
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-pink-light">
+                                <h5 class="mb-0 text-pink">
+                                    <i class="fas fa-info-circle me-2"></i>Thông tin cơ bản
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label asp-for="RoomNumber" class="form-label">
+                                                <i class="fas fa-door-open me-1"></i>Số phòng <span class="text-danger">*</span>
+                                            </label>
+                                            <input asp-for="RoomNumber" class="form-control" />
+                                            <span asp-validation-for="RoomNumber" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label asp-for="Floor" class="form-label">
+                                                <i class="fas fa-building me-1"></i>Tầng <span class="text-danger">*</span>
+                                            </label>
+                                            <input asp-for="Floor" type="number" class="form-control" min="1" />
+                                            <span asp-validation-for="Floor" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label asp-for="Area" class="form-label">
+                                                <i class="fas fa-expand-arrows-alt me-1"></i>Diện tích (m²) <span class="text-danger">*</span>
+                                            </label>
+                                            <input asp-for="Area" type="number" step="0.1" class="form-control" min="1" />
+                                            <span asp-validation-for="Area" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label asp-for="MaxOpt" class="form-label">
+                                                <i class="fas fa-users me-1"></i>Sức chứa tối đa <span class="text-danger">*</span>
+                                            </label>
+                                            <input asp-for="MaxOpt" type="number" class="form-control" min="1" />
+                                            <span asp-validation-for="MaxOpt" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label asp-for="TenantId" class="form-label">
+                                                <i class="fas fa-user-tie me-1"></i>Tenant ID
+                                            </label>
+                                            <input asp-for="TenantId" type="number" class="form-control" />
+                                            <span asp-validation-for="TenantId" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label asp-for="RoomTypeId" class="form-label">
+                                                <i class="fas fa-tag me-1"></i>Loại phòng <span class="text-danger">*</span>
+                                            </label>
+                                            <select asp-for="RoomTypeId" class="form-select">
+                                                <option value="">-- Chọn loại phòng --</option>
+                                                @foreach (var roomType in roomTypes)
+                                                {
+                                                    <option value="@roomType.Id">@roomType.Name - @roomType.Description</option>
+                                                }
+                                            </select>
+                                            <span asp-validation-for="RoomTypeId" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label asp-for="Status" class="form-label">
+                                                <i class="fas fa-flag me-1"></i>Trạng thái
+                                            </label>
+                                            <select asp-for="Status" class="form-select">
+                                                <option value="0">Trống</option>
+                                                <option value="1">Đã thuê</option>
+                                                <option value="2">Đã đặt</option>
+                                                <option value="3">Bảo trì</option>
+                                                <option value="4">Không sử dụng</option>
+                                                <option value="5">Chờ dọn dẹp</option>
+                                                <option value="6">Sắp hết hạn</option>
+                                                <option value="7">Tạm khóa</option>
+                                            </select>
+                                            <span asp-validation-for="Status" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="mb-3">
+                                            <label asp-for="Notes" class="form-label">
+                                                <i class="fas fa-sticky-note me-1"></i>Ghi chú
+                                            </label>
+                                            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                                            <span asp-validation-for="Notes" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Residents Management -->
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-pink-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 text-pink">
+                                    <i class="fas fa-user-friends me-2"></i>Quản lý cư dân
+                                </h5>
+                                <button type="button" class="btn btn-pink btn-sm" onclick="addResident()">
+                                    <i class="fas fa-plus me-1"></i>Thêm cư dân
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="residents-container">
+                                    @for (int i = 0; i < Model.Residents.Count; i++)
+                                    {
+                                        <div class="resident-item border rounded p-3 mb-3" data-index="@i">
+                                            <input type="hidden" asp-for="Residents[i].ResidentId" />
+
+                                            <div class="row align-items-center">
+                                                <div class="col-md-3">
+                                                    <strong>@(Model.Residents[i].Resident?.FullName ?? "Cư dân #" + Model.Residents[i].ResidentId)</strong><br>
+                                                    <small class="text-muted">@Model.Residents[i].Resident?.Email</small>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-check form-switch">
+                                                        <input asp-for="Residents[i].IsActive" class="form-check-input" type="checkbox" />
+                                                        <label asp-for="Residents[i].IsActive" class="form-check-label">Hoạt động</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small">Ngày bắt đầu</label>
+                                                    <input asp-for="Residents[i].JoinDate" type="date" class="form-control form-control-sm" />
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small">Ngày kết thúc</label>
+                                                    <input asp-for="Residents[i].LeaveDate" type="date" class="form-control form-control-sm" />
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeResident(@i)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-2">
+                                                <div class="col-md-11">
+                                                    <label class="form-label small">Ghi chú</label>
+                                                    <input asp-for="Residents[i].Notes" class="form-control form-control-sm" placeholder="Ghi chú về cư dân" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Services Management -->
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-pink-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 text-pink">
+                                    <i class="fas fa-concierge-bell me-2"></i>Quản lý dịch vụ
+                                </h5>
+                                <button type="button" class="btn btn-pink btn-sm" onclick="addService()">
+                                    <i class="fas fa-plus me-1"></i>Thêm dịch vụ
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="services-container">
+                                    @for (int i = 0; i < Model.Services.Count; i++)
+                                    {
+                                        <div class="service-item border rounded p-3 mb-3" data-index="@i">
+                                            <input type="hidden" asp-for="Services[i].ServiceId" />
+
+                                            <div class="row align-items-center">
+                                                <div class="col-md-3">
+                                                    <strong>@(Model.Services[i].Service?.Name ?? "Dịch vụ #" + Model.Services[i].ServiceId)</strong><br>
+                                                    <small class="text-muted">Giá gốc: @(Model.Services[i].Service?.PricePerUnit.ToString("N0") ?? "0") VNĐ/@(Model.Services[i].Service?.Unit ?? "")</small>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="form-check form-switch">
+                                                        <input asp-for="Services[i].IsActive" class="form-check-input" type="checkbox" />
+                                                        <label asp-for="Services[i].IsActive" class="form-check-label">Hoạt động</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small">Giá tùy chỉnh</label>
+                                                    <input asp-for="Services[i].CustomPrice" type="number" step="0.01" class="form-control form-control-sm" min="0" />
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small">Ngày bắt đầu</label>
+                                                    <input asp-for="Services[i].StartDate" type="date" class="form-control form-control-sm" />
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small">Ngày kết thúc</label>
+                                                    <input asp-for="Services[i].EndDate" type="date" class="form-control form-control-sm" />
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeService(@i)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mt-2">
+                                                <div class="col-md-11">
+                                                    <label class="form-label small">Ghi chú</label>
+                                                    <input asp-for="Services[i].Notes" class="form-control form-control-sm" placeholder="Ghi chú về dịch vụ" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="col-lg-4">
+                        <!-- Actions -->
+                        <div class="card shadow-sm mb-4 sticky-top" style="top: 20px;">
+                            <div class="card-header bg-pink text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-cogs me-2"></i>Thao tác
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-pink btn-lg">
+                                        <i class="fas fa-save me-2"></i>Lưu thay đổi
+                                    </button>
+                                    <a href="@Url.Action("Details", "Rooms", new { id = roomId })" class="btn btn-outline-pink">
+                                        <i class="fas fa-eye me-2"></i>Xem chi tiết
+                                    </a>
+                                    <a href="@Url.Action("Index", "Rooms")" class="btn btn-outline-pink">
+                                        <i class="fas fa-arrow-left me-2"></i>Quay lại
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Room History -->
+                        @if (roomHistory.Any())
+                        {
+                            <div class="card shadow-sm">
+                                <div class="card-header bg-pink-light">
+                                    <h5 class="mb-0 text-pink">
+                                        <i class="fas fa-history me-2"></i>Lịch sử thay đổi
+                                    </h5>
+                                </div>
+                                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                    @foreach (var history in roomHistory.Take(10))
+                                    {
+                                        <div class="border-start border-pink border-3 ps-3 mb-3">
+                                            <div class="d-flex justify-content-between">
+                                                <strong class="text-pink">@history.Action</strong>
+                                                <small class="text-muted">@history.PerformedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                            </div>
+                                            <p class="mb-1 small">@history.Description</p>
+                                            <small class="text-muted">Bởi: @history.PerformedBy</small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Resident Modal -->
+<div class="modal fade" id="addResidentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-pink text-white">
+                <h5 class="modal-title">Thêm cư dân</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <select id="residentSelect" class="form-select">
+                    <option value="">-- Chọn cư dân --</option>
+                    @foreach (var resident in availableResidents)
+                    {
+                        <option value="@resident.Id" data-name="@resident.FullName" data-email="@resident.Email">
+                            @resident.FullName - @resident.Email
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-pink" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-pink" onclick="confirmAddResident()">Thêm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Service Modal -->
+<div class="modal fade" id="addServiceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-pink text-white">
+                <h5 class="modal-title">Thêm dịch vụ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <select id="serviceSelect" class="form-select">
+                    <option value="">-- Chọn dịch vụ --</option>
+                    @foreach (var service in availableServices)
+                    {
+                        <option value="@service.Id"
+                                data-name="@service.Name"
+                                data-price="@service.PricePerUnit"
+                                data-unit="@service.Unit"
+                                data-mandatory="@service.IsMandatory">
+                            @service.Name - @service.PricePerUnit.ToString("N0") VNĐ/@service.Unit
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-pink" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-pink" onclick="confirmAddService()">Thêm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        let residentIndex = @Model.Residents.Count;
+        let serviceIndex = @Model.Services.Count;
+
+        function addResident() {
+            new bootstrap.Modal(document.getElementById('addResidentModal')).show();
+        }
+
+        function confirmAddResident() {
+            const select = document.getElementById('residentSelect');
+            const selectedOption = select.options[select.selectedIndex];
+
+            if (!selectedOption.value) {
+                alert('Vui lòng chọn cư dân');
+                return;
+            }
+
+            const residentId = selectedOption.value;
+            const residentName = selectedOption.dataset.name;
+            const residentEmail = selectedOption.dataset.email;
+
+            // Check if resident already exists
+            if ([...document.querySelectorAll('input[name$=".ResidentId"]')].some(x => x.value == residentId)) {
+                alert('Cư dân này đã được thêm');
+                return;
+            }
+
+            const container = document.getElementById('residents-container');
+            const today = new Date().toISOString().split('T')[0];
+
+            const residentHtml = `
+                <div class="resident-item border rounded p-3 mb-3" data-index="${residentIndex}">
+                    <input type="hidden" name="Residents[${residentIndex}].ResidentId" value="${residentId}" />
+
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <strong>${residentName}</strong><br>
+                            <small class="text-muted">${residentEmail}</small>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check form-switch">
+                                <input name="Residents[${residentIndex}].IsActive" class="form-check-input" type="checkbox" checked />
+                                <label class="form-check-label">Hoạt động</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Ngày bắt đầu</label>
+                            <input name="Residents[${residentIndex}].JoinDate" type="date" class="form-control form-control-sm" value="${today}" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Ngày kết thúc</label>
+                            <input name="Residents[${residentIndex}].LeaveDate" type="date" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removeResident(${residentIndex})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <div class="col-md-11">
+                            <label class="form-label small">Ghi chú</label>
+                            <input name="Residents[${residentIndex}].Notes" class="form-control form-control-sm" placeholder="Ghi chú về cư dân" />
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', residentHtml);
+            residentIndex++;
+
+            bootstrap.Modal.getInstance(document.getElementById('addResidentModal')).hide();
+            select.selectedIndex = 0;
+        }
+
+        function removeResident(index) {
+            if (confirm('Bạn có chắc chắn muốn xóa cư dân này?')) {
+                document.querySelector(`.resident-item[data-index="${index}"]`).remove();
+            }
+        }
+
+        function addService() {
+            new bootstrap.Modal(document.getElementById('addServiceModal')).show();
+        }
+
+        function confirmAddService() {
+            const select = document.getElementById('serviceSelect');
+            const selectedOption = select.options[select.selectedIndex];
+
+            if (!selectedOption.value) {
+                alert('Vui lòng chọn dịch vụ');
+                return;
+            }
+
+            const serviceId = selectedOption.value;
+            const serviceName = selectedOption.dataset.name;
+            const servicePrice = selectedOption.dataset.price;
+            const serviceUnit = selectedOption.dataset.unit;
+
+            // Check if service already exists
+            if ([...document.querySelectorAll('input[name$=".ServiceId"]')].some(x => x.value == serviceId)) {
+                alert('Dịch vụ này đã được thêm');
+                return;
+            }
+
+            const container = document.getElementById('services-container');
+            const today = new Date().toISOString().split('T')[0];
+
+            const serviceHtml = `
+                <div class="service-item border rounded p-3 mb-3" data-index="${serviceIndex}">
+                    <input type="hidden" name="Services[${serviceIndex}].ServiceId" value="${serviceId}" />
+
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <strong>${serviceName}</strong><br>
+                            <small class="text-muted">Giá gốc: ${parseFloat(servicePrice).toLocaleString()} VNĐ/${serviceUnit}</small>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check form-switch">
+                                <input name="Services[${serviceIndex}].IsActive" class="form-check-input" type="checkbox" checked />
+                                <label class="form-check-label">Hoạt động</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Giá tùy chỉnh</label>
+                            <input name="Services[${serviceIndex}].CustomPrice" type="number" step="0.01" class="form-control form-control-sm" min="0" value="${servicePrice}" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Ngày bắt đầu</label>
+                            <input name="Services[${serviceIndex}].StartDate" type="date" class="form-control form-control-sm" value="${today}" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Ngày kết thúc</label>
+                            <input name="Services[${serviceIndex}].EndDate" type="date" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removeService(${serviceIndex})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row mt-2">
+                        <div class="col-md-11">
+                            <label class="form-label small">Ghi chú</label>
+                            <input name="Services[${serviceIndex}].Notes" class="form-control form-control-sm" placeholder="Ghi chú về dịch vụ" />
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', serviceHtml);
+            serviceIndex++;
+
+            bootstrap.Modal.getInstance(document.getElementById('addServiceModal')).hide();
+            select.selectedIndex = 0;
+        }
+
+        function removeService(index) {
+            if (confirm('Bạn có chắc chắn muốn xóa dịch vụ này?')) {
+                document.querySelector(`.service-item[data-index="${index}"]`).remove();
+            }
+        }
+
+        // Form submission
+        $('#editRoomForm').on('submit', function(e) {
+            $(this).find('button[type="submit"]').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Đang lưu...');
+        });
+    </script>
+}

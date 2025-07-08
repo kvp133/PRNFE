@@ -22,7 +22,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var apiUrl = $"{_apiBaseUrl}/api/Services?$skip={((page - 1) * size)}&$top={size}";
+                var apiUrl = $"{_apiQLPTUrl}/api/Services?$skip={((page - 1) * size)}&$top={size}";
                 var response = await _httpClient.GetAsync(apiUrl);
 
                 if (response.IsSuccessStatusCode)
@@ -94,7 +94,7 @@ namespace PRNFE.MVC.Controllers
 
                 // Create HttpClient with cookies
                 using var httpClient = _httpClientFactory.CreateClient();
-                httpClient.BaseAddress = new Uri(_apiBaseUrl);
+                httpClient.BaseAddress = new Uri(_apiQLPTUrl);
 
                 // Add cookies to the request
                 httpClient.DefaultRequestHeaders.Add("Cookie", $"buildingId={buildingId}");
@@ -141,7 +141,7 @@ namespace PRNFE.MVC.Controllers
         private async Task<HttpResponseMessage> SendRequestWithCookies(HttpMethod method, string endpoint, object data = null)
         {
             using var httpClient = _httpClientFactory.CreateClient();
-            httpClient.BaseAddress = new Uri(_apiBaseUrl);
+            httpClient.BaseAddress = new Uri(_apiQLPTUrl);
 
             // Add all cookies from the current request
             var cookieHeader = string.Join("; ", Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
@@ -227,7 +227,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services/{id}");
+                var response = await _httpClient.GetAsync($"{_apiQLPTUrl}/api/Services/{id}");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -395,7 +395,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.DeleteAsync($"{_apiBaseUrl}/api/Services/{id}");
+                var response = await _httpClient.DeleteAsync($"{_apiQLPTUrl}/api/Services/{id}");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -509,7 +509,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/Services/{id}/toggle-status", null);
+                var response = await _httpClient.PostAsync($"{_apiQLPTUrl}/api/Services/{id}/toggle-status", null);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -545,7 +545,7 @@ namespace PRNFE.MVC.Controllers
                 }
 
                 var queryString = string.Join("&", queryParams);
-                var apiUrl = $"{_apiBaseUrl}/api/Services?{queryString}";
+                var apiUrl = $"{_apiQLPTUrl}/api/Services?{queryString}";
 
                 var response = await _httpClient.GetAsync(apiUrl);
 
@@ -581,7 +581,7 @@ namespace PRNFE.MVC.Controllers
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PutAsync($"{_apiBaseUrl}/api/Services/{request.ServiceId}/rooms/{request.RoomId}/custom-price", content);
+                var response = await _httpClient.PutAsync($"{_apiQLPTUrl}/api/Services/{request.ServiceId}/rooms/{request.RoomId}/custom-price", content);
 
                 if (response.IsSuccessStatusCode)
                 {

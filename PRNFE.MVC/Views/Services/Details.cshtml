@@ -22,6 +22,54 @@
     };
 }
 
+<style>
+    .btn-pink {
+        background-color: #e91e63 !important;
+        color: #fff !important;
+        border: none;
+    }
+
+        .btn-pink:hover, .btn-pink:focus {
+            background-color: #ad1457 !important;
+            color: #fff !important;
+        }
+
+    .btn-outline-pink {
+        color: #e91e63 !important;
+        border-color: #e91e63 !important;
+        background: #fff !important;
+    }
+
+        .btn-outline-pink:hover, .btn-outline-pink:focus {
+            color: #fff !important;
+            background-color: #e91e63 !important;
+            border-color: #e91e63 !important;
+        }
+
+    .badge-pink {
+        background: #e91e63 !important;
+        color: #fff !important;
+    }
+
+    .badge-pink-light {
+        background: rgba(233,30,99,0.08) !important;
+        color: #e91e63 !important;
+        border: 1px solid #e91e63 !important;
+    }
+
+    .text-pink {
+        color: #e91e63 !important;
+    }
+
+    .bg-pink-light {
+        background: rgba(233,30,99,0.08) !important;
+    }
+    /* For modal's save button */
+    .modal-footer .btn-pink {
+        min-width: 100px;
+    }
+</style>
+
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-12">
@@ -30,10 +78,10 @@
                 <div class="card-header bg-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <h4 class="mb-0">
-                            <i class="fas fa-info-circle me-2"></i>@ViewData["Title"] - @Model.Name
+                            <i class="fas fa-info-circle me-2 text-pink"></i>@ViewData["Title"] - @Model.Name
                         </h4>
                         <div>
-                            <a href="@Url.Action("Edit", "Services", new { id = Model.Id })" class="btn btn-warning btn-sm me-2">
+                            <a href="@Url.Action("Edit", "Services", new { id = Model.Id })" class="btn btn-outline-pink btn-sm me-2">
                                 <i class="fas fa-edit"></i> Chỉnh sửa
                             </a>
                             <a href="@Url.Action("Index", "Services")" class="btn btn-outline-secondary btn-sm">
@@ -57,7 +105,7 @@
                 <!-- Main Information -->
                 <div class="col-lg-8">
                     <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-primary text-white">
+                        <div class="card-header bg-pink text-white">
                             <h5 class="mb-0">
                                 <i class="fas fa-cog me-2"></i>Thông tin dịch vụ
                             </h5>
@@ -74,25 +122,25 @@
                                     <label class="form-label text-muted">
                                         <i class="fas fa-tag me-1"></i>Tên dịch vụ
                                     </label>
-                                    <div class="fw-bold text-primary">@Model.Name</div>
+                                    <div class="fw-bold text-pink">@Model.Name</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label text-muted">
                                         <i class="fas fa-ruler me-1"></i>Đơn vị tính
                                     </label>
-                                    <span class="badge bg-light text-dark fs-6">@Model.Unit</span>
+                                    <span class="badge badge-pink-light fs-6">@Model.Unit</span>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label text-muted">
                                         <i class="fas fa-money-bill-wave me-1"></i>Giá mỗi đơn vị
                                     </label>
-                                    <span class="h5 text-success fw-bold">@Model.PricePerUnit.ToString("N2") VNĐ</span>
+                                    <span class="h5 text-pink fw-bold">@Model.PricePerUnit.ToString("N2") VNĐ</span>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label text-muted">
                                         <i class="fas fa-exclamation-triangle me-1"></i>Loại dịch vụ
                                     </label>
-                                    <span class="badge @(Model.IsMandatory ? "bg-warning" : "bg-info") fs-6">
+                                    <span class="badge @(Model.IsMandatory ? "badge-pink" : "badge-pink-light") fs-6">
                                         <i class="fas @(Model.IsMandatory ? "fa-exclamation-triangle" : "fa-hand-paper") me-1"></i>
                                         @(Model.IsMandatory ? "Bắt buộc" : "Tùy chọn")
                                     </span>
@@ -101,7 +149,7 @@
                                     <label class="form-label text-muted">
                                         <i class="fas fa-power-off me-1"></i>Trạng thái
                                     </label>
-                                    <span class="badge @(Model.IsActive ? "bg-success" : "bg-secondary") fs-6">
+                                    <span class="badge @(Model.IsActive ? "badge-pink" : "bg-secondary") fs-6">
                                         <i class="fas @(Model.IsActive ? "fa-check-circle" : "fa-pause-circle") me-1"></i>
                                         @(Model.IsActive ? "Đang hoạt động" : "Tạm dừng")
                                     </span>
@@ -126,11 +174,11 @@
                     @if (Model.Rooms?.Any() == true)
                     {
                         <div class="card shadow-sm">
-                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <div class="card-header bg-pink text-white d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0">
                                     <i class="fas fa-home me-2"></i>Phòng sử dụng dịch vụ (@Model.Rooms.Count())
                                 </h5>
-                                <button type="button" class="btn btn-light btn-sm" onclick="toggleView()">
+                                <button type="button" class="btn btn-outline-pink btn-sm" onclick="toggleView()">
                                     <i class="fas fa-th me-1"></i>Đổi view
                                 </button>
                             </div>
@@ -148,7 +196,6 @@
                                                 <th>Trạng thái</th>
                                                 <th>Giá dịch vụ</th>
                                                 <th>Tiết kiệm/Phụ thu</th>
-                                                @* <th>Thao tác</th> *@
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -159,57 +206,47 @@
                                                 <tr>
                                                     <td>
                                                         <div class="d-flex align-items-center">
-                                                            <i class="fas fa-door-open text-primary me-2"></i>
+                                                            <i class="fas fa-door-open text-pink me-2"></i>
                                                             <div>
-                                                                <strong class="text-primary">@room?.RoomNumber</strong>
+                                                                <strong class="text-pink">@room?.RoomNumber</strong>
                                                                 <br>
                                                                 <small class="text-muted">ID: @room?.Id</small>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <span class="badge bg-light text-dark">Tầng @room?.Floor</span>
+                                                        <span class="badge badge-pink-light">Tầng @room?.Floor</span>
                                                     </td>
                                                     <td>@room?.Area.ToString("N1") m²</td>
                                                     <td>
-                                                        <span class="badge bg-info">@room?.TenantId</span>
+                                                        <span class="badge badge-pink-light">@room?.TenantId</span>
                                                     </td>
                                                     <td>
-                                                        <span class="badge bg-secondary">@room?.MaxOpt người</span>
+                                                        <span class="badge badge-pink-light">@room?.MaxOpt người</span>
                                                     </td>
                                                     <td>
-                                                        <span class="badge bg-@GetRoomStatusColor(room?.Status ?? 0)">
+                                                        <span class="badge badge-pink-light">
                                                             @GetRoomStatusText(room?.Status ?? 0)
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <div class="fw-bold text-success">@roomService.CustomPrice.ToString("N2") VNĐ</div>
+                                                        <div class="fw-bold text-pink">@roomService.CustomPrice.ToString("N2") VNĐ</div>
                                                         <small class="text-muted">/@Model.Unit</small>
                                                     </td>
                                                     <td>
                                                         @if (Math.Abs(priceDifference) < 0.01m)
                                                         {
-                                                            <span class="badge bg-light text-dark">Giá chuẩn</span>
+                                                            <span class="badge badge-pink-light">Giá chuẩn</span>
                                                         }
                                                         else if (priceDifference > 0)
                                                         {
-                                                            <span class="badge bg-danger">+@priceDifference.ToString("N2") VNĐ</span>
+                                                            <span class="badge badge-pink">+@priceDifference.ToString("N2") VNĐ</span>
                                                         }
                                                         else
                                                         {
-                                                            <span class="badge bg-success">@priceDifference.ToString("N2") VNĐ</span>
+                                                            <span class="badge badge-pink">@priceDifference.ToString("N2") VNĐ</span>
                                                         }
                                                     </td>
-                                                    @* <td> *@
-                                                    @*     <div class="btn-group btn-group-sm"> *@
-                                                    @*         <button type="button" class="btn btn-outline-info" onclick="viewRoomDetails(@room?.Id)" title="Xem chi tiết phòng"> *@
-                                                    @*             <i class="fas fa-eye"></i> *@
-                                                    @*         </button> *@
-                                                    @*         <button type="button" class="btn btn-outline-warning" onclick="editCustomPrice(@roomService.RoomId, @roomService.CustomPrice)" title="Chỉnh sửa giá"> *@
-                                                    @*             <i class="fas fa-edit"></i> *@
-                                                    @*         </button> *@
-                                                    @*     </div> *@
-                                                    @* </td> *@
                                                 </tr>
                                             }
                                         </tbody>
@@ -223,13 +260,13 @@
                                         var room = roomService.Room;
                                         var priceDifference = roomService.CustomPrice - Model.PricePerUnit;
                                         <div class="col-md-6 col-lg-4 mb-3">
-                                            <div class="card h-100 border-@GetRoomStatusColor(room?.Status ?? 0)">
-                                                <div class="card-header bg-@GetRoomStatusColor(room?.Status ?? 0) text-white">
+                                            <div class="card h-100 border-pink">
+                                                <div class="card-header bg-pink text-white">
                                                     <div class="d-flex justify-content-between align-items-center">
                                                         <h6 class="mb-0">
                                                             <i class="fas fa-door-open me-1"></i>@room?.RoomNumber
                                                         </h6>
-                                                        <span class="badge bg-light text-dark">Tầng @room?.Floor</span>
+                                                        <span class="badge badge-pink-light">Tầng @room?.Floor</span>
                                                     </div>
                                                 </div>
                                                 <div class="card-body">
@@ -249,22 +286,14 @@
                                                     </div>
                                                     <div class="text-center mb-3">
                                                         <div class="text-muted small">Giá dịch vụ</div>
-                                                        <div class="h5 text-success mb-1">@roomService.CustomPrice.ToString("N2") VNĐ</div>
+                                                        <div class="h5 text-pink mb-1">@roomService.CustomPrice.ToString("N2") VNĐ</div>
                                                         @if (Math.Abs(priceDifference) >= 0.01m)
                                                         {
-                                                            <div class="small text-@(priceDifference > 0 ? "danger" : "success")">
+                                                            <div class="small text-pink">
                                                                 @(priceDifference > 0 ? "+" : "")@priceDifference.ToString("N2") VNĐ so với giá chuẩn
                                                             </div>
                                                         }
                                                     </div>
-                                                    @* <div class="d-grid gap-2"> *@
-                                                    @*     <button type="button" class="btn btn-outline-info btn-sm" onclick="viewRoomDetails(@room?.Id)"> *@
-                                                    @*         <i class="fas fa-eye me-1"></i>Xem chi tiết *@
-                                                    @*     </button> *@
-                                                    @*     <button type="button" class="btn btn-outline-warning btn-sm" onclick="editCustomPrice(@roomService.RoomId, @roomService.CustomPrice)"> *@
-                                                    @*         <i class="fas fa-edit me-1"></i>Chỉnh sửa giá *@
-                                                    @*     </button> *@
-                                                    @* </div> *@
                                                 </div>
                                             </div>
                                         </div>
@@ -284,7 +313,7 @@
                             <div class="card-body text-center py-5">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <h6 class="text-muted">Chưa có phòng nào sử dụng dịch vụ này</h6>
-                                <a href="#" class="btn btn-outline-primary">
+                                <a href="#" class="btn btn-outline-pink">
                                     <i class="fas fa-plus me-1"></i>Thêm phòng sử dụng
                                 </a>
                             </div>
@@ -303,11 +332,11 @@
                         <div class="card-body">
                             <div class="row text-center mb-3">
                                 <div class="col-6">
-                                    <div class="h4 text-primary mb-1">@(Model.Rooms?.Count() ?? 0)</div>
+                                    <div class="h4 text-pink mb-1">@(Model.Rooms?.Count() ?? 0)</div>
                                     <small class="text-muted">Phòng sử dụng</small>
                                 </div>
                                 <div class="col-6">
-                                    <div class="h4 text-success mb-1">@Model.PricePerUnit.ToString("N0")</div>
+                                    <div class="h4 text-pink mb-1">@Model.PricePerUnit.ToString("N0")</div>
                                     <small class="text-muted">VNĐ/@Model.Unit</small>
                                 </div>
                             </div>
@@ -321,7 +350,7 @@
                                 <div class="small">
                                     <div class="d-flex justify-content-between mb-1">
                                         <span class="text-muted">Tổng doanh thu:</span>
-                                        <strong class="text-success">@totalRevenue.ToString("N2") VNĐ</strong>
+                                        <strong class="text-pink">@totalRevenue.ToString("N2") VNĐ</strong>
                                     </div>
                                     <div class="d-flex justify-content-between mb-1">
                                         <span class="text-muted">Giá trung bình:</span>
@@ -329,11 +358,11 @@
                                     </div>
                                     <div class="d-flex justify-content-between mb-1">
                                         <span class="text-muted">Giá thấp nhất:</span>
-                                        <strong class="text-info">@minPrice.ToString("N2") VNĐ</strong>
+                                        <strong class="text-pink">@minPrice.ToString("N2") VNĐ</strong>
                                     </div>
                                     <div class="d-flex justify-content-between">
                                         <span class="text-muted">Giá cao nhất:</span>
-                                        <strong class="text-warning">@maxPrice.ToString("N2") VNĐ</strong>
+                                        <strong class="text-pink">@maxPrice.ToString("N2") VNĐ</strong>
                                     </div>
                                 </div>
                             }
@@ -355,13 +384,13 @@
                                     var percentage = (double)group.Count() / Model.Rooms.Count * 100;
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="badge bg-@GetRoomStatusColor(group.Key)">
+                                            <span class="badge badge-pink-light">
                                                 @GetRoomStatusText(group.Key)
                                             </span>
                                             <span class="fw-bold">@group.Count() phòng</span>
                                         </div>
                                         <div class="progress" style="height: 8px;">
-                                            <div class="progress-bar bg-@GetRoomStatusColor(group.Key)" style="width: @percentage.ToString("F1")%"></div>
+                                            <div class="progress-bar bg-pink" style="width: @percentage.ToString("F1")%"></div>
                                         </div>
                                         <small class="text-muted">@percentage.ToString("F1")%</small>
                                     </div>
@@ -379,7 +408,7 @@
 <div class="modal fade" id="editPriceModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-warning text-white">
+            <div class="modal-header bg-pink text-white">
                 <h5 class="modal-title">
                     <i class="fas fa-edit me-2"></i>Chỉnh sửa giá dịch vụ
                 </h5>
@@ -395,14 +424,14 @@
                             <span class="input-group-text">VNĐ</span>
                         </div>
                         <div class="form-text">
-                            Giá chuẩn: <strong>@Model.PricePerUnit.ToString("N2") VNĐ</strong>
+                            Giá chuẩn: <strong class="text-pink">@Model.PricePerUnit.ToString("N2") VNĐ</strong>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-warning" onclick="saveCustomPrice()">
+                <button type="button" class="btn btn-outline-pink" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-pink" onclick="saveCustomPrice()">
                     <i class="fas fa-save me-1"></i>Lưu thay đổi
                 </button>
             </div>
