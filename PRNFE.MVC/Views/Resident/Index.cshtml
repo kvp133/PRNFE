@@ -14,7 +14,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="fas fa-users me-2"></i>
-                            Danh sách cư dân (@(Model?.Count ?? 0))
+                            Danh sách cư dân (@(Model?.Data?.Count ?? 0))
                         </h5>
                         <div>
                             <a href="@Url.Action("Create", "Resident")" class="btn btn-light btn-sm">
@@ -33,37 +33,25 @@
                     <form method="get" asp-action="Index" class="mb-4">
                         <div class="row g-3">
                             <div class="col-md-2">
-                                <label for="BuildingId" class="form-label">Tòa nhà</label>
-                                <select name="BuildingId" class="form-select" id="BuildingId">
-                                    <option value="1" selected="@(filter.BuildingId == 1)">Tòa A</option>
-                                    <option value="2" selected="@(filter.BuildingId == 2)">Tòa B</option>
-                                    <option value="3" selected="@(filter.BuildingId == 3)">Tòa C</option>
-                                </select>
+                                <label for="RoomIds" class="form-label">Room IDs</label>
+                                <input type="text" name="RoomIds" class="form-control" id="RoomIds"
+                                       value="@(filter.RoomIds != null ? string.Join(",", filter.RoomIds) : "")"
+                                       placeholder="e.g., 1,2,3">
+                                @Html.ValidationMessageFor(model => filter.RoomIds, "", new { @class = "text-danger" })
                             </div>
                             <div class="col-md-3">
                                 <label for="FullName" class="form-label">Họ tên</label>
                                 <input type="text" name="FullName" class="form-control" id="FullName"
                                        value="@filter.FullName" placeholder="Nhập họ tên...">
+                                @Html.ValidationMessageFor(model => filter.FullName, "", new { @class = "text-danger" })
                             </div>
                             <div class="col-md-2">
                                 <label for="PhoneNumber" class="form-label">Số điện thoại</label>
                                 <input type="text" name="PhoneNumber" class="form-control" id="PhoneNumber"
                                        value="@filter.PhoneNumber" placeholder="Nhập SĐT...">
+                                @Html.ValidationMessageFor(model => filter.PhoneNumber, "", new { @class = "text-danger" })
                             </div>
-                            <div class="col-md-2">
-                                <label for="RoomNumber" class="form-label">Số phòng</label>
-                                <input type="text" name="RoomNumber" class="form-control" id="RoomNumber"
-                                       value="@filter.RoomNumber" placeholder="Nhập số phòng...">
-                            </div>
-                            <div class="col-md-1">
-                                <label for="PageSize" class="form-label">Hiển thị</label>
-                                <select name="PageSize" class="form-select" id="PageSize">
-                                    <option value="10" selected="@(filter.PageSize == 10)">10</option>
-                                    <option value="25" selected="@(filter.PageSize == 25)">25</option>
-                                    <option value="50" selected="@(filter.PageSize == 50)">50</option>
-                                    <option value="100" selected="@(filter.PageSize == 100)">100</option>
-                                </select>
-                            </div>
+                            
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary me-2">
                                     <i class="fas fa-search me-1"></i>Tìm kiếm
@@ -105,9 +93,9 @@
                     <!-- Results Summary -->
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="text-muted">
-                            @if (Model != null && Model.Any())
+                            @if (Model != null && Model.Data.Any())
                             {
-                                <span>Hiển thị @Model.Count cư dân</span>
+                                <span>Hiển thị @Model.Data.Count cư dân</span>
                             }
                             else
                             {
@@ -116,7 +104,7 @@
                         </div>
                     </div>
 
-                    @if (Model != null && Model.Any())
+                    @if (Model != null && Model.Data.Any())
                     {
                         <div class="table-responsive">
                             <table class="table table-hover">
@@ -134,7 +122,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var resident in Model)
+                                    @foreach (var resident in Model.Data)
                                     {
                                         <tr>
                                             <td>
@@ -212,7 +200,7 @@
                                 <span class="text-muted">Trang @filter.Page</span>
                             </div>
                             <div>
-                                @if (Model.Count == filter.PageSize)
+                                @if (Model.Data.Count == filter.PageSize)
                                 {
                                     <a href="@GetPageUrl(filter.Page + 1, filter)" class="btn btn-outline-primary">
                                         Trang sau<i class="fas fa-chevron-right ms-1"></i>
@@ -273,7 +261,6 @@
     {
         var routeValues = new RouteValueDictionary
         {
-            ["BuildingId"] = filterRequest.BuildingId,
             ["Page"] = page,
             ["PageSize"] = filterRequest.PageSize
         };
@@ -284,8 +271,8 @@
         if (!string.IsNullOrWhiteSpace(filterRequest.PhoneNumber))
             routeValues["PhoneNumber"] = filterRequest.PhoneNumber;
 
-        if (!string.IsNullOrWhiteSpace(filterRequest.RoomNumber))
-            routeValues["RoomNumber"] = filterRequest.RoomNumber;
+        if (filterRequest.RoomIds != null && filterRequest.RoomIds.Any())
+            routeValues["RoomIds"] = string.Join(",", filterRequest.RoomIds);
 
         return Url.Action("Index", routeValues);
     }
@@ -337,6 +324,9 @@
 </style>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
     <script>
         function deleteResident(residentId, residentName) {
             document.getElementById('residentName').textContent = residentName;

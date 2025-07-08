@@ -6,7 +6,7 @@ namespace PRNFE.MVC.Models.Request
     {
         [Required(ErrorMessage = "User ID là bắt buộc")]
         [Display(Name = "User ID")]
-        public int UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Họ tên là bắt buộc")]
         [Display(Name = "Họ tên")]
@@ -43,10 +43,6 @@ namespace PRNFE.MVC.Models.Request
 
     public class ResidentUpdateRequest
     {
-        [Required(ErrorMessage = "User ID là bắt buộc")]
-        [Display(Name = "User ID")]
-        public int UserId { get; set; }
-
         [Required(ErrorMessage = "Họ tên là bắt buộc")]
         [Display(Name = "Họ tên")]
         public string FullName { get; set; } = string.Empty;
@@ -80,6 +76,7 @@ namespace PRNFE.MVC.Models.Request
         public TemporaryStayUpdateDto? TemporaryStay { get; set; }
     }
 
+
     public class TemporaryStayCreateDto
     {
         public int ResidentId { get; set; }
@@ -96,6 +93,7 @@ namespace PRNFE.MVC.Models.Request
 
         [Display(Name = "Ghi chú")]
         public string Note { get; set; } = string.Empty;
+
     }
 
     public class TemporaryStayUpdateDto
@@ -113,6 +111,7 @@ namespace PRNFE.MVC.Models.Request
         [Display(Name = "Ghi chú")]
         public string Note { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Trạng thái là bắt buộc")]
         [Display(Name = "Trạng thái")]
         public int Status { get; set; } // 0 = Chờ duyệt, 1 = Đã duyệt, 2 = Từ chối
     }
@@ -125,20 +124,17 @@ namespace PRNFE.MVC.Models.Request
     }
 
     // Filter model for GET /api/Residents/filters
-    public class ResidentFilterRequest
+public class ResidentFilterRequest
     {
-        [Required(ErrorMessage = "Building ID là bắt buộc")]
-        [Display(Name = "Building ID")]
-        public int BuildingId { get; set; }
+        [Display(Name = "Room IDs")]
+        [EnsureValidRoomIds(ErrorMessage = "Room IDs phải là các số nguyên dương")]
+        public int[]? RoomIds { get; set; } = null;
 
         [Display(Name = "Họ tên")]
         public string? FullName { get; set; }
 
         [Display(Name = "Số điện thoại")]
         public string? PhoneNumber { get; set; }
-
-        [Display(Name = "Số phòng")]
-        public string? RoomNumber { get; set; }
 
         [Display(Name = "Trang")]
         [Range(1, int.MaxValue, ErrorMessage = "Trang phải lớn hơn 0")]
@@ -147,6 +143,21 @@ namespace PRNFE.MVC.Models.Request
         [Display(Name = "Kích thước trang")]
         [Range(1, 100, ErrorMessage = "Kích thước trang phải từ 1 đến 100")]
         public int PageSize { get; set; } = 10;
+    }
+
+    public class EnsureValidRoomIdsAttribute : ValidationAttribute
+    {
+        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        {
+            if (value is int[] roomIds && roomIds != null)
+            {
+                if (roomIds.Any(id => id <= 0))
+                {
+                    return new ValidationResult(ErrorMessage);
+                }
+            }
+            return ValidationResult.Success;
+        }
     }
 
     public class ResidentDeleteRequest

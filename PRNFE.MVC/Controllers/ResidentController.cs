@@ -1,9 +1,11 @@
 ﻿
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
+using System.Net;
+using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 
 namespace PRNFE.MVC.Controllers
 {
@@ -19,6 +21,7 @@ namespace PRNFE.MVC.Controllers
 
         public ResidentController(HttpClient httpClient, IConfiguration configuration)
         {
+            var handler = new HttpClientHandler { UseCookies = true, CookieContainer = new CookieContainer() };
             _httpClient = httpClient;
             _apiBaseUrl = configuration.GetSection("ApiSettings:BaseUrl").Value ?? throw new InvalidOperationException("API BaseUrl is not configured.");
         }
@@ -26,28 +29,70 @@ namespace PRNFE.MVC.Controllers
         // INDEX
         public async Task<IActionResult> Index(ResidentFilterRequest filter)
         {
-            filter.BuildingId = filter.BuildingId == 0 ? 1 : filter.BuildingId;
-            var queryParams = new List<string>
+            if (!ModelState.IsValid)
             {
-                $"BuildingId={filter.BuildingId}",
-                $"Page={filter.Page}",
-                $"PageSize={filter.PageSize}"
-            };
+                ViewBag.Error = "Invalid filter parameters.";
+                return View(new ResidentFilterResponse());
+            }
 
-            if (!string.IsNullOrEmpty(filter.FullName)) queryParams.Add($"FullName={Uri.EscapeDataString(filter.FullName)}");
-            if (!string.IsNullOrEmpty(filter.PhoneNumber)) queryParams.Add($"PhoneNumber={Uri.EscapeDataString(filter.PhoneNumber)}");
-            if (!string.IsNullOrEmpty(filter.RoomNumber)) queryParams.Add($"RoomNumber={Uri.EscapeDataString(filter.RoomNumber)}");
+            var queryParams = new List<string>
+    {
+        $"Page={filter.Page}",
+        $"PageSize={filter.PageSize}"
+    };
+
+            if (!string.IsNullOrEmpty(filter.FullName))
+            {
+                queryParams.Add($"FullName={Uri.EscapeDataString(filter.FullName)}");
+            }
+
+            if (!string.IsNullOrEmpty(filter.PhoneNumber))
+            {
+                queryParams.Add($"PhoneNumber={Uri.EscapeDataString(filter.PhoneNumber)}");
+            }
+
+            if (filter.RoomIds != null && filter.RoomIds.Length > 0)
+            {
+                queryParams.Add($"RoomIds={string.Join(",", filter.RoomIds)}");
+            }
 
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Residents/filters?{string.Join("&", queryParams)}");
+                var queryString = string.Join("&", queryParams);
+                var fullUrl = $"{_apiBaseUrl}/api/Residents/filter?{queryString}";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {fullUrl}");
+
+                var request = new HttpRequestMessage(HttpMethod.Get, fullUrl);
+                var buildingId = Request.Cookies["buildingId"];
+                if (!string.IsNullOrEmpty(buildingId))
+                {
+                    request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                }
+                else
+                {
+                    ViewBag.Error = "Missing buildingId in cookies.";
+                    return View(new ResidentFilterResponse());
+                }
+
+                var response = await _httpClient.SendAsync(request);
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    ViewBag.Error = $"API Error: {response.StatusCode}";
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    ViewBag.Error = $"API Error: {response.StatusCode} - {errorContent}";
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
                     return View(new ResidentFilterResponse());
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"JSON Response: {json}");
+
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    ViewBag.Error = "Empty JSON response from API.";
+                    return View(new ResidentFilterResponse());
+                }
+
                 var result = JsonSerializer.Deserialize<ResidentFilterResponse>(json, _jsonOptions);
                 ViewBag.Filter = filter;
                 return View(result ?? new ResidentFilterResponse());
@@ -55,12 +100,14 @@ namespace PRNFE.MVC.Controllers
             catch (Exception ex)
             {
                 ViewBag.Error = $"Error loading residents: {ex.Message}";
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 ViewBag.Filter = filter;
                 return View(new ResidentFilterResponse());
             }
         }
 
-        // CREATE - GET
+
+        //// CREATE - GET
         public IActionResult Create() => View(new ResidentRequest
         {
             DateOfBirth = DateTime.Now.AddYears(-18),
@@ -68,75 +115,111 @@ namespace PRNFE.MVC.Controllers
             Rooms = new List<RoomCreateDto>()
         });
 
-        // CREATE - POST
+        // POST: Create
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ResidentRequest model)
         {
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
 
             try
             {
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/Residents",
-                    new StringContent(JsonSerializer.Serialize(model, _jsonOptions), System.Text.Encoding.UTF8, "application/json"));
+                // Sinh userId bằng GUID để đảm bảo duy nhất
+                model.UserId = $"user_{Guid.NewGuid().ToString("N").Substring(0, 6)}"; // Ví dụ: user_a1b2c3
 
-                if (response.IsSuccessStatusCode)
+                var buildingId = Request.Cookies["buildingId"];
+                if (string.IsNullOrEmpty(buildingId))
                 {
-                    TempData["SuccessMessage"] = "Resident added successfully!";
-                    return RedirectToAction(nameof(Index));
+                    ModelState.AddModelError(string.Empty, "Thiếu buildingId trong cookies.");
+                    return View(model);
                 }
 
-                ViewBag.IsSuccess = false;
-                ViewBag.Message = $"Error: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}";
+                var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/Residents")
+                {
+                    Content = new StringContent(
+                        JsonSerializer.Serialize(model, _jsonOptions),
+                        Encoding.UTF8,
+                        "application/json"
+                    )
+                };
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        var errorResponse = JsonSerializer.Deserialize<Dictionary<string, string>>(errorContent, _jsonOptions);
+                        foreach (var error in errorResponse ?? new Dictionary<string, string>())
+                        {
+                            ModelState.AddModelError(string.Empty, error.Value);
+                        }
+                    }
+                    catch
+                    {
+                        ModelState.AddModelError(string.Empty, $"Lỗi từ API: {errorContent}");
+                    }
+                    return View(model);
+                }
+
+                TempData["SuccessMessage"] = "Thêm cư dân thành công!";
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-                ViewBag.IsSuccess = false;
-                ViewBag.Message = $"Error: {ex.Message}";
+                ModelState.AddModelError(string.Empty, $"Lỗi hệ thống: {ex.Message}");
+                return View(model);
             }
-            return View(model);
         }
-
         // EDIT - GET
         public async Task<IActionResult> Edit(int id)
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Residents/{id}");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Residents/{id}");
+                var buildingId = Request.Cookies["buildingId"];
+                if (string.IsNullOrEmpty(buildingId))
+                {
+                    TempData["ErrorMessage"] = "Thiếu buildingId.";
+                    return RedirectToAction(nameof(Index));
+                }
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                var response = await _httpClient.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
                 {
-                    TempData["ErrorMessage"] = $"Resident with ID {id} not found";
+                    TempData["ErrorMessage"] = $"Không tìm thấy cư dân với ID {id}.";
                     return RedirectToAction(nameof(Index));
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var resident = JsonSerializer.Deserialize<ResidentResponse>(json, _jsonOptions);
-                if (resident == null)
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<ResidentResponse>>(json, _jsonOptions);
+                if (apiResponse?.success != true || apiResponse.data == null)
                 {
-                    TempData["ErrorMessage"] = $"Resident with ID {id} not found";
+                    TempData["ErrorMessage"] = $"Không tìm thấy cư dân với ID {id}.";
                     return RedirectToAction(nameof(Index));
                 }
 
                 var model = new ResidentUpdateRequest
                 {
-                    UserId = resident.UserId,
-                    FullName = resident.FullName,
-                    PhoneNumber = resident.PhoneNumber,
-                    Email = resident.Email,
-                    DateOfBirth = resident.DateOfBirth,
-                    Address = resident.Address,
-                    Gender = resident.Gender,
-                    Rooms = resident.Rooms?.Select(r => new RoomCreateDto { RoomId = r.RoomId }).ToList() ?? new List<RoomCreateDto>(),
-                    Vehicles = resident.Vehicles?.Select(v => new VehicleUpdateDto
+                    FullName = apiResponse.data.FullName,
+                    PhoneNumber = apiResponse.data.PhoneNumber,
+                    Email = apiResponse.data.Email,
+                    DateOfBirth = apiResponse.data.DateOfBirth,
+                    Address = apiResponse.data.Address,
+                    Gender = apiResponse.data.Gender,
+                    Rooms = apiResponse.data.Rooms?.Select(r => new RoomCreateDto { RoomId = r.RoomId }).ToList() ?? [],
+                    Vehicles = apiResponse.data.Vehicles?.Select(v => new VehicleUpdateDto { Type = v.Type, LicensePlate = v.LicensePlate }).ToList() ?? [],
+                    TemporaryStay = apiResponse.data.TemporaryStay != null ? new TemporaryStayUpdateDto
                     {
-                        Type = v.Type,
-                        LicensePlate = v.LicensePlate
-                    }).ToList() ?? new List<VehicleUpdateDto>(),
-                    TemporaryStay = resident.TemporaryStay != null ? new TemporaryStayUpdateDto
-                    {
-                        FromDate = resident.TemporaryStay.FromDate,
-                        ToDate = resident.TemporaryStay.ToDate,
-                        Note = resident.TemporaryStay.Note,
-                        Status = resident.TemporaryStay.Status
+                        FromDate = apiResponse.data.TemporaryStay.FromDate,
+                        ToDate = apiResponse.data.TemporaryStay.ToDate,
+                        Note = apiResponse.data.TemporaryStay.Note,
+                        Status = apiResponse.data.TemporaryStay.Status
                     } : null
                 };
 
@@ -145,12 +228,12 @@ namespace PRNFE.MVC.Controllers
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Error loading resident: {ex.Message}";
+                TempData["ErrorMessage"] = $"Lỗi: {ex.Message}";
                 return RedirectToAction(nameof(Index));
             }
         }
 
-        // EDIT - POST
+        // POST: Edit
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, ResidentUpdateRequest model)
         {
@@ -162,26 +245,50 @@ namespace PRNFE.MVC.Controllers
 
             try
             {
-                var response = await _httpClient.PutAsync($"{_apiBaseUrl}/api/Residents/{id}",
-                    new StringContent(JsonSerializer.Serialize(model, _jsonOptions), System.Text.Encoding.UTF8, "application/json"));
-
-                if (response.IsSuccessStatusCode)
+                var buildingId = Request.Cookies["buildingId"];
+                if (string.IsNullOrEmpty(buildingId))
                 {
-                    TempData["SuccessMessage"] = "Resident updated successfully!";
+                    TempData["ErrorMessage"] = "Thiếu buildingId.";
                     return RedirectToAction(nameof(Index));
                 }
 
-                ViewBag.IsSuccess = false;
-                ViewBag.Message = $"Error: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}";
+                var request = new HttpRequestMessage(HttpMethod.Put, $"{_apiBaseUrl}/api/Residents/{id}")
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(model), Encoding.UTF8, "application/json")
+                };
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        var errorResponse = JsonSerializer.Deserialize<Dictionary<string, string>>(errorContent, _jsonOptions);
+                        foreach (var error in errorResponse ?? new Dictionary<string, string>())
+                        {
+                            ModelState.AddModelError(string.Empty, error.Value);
+                        }
+                    }
+                    catch
+                    {
+                        ModelState.AddModelError(string.Empty, "Lỗi từ API: " + errorContent);
+                    }
+
+                    ViewBag.ResidentId = id;
+                    return View(model);
+                }
+
+                TempData["SuccessMessage"] = "Cập nhật thành công!";
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-                ViewBag.IsSuccess = false;
-                ViewBag.Message = $"Error: {ex.Message}";
+                TempData["ErrorMessage"] = $"Lỗi hệ thống: {ex.Message}";
+                ViewBag.ResidentId = id;
+                return View(model);
             }
-
-            ViewBag.ResidentId = id;
-            return View(model);
         }
 
         // DELETE
@@ -206,26 +313,43 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Residents/{id}");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Residents/{id}");
+                var buildingId = Request.Cookies["buildingId"];
+               
+                if (string.IsNullOrEmpty(buildingId))
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                var response = await _httpClient.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
                 {
-                    TempData["ErrorMessage"] = "Resident not found";
+                    var errorContent = await response.Content.ReadAsStringAsync();
                     return RedirectToAction(nameof(Index));
                 }
-
                 var json = await response.Content.ReadAsStringAsync();
-                var resident = JsonSerializer.Deserialize<ResidentResponse>(json, _jsonOptions);
-                if (resident == null)
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<ResidentResponse>>(json, _jsonOptions)
+                    ?? throw new InvalidOperationException($"Deserialization returned null for resident ID {id}");
+                if (!apiResponse.success)
                 {
-                    TempData["ErrorMessage"] = "Resident not found";
+                    return RedirectToAction(nameof(Index));
+                }
+                if (apiResponse.data == null)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+                if (apiResponse.data.Id != id)
+                {
                     return RedirectToAction(nameof(Index));
                 }
 
-                return View(resident);
+                ViewBag.ResidentId = id;
+                ViewBag.ApiStatusCode = response.StatusCode;
+                return View(apiResponse.data);
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Error: {ex.Message}";
+                TempData["ErrorMessage"] = $"Error loading resident with ID {id}: {ex.Message}. StackTrace: {ex.StackTrace}";
                 return RedirectToAction(nameof(Index));
             }
         }
