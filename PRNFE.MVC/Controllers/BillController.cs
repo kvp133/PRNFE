@@ -1,100 +1,1138 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿//using Microsoft.AspNetCore.Mvc;
+//using PRNFE.MVC.Models.Request;
+//using PRNFE.MVC.Models.Response;
+//using System.Text;
+//using System.Text.Json;
+//using BillResponse = PRNFE.MVC.Models.Request.BillResponse;
+
+//namespace PRNFE.MVC.Controllers
+//{
+//    public class BillController : Controller
+//    {
+//        private readonly HttpClient _httpClient;
+//        private readonly IConfiguration _configuration;
+//        private readonly ILogger<BillController> _logger;
+//        private readonly string _baseUrl;
+//        private readonly JsonSerializerOptions _jsonOptions = new()
+//        {
+//            PropertyNameCaseInsensitive = true,
+//            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+//        };
+
+//        public BillController(HttpClient httpClient, IConfiguration configuration, ILogger<BillController> logger)
+//        {
+//            _httpClient = httpClient;
+//            _configuration = configuration;
+//            _logger = logger;
+//            _baseUrl = _configuration["ApiSettings:BaseUrl"];
+//            _httpClient.BaseAddress = new Uri(_baseUrl); // Đặt BaseAddress để dễ quản lý URL
+//        }
+
+//        /// <summary>
+//        /// Lấy Building ID từ cookie
+//        /// </summary>
+//        private string GetBuildingIdFromCookie()
+//        {
+//            var buildingId = Request.Cookies["buildingId"]; 
+//            if (string.IsNullOrEmpty(buildingId))
+//            {
+//                throw new InvalidOperationException("buildingId cookie không tồn tại hoặc rỗng.");
+//            }
+//            return buildingId;
+//        }
+
+//        /// <summary>
+//        /// GET: Bills - Hiển thị danh sách hóa đơn với filter
+//        /// </summary>
+//        public async Task<IActionResult> Index(BillFilterRequest filter)
+//        {
+//            if (!ModelState.IsValid)
+//            {
+//                ViewBag.Error = "Invalid filter parameters.";
+//                return View();
+//            }
+
+//            // Đặt giá trị mặc định cho Page và PageSize
+//            filter.Page = filter.Page <= 0 ? 1 : filter.Page;
+//            filter.PageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
+
+//            var queryParams = new List<string>
+//    {
+//        $"Page={filter.Page}",
+//        $"PageSize={filter.PageSize}"
+//    };
+
+//            if (filter.RoomIds?.Any() == true)
+//            {
+//                foreach (var roomId in filter.RoomIds)
+//                {
+//                    queryParams.Add($"RoomIds={roomId}");
+//                }
+//            }
+//            if (filter.Status.HasValue)
+//                queryParams.Add($"Status={filter.Status.Value}");
+//            if (filter.FromDate.HasValue)
+//                queryParams.Add($"FromDate={filter.FromDate.Value:yyyy-MM-dd}"); // Sửa định dạng ngày
+//            if (filter.ToDate.HasValue)
+//                queryParams.Add($"ToDate={filter.ToDate.Value:yyyy-MM-dd}"); // Sửa định dạng ngày
+//            if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+//                queryParams.Add($"SearchTerm={Uri.EscapeDataString(filter.SearchTerm)}");
+
+//            try
+//            {
+//                var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+//                var fullUrl = $"/api/Bills/filter{queryString}";
+//                _logger.LogInformation("Gọi API: {Url}", fullUrl);
+
+//                var request = new HttpRequestMessage(HttpMethod.Get, fullUrl);
+//                var buildingId = GetBuildingIdFromCookie();
+//                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                var response = await _httpClient.SendAsync(request);
+
+//                if (!response.IsSuccessStatusCode)
+//                {
+//                    var errorContent = await response.Content.ReadAsStringAsync();
+//                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+//                    ViewBag.Error = $"API Error: {response.StatusCode} - {errorContent}";
+//                    ViewBag.Bills = new List<BillResponse>();
+//                    ViewBag.Filter = filter;
+//                    ViewBag.TotalCount = 0;
+//                    ViewBag.TotalPages = 0;
+//                    ViewBag.CurrentPage = 1;
+//                    return View();
+//                }
+
+//                var json = await response.Content.ReadAsStringAsync();
+//                _logger.LogInformation("JSON Response: {JsonResponse}", json);
+
+//                if (string.IsNullOrWhiteSpace(json))
+//                {
+//                    ViewBag.Error = "Empty JSON response from API.";
+//                    ViewBag.Bills = new List<BillResponse>();
+//                    ViewBag.Filter = filter;
+//                    ViewBag.TotalCount = 0;
+//                    ViewBag.TotalPages = 0;
+//                    ViewBag.CurrentPage = 1;
+//                    return View();
+//                }
+
+//                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillResponse>>>(json, _jsonOptions);
+//                var bills = apiResponse?.data ?? new List<BillResponse>(); // Sửa "data" thành "Data"
+
+//                // Lọc phía client với SearchTerm (nếu không có trong API)
+//                if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+//                {
+//                    bills = bills.Where(b =>
+//                        (b.Room?.RoomNumber?.Contains(filter.SearchTerm, StringComparison.OrdinalIgnoreCase) == true) ||
+//                        (b.Room?.TenantId?.Contains(filter.SearchTerm, StringComparison.OrdinalIgnoreCase) == true) ||
+//                        b.Amount.ToString().Contains(filter.SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+//                        b.Id.Contains(filter.SearchTerm, StringComparison.OrdinalIgnoreCase)
+//                    ).ToList();
+//                }
+
+//                var totalCount = bills.Count;
+//                var paginatedBills = bills
+//                    .Skip((filter.Page - 1) * filter.PageSize)
+//                    .Take(filter.PageSize)
+//                    .ToList();
+
+//                ViewBag.Bills = paginatedBills;
+//                ViewBag.Filter = filter;
+//                ViewBag.TotalCount = totalCount;
+//                ViewBag.TotalPages = (int)Math.Ceiling((double)totalCount / filter.PageSize);
+//                ViewBag.CurrentPage = filter.Page;
+
+//                return View();
+//            }
+//            catch (Exception ex)
+//            {
+//                _logger.LogError(ex, "Lỗi khi tải danh sách hóa đơn");
+//                ViewBag.Error = $"Error loading bills: {ex.Message}";
+//                ViewBag.Bills = new List<BillResponse>();
+//                ViewBag.Filter = filter ?? new BillFilterRequest();
+//                ViewBag.TotalCount = 0;
+//                ViewBag.TotalPages = 0;
+//                ViewBag.CurrentPage = 1;
+//                return View();
+//            }
+//        }
+//        /// <summary>
+//        /// GET: Bills/Details/5 - Hiển thị chi tiết hóa đơn
+//        /// </summary>
+//        public async Task<IActionResult> Details(string id)
+//        {
+//            if (string.IsNullOrEmpty(id))
+//            {
+//                return NotFound();
+//            }
+
+//            try
+//            {
+//                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Bills/{id}");
+//                var buildingId = GetBuildingIdFromCookie();
+//                   request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                var response = await _httpClient.SendAsync(request);
+//                if (!response.IsSuccessStatusCode)
+//                {
+//                    return NotFound();
+//                }
+
+//                var json = await response.Content.ReadAsStringAsync();
+//                var apiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(json, _jsonOptions);
+
+//                var bill = apiResponse?.data;
+//                if (bill == null)
+//                {
+//                    return NotFound();
+//                }
+
+//                return View(bill);
+//            }
+//            catch (Exception ex)
+//            {
+//                _logger.LogError(ex, "Lỗi khi tải chi tiết hóa đơn cho ID: {Id}", id);
+//                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải chi tiết hóa đơn.";
+//                return RedirectToAction(nameof(Index));
+//            }
+//        }
+
+//        /// <summary>
+//        /// GET: Bills/Create - Hiển thị form tạo hóa đơn
+//        /// </summary>
+//        public async Task<IActionResult> Create()
+//        {
+//            try
+//            {
+//                await LoadCreateFormData();
+//                var billRequest = new BillCreateRequest
+//                {
+//                    DueDate = DateTime.Now.AddDays(30),
+//                    BillDetails = new List<BillDetailCreateRequest>()
+//                };
+//                return View(billRequest);
+//            }
+//            catch (Exception ex)
+//            {
+//                _logger.LogError(ex, "Lỗi khi tải trang tạo hóa đơn");
+//                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải trang tạo hóa đơn.";
+//                return RedirectToAction(nameof(Index));
+//            }
+//        }
+
+//        /// <summary>
+//        /// POST: Bills/Create - Xử lý tạo hóa đơn
+//        /// </summary>
+//        [HttpPost]
+//        [ValidateAntiForgeryToken]
+//        public async Task<IActionResult> Create(BillCreateRequest billRequest)
+//        {
+//            if (ModelState.IsValid)
+//            {
+//                try
+//                {
+//                    var buildingId = GetBuildingIdFromCookie();
+
+//                    var json = JsonSerializer.Serialize(billRequest, _jsonOptions);
+//                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+//                    var request = new HttpRequestMessage(HttpMethod.Post, "/api/Bills")
+//                    {
+//                        Content = content
+//                    };
+//                       request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                    var response = await _httpClient.SendAsync(request);
+//                    response.EnsureSuccessStatusCode();
+
+//                    var jsonResponse = await response.Content.ReadAsStringAsync();
+//                    var apiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(jsonResponse, _jsonOptions);
+
+//                    TempData["SuccessMessage"] = "Hóa đơn đã được tạo thành công.";
+//                    return RedirectToAction(nameof(Details), new { id = apiResponse?.data?.Id });
+//                }
+//                catch (Exception ex)
+//                {
+//                    _logger.LogError(ex, "Lỗi khi tạo hóa đơn");
+//                    ModelState.AddModelError("", "Có lỗi xảy ra khi tạo hóa đơn. Vui lòng thử lại.");
+//                }
+//            }
+
+//            await LoadCreateFormData();
+//            return View(billRequest);
+//        }
+
+//        /// <summary>
+//        /// GET: Bills/Edit/5 - Hiển thị form chỉnh sửa hóa đơn
+//        /// </summary>
+//        public async Task<IActionResult> Edit(string id)
+//        {
+//            if (string.IsNullOrEmpty(id))
+//            {
+//                return NotFound();
+//            }
+
+//            try
+//            {
+//                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Bills/{id}");
+//                var buildingId = GetBuildingIdFromCookie();
+//                   request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                var billResponse = await _httpClient.SendAsync(request);
+//                var servicesResponse = await _httpClient.GetAsync("/api/Services");
+
+//                if (!billResponse.IsSuccessStatusCode)
+//                {
+//                    return NotFound();
+//                }
+
+//                var billJson = await billResponse.Content.ReadAsStringAsync();
+//                var billApiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(billJson, _jsonOptions);
+
+//                var bill = billApiResponse?.data;
+//                if (bill == null)
+//                {
+//                    return NotFound();
+//                }
+
+//                var updateRequest = new BillUpdateRequest
+//                {
+//                    Amount = bill.Amount,
+//                    DueDate = bill.DueDate,
+//                    Status = bill.Status,
+//                    BillDetails = bill.BillDetails?.Select(bd => new BillDetailCreateRequest
+//                    {
+//                        ServiceId = bd.ServiceId,
+//                        Quantity = bd.Quantity,
+//                        UnitPrice = bd.UnitPrice
+//                    }).ToList() ?? new List<BillDetailCreateRequest>()
+//                };
+
+//                var services = new List<BillServiceResponse>();
+//                if (servicesResponse.IsSuccessStatusCode)
+//                {
+//                    var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
+//                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponse>>>(servicesJson, _jsonOptions);
+//                    services = servicesApiResponse?.data ?? new List<BillServiceResponse>();
+//                }
+
+//                ViewBag.Services = services;
+//                ViewBag.BillId = id;
+//                ViewBag.Room = bill.Room;
+
+//                return View(updateRequest);
+//            }
+//            catch (Exception ex)
+//            {
+//                _logger.LogError(ex, "Lỗi khi tải trang chỉnh sửa hóa đơn cho ID: {Id}", id);
+//                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải trang chỉnh sửa hóa đơn.";
+//                return RedirectToAction(nameof(Index));
+//            }
+//        }
+
+//        /// <summary>
+//        /// POST: Bills/Edit/5 - Xử lý cập nhật hóa đơn
+//        /// </summary>
+//        [HttpPost]
+//        [ValidateAntiForgeryToken]
+//        public async Task<IActionResult> Edit(string id, BillUpdateRequest updateRequest)
+//        {
+//            if (ModelState.IsValid)
+//            {
+//                try
+//                {
+//                    var buildingId = GetBuildingIdFromCookie();
+
+//                    var json = JsonSerializer.Serialize(updateRequest, _jsonOptions);
+//                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+//                    var request = new HttpRequestMessage(HttpMethod.Put, $"/api/Bills/{id}")
+//                    {
+//                        Content = content
+//                    };
+//                       request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                    var response = await _httpClient.SendAsync(request);
+//                    response.EnsureSuccessStatusCode();
+
+//                    TempData["SuccessMessage"] = "Hóa đơn đã được cập nhật thành công.";
+//                    return RedirectToAction(nameof(Details), new { id = id });
+//                }
+//                catch (Exception ex)
+//                {
+//                    _logger.LogError(ex, "Lỗi khi cập nhật hóa đơn cho ID: {Id}", id);
+//                    ModelState.AddModelError("", "Có lỗi xảy ra khi cập nhật hóa đơn. Vui lòng thử lại.");
+//                }
+//            }
+
+//            await LoadEditFormData(id);
+//            ViewBag.BillId = id;
+//            return View(updateRequest);
+//        }
+
+//        /// <summary>
+//        /// GET: Bills/Delete/5 - Hiển thị trang xác nhận xóa
+//        /// </summary>
+//        public async Task<IActionResult> Delete(string id)
+//        {
+//            if (string.IsNullOrEmpty(id))
+//            {
+//                return NotFound();
+//            }
+
+//            try
+//            {
+//                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Bills/{id}");
+//                var buildingId = GetBuildingIdFromCookie();
+//                   request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                var response = await _httpClient.SendAsync(request);
+//                if (!response.IsSuccessStatusCode)
+//                {
+//                    return NotFound();
+//                }
+
+//                var jsonResponse = await response.Content.ReadAsStringAsync();
+//                var apiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(jsonResponse, _jsonOptions);
+
+//                var bill = apiResponse?.data;
+//                if (bill == null)
+//                {
+//                    return NotFound();
+//                }
+
+//                return View(bill);
+//            }
+//            catch (Exception ex)
+//            {
+//                _logger.LogError(ex, "Lỗi khi tải trang xóa hóa đơn cho ID: {Id}", id);
+//                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải trang xóa hóa đơn.";
+//                return RedirectToAction(nameof(Index));
+//            }
+//        }
+
+//        /// <summary>
+//        /// POST: Bills/Delete/5 - Xử lý xóa hóa đơn
+//        /// </summary>
+//        [HttpPost, ActionName("Delete")]
+//        [ValidateAntiForgeryToken]
+//        public async Task<IActionResult> DeleteConfirmed(string id)
+//        {
+//            try
+//            {
+//                var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/Bills/{id}");
+//                var buildingId = GetBuildingIdFromCookie();
+//                   request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                var response = await _httpClient.SendAsync(request);
+
+//                if (response.IsSuccessStatusCode)
+//                {
+//                    TempData["SuccessMessage"] = "Hóa đơn đã được xóa thành công.";
+//                }
+//                else
+//                {
+//                    var errorContent = await response.Content.ReadAsStringAsync();
+//                    TempData["ErrorMessage"] = $"Không thể xóa hóa đơn: {errorContent}";
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                _logger.LogError(ex, "Lỗi khi xóa hóa đơn cho ID: {Id}", id);
+//                TempData["ErrorMessage"] = "Có lỗi xảy ra khi xóa hóa đơn.";
+//            }
+
+//            return RedirectToAction(nameof(Index));
+//        }
+
+//        /// <summary>
+//        /// POST: Bills/CreateForBuilding - Tạo hóa đơn cho toàn bộ tòa nhà
+//        /// </summary>
+//        [HttpPost]
+//        [ValidateAntiForgeryToken]
+//        public async Task<IActionResult> CreateForBuilding()
+//        {
+//            try
+//            {
+//                var request = new HttpRequestMessage(HttpMethod.Post, "/api/Bills/Building");
+//                var buildingId = GetBuildingIdFromCookie();
+//                   request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                var response = await _httpClient.SendAsync(request);
+//                response.EnsureSuccessStatusCode();
+
+//                var jsonResponse = await response.Content.ReadAsStringAsync();
+//                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillResponse>>>(jsonResponse, _jsonOptions);
+
+//                var createdBills = apiResponse?.data ?? new List<BillResponse>();
+//                TempData["SuccessMessage"] = $"Đã tạo thành công {createdBills.Count} hóa đơn cho toàn bộ tòa nhà.";
+//            }
+//            catch (Exception ex)
+//            {
+//                _logger.LogError(ex, "Lỗi khi tạo hóa đơn cho toàn bộ tòa nhà");
+//                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tạo hóa đơn cho tòa nhà.";
+//            }
+
+//            return RedirectToAction(nameof(Index));
+//        }
+
+//        /// <summary>
+//        /// POST: Bills/CreateForRooms - Tạo hóa đơn cho các phòng được chọn
+//        /// </summary>
+//        [HttpPost]
+//        [ValidateAntiForgeryToken]
+//        public async Task<IActionResult> CreateForRooms([FromBody] List<int> roomIds)
+//        {
+//            try
+//            {
+//                if (roomIds == null || !roomIds.Any())
+//                {
+//                    return Json(new { success = false, message = "Vui lòng chọn ít nhất một phòng." });
+//                }
+
+//                var json = JsonSerializer.Serialize(roomIds, _jsonOptions);
+//                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+//                var request = new HttpRequestMessage(HttpMethod.Post, "/api/Bills/Rooms")
+//                {
+//                    Content = content
+//                };
+//                var buildingId = GetBuildingIdFromCookie();
+//                   request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                var response = await _httpClient.SendAsync(request);
+//                response.EnsureSuccessStatusCode();
+
+//                var jsonResponse = await response.Content.ReadAsStringAsync();
+//                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillResponse>>>(jsonResponse, _jsonOptions);
+
+//                var createdBills = apiResponse?.data ?? new List<BillResponse>();
+
+//                return Json(new { success = true, message = $"Đã tạo thành công {createdBills.Count} hóa đơn." });
+//            }
+//            catch (Exception ex)
+//            {
+//                _logger.LogError(ex, "Lỗi khi tạo hóa đơn cho các phòng");
+//                return Json(new { success = false, message = "Có lỗi xảy ra khi tạo hóa đơn cho các phòng." });
+//            }
+//        }
+
+//        #region Private Helper Methods
+
+//        /// <summary>
+//        /// Load data cho Create form
+//        /// </summary>
+//        private async Task LoadCreateFormData()
+//        {
+//            try
+//            {
+//                var request = new HttpRequestMessage(HttpMethod.Get, "/api/Rooms");
+//                var buildingId = GetBuildingIdFromCookie();
+//                   request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                var roomsResponse = await _httpClient.SendAsync(request);
+//                var servicesResponse = await _httpClient.GetAsync("/api/Services");
+
+//                var rooms = new List<BillRoomResponse>();
+//                var services = new List<BillServiceResponse>();
+
+//                if (roomsResponse.IsSuccessStatusCode)
+//                {
+//                    var roomsJson = await roomsResponse.Content.ReadAsStringAsync();
+//                    var roomsApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillRoomResponse>>>(roomsJson, _jsonOptions);
+//                    rooms = roomsApiResponse?.data ?? new List<BillRoomResponse>();
+//                }
+
+//                if (servicesResponse.IsSuccessStatusCode)
+//                {
+//                    var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
+//                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponse>>>(servicesJson, _jsonOptions);
+//                    services = servicesApiResponse?.data ?? new List<BillServiceResponse>();
+//                }
+
+//                ViewBag.Rooms = rooms;
+//                ViewBag.Services = services;
+//            }
+//            catch (Exception ex)
+//            {
+//                _logger.LogError(ex, "Lỗi khi tải dữ liệu cho form tạo hóa đơn");
+//                ViewBag.Rooms = new List<BillRoomResponse>();
+//                ViewBag.Services = new List<BillServiceResponse>();
+//            }
+//        }
+
+//        /// <summary>
+//        /// Load data cho Edit form
+//        /// </summary>
+//        private async Task LoadEditFormData(string billId)
+//        {
+//            try
+//            {
+//                var request = new HttpRequestMessage(HttpMethod.Get, $"/api/Bills/{billId}");
+//                var buildingId = GetBuildingIdFromCookie();
+//                   request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+//                var billResponse = await _httpClient.SendAsync(request);
+//                var servicesResponse = await _httpClient.GetAsync("/api/Services");
+
+//                var services = new List<BillServiceResponse>();
+//                BillRoomResponse room = null;
+
+//                if (billResponse.IsSuccessStatusCode)
+//                {
+//                    var billJson = await billResponse.Content.ReadAsStringAsync();
+//                    var billApiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(billJson, _jsonOptions);
+//                    room = billApiResponse?.data?.Room;
+//                }
+
+//                if (servicesResponse.IsSuccessStatusCode)
+//                {
+//                    var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
+//                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponse>>>(servicesJson, _jsonOptions);
+//                    services = servicesApiResponse?.data ?? new List<BillServiceResponse>();
+//                }
+
+//                ViewBag.Services = services;
+//                ViewBag.Room = room;
+//            }
+//            catch (Exception ex)
+//            {
+//                _logger.LogError(ex, "Lỗi khi tải dữ liệu cho form chỉnh sửa hóa đơn cho ID: {Id}", billId);
+//                ViewBag.Services = new List<BillServiceResponse>();
+//                ViewBag.Room = null;
+//            }
+//        }
+
+//        #endregion
+//    }
+
+
+//}
+
+using Microsoft.AspNetCore.Mvc;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
+using System.Net;
+using System.Text;
 using System.Text.Json;
+using BillResponse = PRNFE.MVC.Models.Request.BillResponse;
 
 namespace PRNFE.MVC.Controllers
 {
     public class BillController : Controller
     {
         private readonly HttpClient _httpClient;
-
-        public BillController(HttpClient httpClient)
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<BillController> _logger;
+        private readonly string _apiBaseUrl;
+        private readonly JsonSerializerOptions _jsonOptions = new()
         {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        public BillController(HttpClient httpClient, IConfiguration configuration, ILogger<BillController> logger)
+        {
+            var handler = new HttpClientHandler { UseCookies = true, CookieContainer = new CookieContainer() };
             _httpClient = httpClient;
+            _configuration = configuration;
+            _logger = logger;
+            _apiBaseUrl = configuration.GetSection("ApiSettings:BaseUrl").Value ?? throw new InvalidOperationException("API BaseUrl is not configured.");
         }
 
-        public IActionResult Manager()
+        private string GetBuildingIdFromCookie()
         {
-            return View(new BillRequest());
+            var buildingId = Request.Cookies["buildingId"];
+            if (string.IsNullOrEmpty(buildingId))
+            {
+                throw new InvalidOperationException("buildingId cookie không tồn tại hoặc rỗng.");
+            }
+            return buildingId;
+        }
+
+        public async Task<IActionResult> Index(BillFilterRequest filter)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Error = "Invalid filter parameters.";
+                return View();
+            }
+
+            filter.Page = filter.Page <= 0 ? 1 : filter.Page;
+            filter.PageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
+
+            var queryParams = new List<string>
+            {
+                $"Page={filter.Page}",
+                $"PageSize={filter.PageSize}"
+            };
+
+            if (filter.RoomIds?.Any() == true)
+            {
+                foreach (var roomId in filter.RoomIds)
+                {
+                    queryParams.Add($"RoomIds={roomId}");
+                }
+            }
+            if (filter.Status.HasValue)
+                queryParams.Add($"Status={filter.Status.Value}");
+            if (filter.FromDate.HasValue)
+                queryParams.Add($"FromDate={filter.FromDate.Value:yyyy-MM-dd}");
+            if (filter.ToDate.HasValue)
+                queryParams.Add($"ToDate={filter.ToDate.Value:yyyy-MM-dd}");
+            if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+                queryParams.Add($"SearchTerm={Uri.EscapeDataString(filter.SearchTerm)}");
+
+            try
+            {
+                var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+                var fullUrl = $"{_apiBaseUrl}/api/Bills/filter{queryString}";
+                _logger.LogInformation("Gọi API: {Url}", fullUrl);
+
+                var request = new HttpRequestMessage(HttpMethod.Get, fullUrl);
+                var buildingId = GetBuildingIdFromCookie();
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    ViewBag.Error = $"API Error: {response.StatusCode} - {errorContent}";
+                    ViewBag.Bills = new List<BillResponse>();
+                    ViewBag.Filter = filter;
+                    ViewBag.TotalCount = 0;
+                    ViewBag.TotalPages = 0;
+                    ViewBag.CurrentPage = 1;
+                    return View();
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("JSON Response: {JsonResponse}", json);
+
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    ViewBag.Error = "Empty JSON response from API.";
+                    ViewBag.Bills = new List<BillResponse>();
+                    ViewBag.Filter = filter;
+                    ViewBag.TotalCount = 0;
+                    ViewBag.TotalPages = 0;
+                    ViewBag.CurrentPage = 1;
+                    return View();
+                }
+
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillResponse>>>(json, _jsonOptions);
+                var bills = apiResponse?.data ?? new List<BillResponse>();
+
+                if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+                {
+                    bills = bills.Where(b =>
+                        (b.Room?.RoomNumber?.Contains(filter.SearchTerm, StringComparison.OrdinalIgnoreCase) == true) ||
+                        (b.Room?.TenantId?.Contains(filter.SearchTerm, StringComparison.OrdinalIgnoreCase) == true) ||
+                        b.Amount.ToString().Contains(filter.SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                        b.Id.Contains(filter.SearchTerm, StringComparison.OrdinalIgnoreCase)
+                    ).ToList();
+                }
+
+                var totalCount = bills.Count;
+                var paginatedBills = bills
+                    .Skip((filter.Page - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToList();
+
+                ViewBag.Bills = paginatedBills;
+                ViewBag.Filter = filter;
+                ViewBag.TotalCount = totalCount;
+                ViewBag.TotalPages = (int)Math.Ceiling((double)totalCount / filter.PageSize);
+                ViewBag.CurrentPage = filter.Page;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải danh sách hóa đơn");
+                ViewBag.Error = $"Error loading bills: {ex.Message}";
+                ViewBag.Bills = new List<BillResponse>();
+                ViewBag.Filter = filter ?? new BillFilterRequest();
+                ViewBag.TotalCount = 0;
+                ViewBag.TotalPages = 0;
+                ViewBag.CurrentPage = 1;
+                return View();
+            }
+        }
+
+        public async Task<IActionResult> Details(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Bills/{id}");
+                var buildingId = GetBuildingIdFromCookie();
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                var response = await _httpClient.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return NotFound();
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(json, _jsonOptions);
+
+                var bill = apiResponse?.data;
+                if (bill == null)
+                {
+                    return NotFound();
+                }
+
+                return View(bill);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải chi tiết hóa đơn cho ID: {Id}", id);
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải chi tiết hóa đơn.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        public async Task<IActionResult> Create()
+        {
+            try
+            {
+                await LoadCreateFormData();
+                var billRequest = new BillCreateRequest
+                {
+                    DueDate = DateTime.Now.AddDays(30),
+                    BillDetails = new List<BillDetailCreateRequest>()
+                };
+                return View(billRequest);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải trang tạo hóa đơn");
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải trang tạo hóa đơn.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Manager(BillRequest model)
+        public async Task<IActionResult> Create(BillCreateRequest billRequest)
         {
-            if (!ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                return View(model);
+                try
+                {
+                    var buildingId = GetBuildingIdFromCookie();
+                    var json = JsonSerializer.Serialize(billRequest, _jsonOptions);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/Bills")
+                    {
+                        Content = content
+                    };
+                    request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                    var response = await _httpClient.SendAsync(request);
+                    response.EnsureSuccessStatusCode();
+
+                    var jsonResponse = await response.Content.ReadAsStringAsync();
+                    var apiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(jsonResponse, _jsonOptions);
+
+                    TempData["SuccessMessage"] = "Hóa đơn đã được tạo thành công.";
+                    return RedirectToAction(nameof(Details), new { id = apiResponse?.data?.Id });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Lỗi khi tạo hóa đơn");
+                    ModelState.AddModelError("", "Có lỗi xảy ra khi tạo hóa đơn. Vui lòng thử lại.");
+                }
+            }
+
+            await LoadCreateFormData();
+            return View(billRequest);
+        }
+
+        public async Task<IActionResult> Edit(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return NotFound();
             }
 
             try
             {
-                var json = JsonSerializer.Serialize(model);
-                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Bills/{id}");
+                var buildingId = GetBuildingIdFromCookie();
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
 
-                var response = await _httpClient.PostAsync("/api/Bills", content);
+                var billResponse = await _httpClient.SendAsync(request);
+                var servicesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
+
+                if (!billResponse.IsSuccessStatusCode)
+                {
+                    return NotFound();
+                }
+
+                var billJson = await billResponse.Content.ReadAsStringAsync();
+                var billApiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(billJson, _jsonOptions);
+
+                var bill = billApiResponse?.data;
+                if (bill == null)
+                {
+                    return NotFound();
+                }
+
+                var updateRequest = new BillUpdateRequest
+                {
+                    Amount = bill.Amount,
+                    DueDate = bill.DueDate,
+                    Status = bill.Status,
+                    BillDetails = bill.BillDetails?.Select(bd => new BillDetailCreateRequest
+                    {
+                        ServiceId = bd.ServiceId,
+                        Quantity = bd.Quantity,
+                        UnitPrice = bd.UnitPrice
+                    }).ToList() ?? new List<BillDetailCreateRequest>()
+                };
+
+                var services = new List<BillServiceResponse>();
+                if (servicesResponse.IsSuccessStatusCode)
+                {
+                    var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
+                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponse>>>(servicesJson, _jsonOptions);
+                    services = servicesApiResponse?.data ?? new List<BillServiceResponse>();
+                }
+
+                ViewBag.Services = services;
+                ViewBag.BillId = id;
+                ViewBag.Room = bill.Room;
+
+                return View(updateRequest);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải trang chỉnh sửa hóa đơn cho ID: {Id}", id);
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải trang chỉnh sửa hóa đơn.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(string id, BillUpdateRequest updateRequest)
+        {
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var buildingId = GetBuildingIdFromCookie();
+                    var json = JsonSerializer.Serialize(updateRequest, _jsonOptions);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    var request = new HttpRequestMessage(HttpMethod.Put, $"{_apiBaseUrl}/api/Bills/{id}")
+                    {
+                        Content = content
+                    };
+                    request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                    var response = await _httpClient.SendAsync(request);
+                    response.EnsureSuccessStatusCode();
+
+                    TempData["SuccessMessage"] = "Hóa đơn đã được cập nhật thành công.";
+                    return RedirectToAction(nameof(Details), new { id = id });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Lỗi khi cập nhật hóa đơn cho ID: {Id}", id);
+                    ModelState.AddModelError("", "Có lỗi xảy ra khi cập nhật hóa đơn. Vui lòng thử lại.");
+                }
+            }
+
+            await LoadEditFormData(id);
+            ViewBag.BillId = id;
+            return View(updateRequest);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(string id)
+        {
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Delete, $"{_apiBaseUrl}/api/Bills/{id}");
+                var buildingId = GetBuildingIdFromCookie();
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                var response = await _httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    ViewBag.IsSuccess = true;
-                    ViewBag.Message = "Tạo hóa đơn thành công!";
-                    return View(new BillRequest());
+                    TempData["SuccessMessage"] = "Hóa đơn đã được xóa thành công.";
                 }
                 else
                 {
-                    ViewBag.IsSuccess = false;
-                    ViewBag.Message = "Có lỗi xảy ra khi tạo hóa đơn. Vui lòng thử lại.";
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    TempData["ErrorMessage"] = $"Không thể xóa hóa đơn: {errorContent}";
                 }
             }
             catch (Exception ex)
             {
-                ViewBag.IsSuccess = false;
-                ViewBag.Message = $"Lỗi: {ex.Message}";
+                _logger.LogError(ex, "Lỗi khi xóa hóa đơn cho ID: {Id}", id);
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi xóa hóa đơn.";
             }
 
-            return View(model);
+            return RedirectToAction(nameof(Index));
         }
-    }
 
-    [ApiController]
-    [Route("api/[controller]")]
-    public class BillsController : ControllerBase
-    {
         [HttpPost]
-        public async Task<IActionResult> CreateBill([FromBody] BillRequest request)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateForBuilding()
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
             try
             {
-                var bill = new BillResponse
-                {
-                    BillId = Guid.NewGuid(),
-                    RoomId = request.RoomId,
-                    BillMonth = request.BillMonth,
-                    TotalAmount = request.TotalAmount,
-                    Status = request.Status,
-                    CreatedAt = DateTime.UtcNow,
-                    RoomNumber = "TBD" // TODO: Get from database
-                };
+                var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/Bills/Building");
+                var buildingId = GetBuildingIdFromCookie();
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
 
-                return Ok(bill);
+                var response = await _httpClient.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillResponse>>>(jsonResponse, _jsonOptions);
+
+                var createdBills = apiResponse?.data ?? new List<BillResponse>();
+                TempData["SuccessMessage"] = $"Đã tạo thành công {createdBills.Count} hóa đơn cho toàn bộ tòa nhà.";
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Có lỗi xảy ra khi tạo hóa đơn", error = ex.Message });
+                _logger.LogError(ex, "Lỗi khi tạo hóa đơn cho toàn bộ tòa nhà");
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tạo hóa đơn cho tòa nhà.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateForRooms([FromBody] List<int> roomIds)
+        {
+            try
+            {
+                if (roomIds == null || !roomIds.Any())
+                {
+                    return Json(new { success = false, message = "Vui lòng chọn ít nhất một phòng." });
+                }
+
+                var json = JsonSerializer.Serialize(roomIds, _jsonOptions);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/Bills/Rooms")
+                {
+                    Content = content
+                };
+                var buildingId = GetBuildingIdFromCookie();
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                var response = await _httpClient.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillResponse>>>(jsonResponse, _jsonOptions);
+
+                var createdBills = apiResponse?.data ?? new List<BillResponse>();
+
+                return Json(new { success = true, message = $"Đã tạo thành công {createdBills.Count} hóa đơn." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo hóa đơn cho các phòng");
+                return Json(new { success = false, message = "Có lỗi xảy ra khi tạo hóa đơn cho các phòng." });
             }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetBills()
+        private async Task LoadCreateFormData()
         {
-            // TODO: Implement get bills from database
-            return Ok(new List<BillResponse>());
+            try
+            {
+                //var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Rooms");
+                //var buildingId = GetBuildingIdFromCookie();
+                //request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                //var roomsResponse = await _httpClient.SendAsync(request);
+                var roomsResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Rooms");
+                var servicesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
+
+                var rooms = new List<BillRoomResponse>();
+                var services = new List<BillServiceResponse>();
+
+                if (roomsResponse.IsSuccessStatusCode)
+                {
+                    var roomsJson = await roomsResponse.Content.ReadAsStringAsync();
+                    var roomsApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillRoomResponse>>>(roomsJson, _jsonOptions);
+                    rooms = roomsApiResponse?.data ?? new List<BillRoomResponse>();
+                }
+
+                if (servicesResponse.IsSuccessStatusCode)
+                {
+                    var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
+                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponse>>>(servicesJson, _jsonOptions);
+                    services = servicesApiResponse?.data ?? new List<BillServiceResponse>();
+                }
+
+                ViewBag.Rooms = rooms;
+                ViewBag.Services = services;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải dữ liệu cho form tạo hóa đơn");
+                ViewBag.Rooms = new List<BillRoomResponse>();
+                ViewBag.Services = new List<BillServiceResponse>();
+            }
+        }
+
+        private async Task LoadEditFormData(string billId)
+        {
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Bills/{billId}");
+                var buildingId = GetBuildingIdFromCookie();
+                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+
+                var billResponse = await _httpClient.SendAsync(request);
+                var servicesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
+
+                var services = new List<BillServiceResponse>();
+                BillRoomResponse room = null;
+
+                if (billResponse.IsSuccessStatusCode)
+                {
+                    var billJson = await billResponse.Content.ReadAsStringAsync();
+                    var billApiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(billJson, _jsonOptions);
+                    room = billApiResponse?.data?.Room;
+                }
+
+                if (servicesResponse.IsSuccessStatusCode)
+                {
+                    var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
+                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponse>>>(servicesJson, _jsonOptions);
+                    services = servicesApiResponse?.data ?? new List<BillServiceResponse>();
+                }
+
+                ViewBag.Services = services;
+                ViewBag.Room = room;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tải dữ liệu cho form chỉnh sửa hóa đơn cho ID: {Id}", billId);
+                ViewBag.Services = new List<BillServiceResponse>();
+                ViewBag.Room = null;
+            }
         }
     }
 }

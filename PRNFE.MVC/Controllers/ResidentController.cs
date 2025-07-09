@@ -315,7 +315,7 @@ namespace PRNFE.MVC.Controllers
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Residents/{id}");
                 var buildingId = Request.Cookies["buildingId"];
-               
+
                 if (string.IsNullOrEmpty(buildingId))
                 {
                     return RedirectToAction(nameof(Index));

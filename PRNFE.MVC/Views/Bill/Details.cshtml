@@ -1,0 +1,248 @@
+﻿@model PRNFE.MVC.Models.Request.BillResponse
+@using PRNFE.MVC.Models.Request
+@{
+    ViewData["Title"] = "Chi tiết Hóa đơn";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Chi tiết Hóa đơn</h1>
+        <p class="text-muted">Thông tin chi tiết hóa đơn #@Model.Id</p>
+    </div>
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left me-1"></i>
+            Quay lại danh sách
+        </a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning me-2">
+            <i class="fas fa-edit me-1"></i>
+            Chỉnh sửa
+        </a>
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger" onclick="return confirm('Bạn có chắc chắn muốn xóa hóa đơn này?')">
+            <i class="fas fa-trash me-1"></i>
+            Xóa
+        </a>
+    </div>
+</div>
+
+<!-- Bill Information -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-file-invoice me-2"></i>
+            Thông tin hóa đơn
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">
+                        <i class="fas fa-id-card me-1"></i>
+                        Mã hóa đơn
+                    </dt>
+                    <dd class="col-sm-8">
+                        @Model.Id
+                    </dd>
+
+                    <dt class="col-sm-4">
+                        <i class="fas fa-door-open me-1"></i>
+                        Số phòng
+                    </dt>
+                    <dd class="col-sm-8">
+                        <strong class="text-primary">@Model.Room?.RoomNumber</strong>
+                        <span class="badge bg-secondary ms-2">Tầng @Model.Room?.Floor</span>
+                    </dd>
+
+                    <dt class="col-sm-4">
+                        <i class="fas fa-user me-1"></i>
+                        Mã thuê
+                    </dt>
+                    <dd class="col-sm-8">
+                        @if (!string.IsNullOrEmpty(Model.Room?.TenantId))
+                        {
+                            <span class="badge bg-info">
+                                <i class="fas fa-user me-1"></i>
+                                @Model.Room.TenantId
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">
+                                <i class="fas fa-home me-1"></i>
+                                Trống
+                            </span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">
+                        <i class="fas fa-money-bill me-1"></i>
+                        Số tiền
+                    </dt>
+                    <dd class="col-sm-8">
+                        <strong class="text-success">
+                            @Model.Amount.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))
+                        </strong>
+                    </dd>
+
+                    <dt class="col-sm-4">
+                        <i class="fas fa-calendar me-1"></i>
+                        Hạn thanh toán
+                    </dt>
+                    <dd class="col-sm-8">
+                        @{
+                            var isOverdue = Model.DueDate < DateTime.Now && Model.Status != 1;
+                            var dueDateClass = isOverdue ? "text-danger fw-bold" : "text-dark";
+                        }
+                        <span class="@dueDateClass">
+                            @Model.DueDate.ToString("dd/MM/yyyy")
+                            @if (isOverdue)
+                            {
+                                <i class="fas fa-exclamation-triangle ms-1"></i>
+                            }
+                        </span>
+                    </dd>
+
+                    <dt class="col-sm-4">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Trạng thái
+                    </dt>
+                    <dd class="col-sm-8">
+                        @{
+                            var statusInfo = GetStatusInfo(Model.Status);
+                        }
+                        <span class="badge @statusInfo.BadgeClass">
+                            <i class="@statusInfo.Icon me-1"></i>
+                            @statusInfo.Text
+                        </span>
+                    </dd>
+
+                    <dt class="col-sm-4">
+                        <i class="fas fa-clock me-1"></i>
+                        Ngày tạo
+                    </dt>
+                    <dd class="col-sm-8">
+                        <small class="text-muted">
+                            @Model.CreateAt.ToString("dd/MM/yyyy HH:mm")
+                        </small>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bill Details -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-list-ul me-2"></i>
+            Chi tiết dịch vụ
+        </h5>
+    </div>
+    <div class="card-body">
+        @if (Model.BillDetails?.Any() == true)
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>
+                                <i class="fas fa-cogs me-1"></i>
+                                Dịch vụ
+                            </th>
+                            <th>
+                                <i class="fas fa-ruler me-1"></i>
+                                Đơn vị
+                            </th>
+                            <th>
+                                <i class="fas fa-calculator me-1"></i>
+                                Số lượng
+                            </th>
+                            <th>
+                                <i class="fas fa-money-bill me-1"></i>
+                                Đơn giá
+                            </th>
+                            <th>
+                                <i class="fas fa-money-bill-wave me-1"></i>
+                                Thành tiền
+                            </th>
+                            <th>
+                                <i class="fas fa-clock me-1"></i>
+                                Ngày tạo
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var detail in Model.BillDetails)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@detail.Service?.Name</strong>
+                                </td>
+                                <td>
+                                    @detail.Service?.Unit
+                                </td>
+                                <td>
+                                    @detail.Quantity
+                                </td>
+                                <td>
+                                    @detail.UnitPrice.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))
+                                </td>
+                                <td>
+                                    <strong class="text-success">
+                                        @(detail.Quantity* detail.UnitPrice).ToString("C0", new System.Globalization.CultureInfo("vi-VN"))
+                                    </strong>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        @detail.CreateAt.ToString("dd/MM/yyyy HH:mm")
+                                    </small>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-list-ul fa-4x text-muted"></i>
+                </div>
+                <h5 class="text-muted mb-3">Không có chi tiết dịch vụ</h5>
+            </div>
+        }
+    </div>
+</div>
+
+@functions {
+    private (string BadgeClass, string Icon, string Text) GetStatusInfo(int status)
+    {
+        return status switch
+        {
+            0 => ("bg-danger", "fas fa-exclamation-circle", "Chưa thanh toán"),
+            1 => ("bg-success", "fas fa-check-circle", "Đã thanh toán"),
+            2 => ("bg-warning", "fas fa-clock", "Quá hạn"),
+            3 => ("bg-secondary", "fas fa-times-circle", "Đã hủy"),
+            4 => ("bg-info", "fas fa-spinner", "Đang xử lý"),
+            _ => ("bg-light text-dark", "fas fa-question-circle", "Không xác định")
+        };
+    }
+}
+
+@section Scripts {
+    <script>
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+}
