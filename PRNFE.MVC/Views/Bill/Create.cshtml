@@ -1,4 +1,4 @@
-﻿@model PRNFE.MVC.Models.Request.BillCreateRequest
+﻿@* @model PRNFE.MVC.Models.Request.BillCreateRequest
 @using PRNFE.MVC.Models.Request
 @{
     ViewData["Title"] = "Tạo hóa đơn mới";
@@ -482,6 +482,552 @@
 
         .form-select option.available {
             background-color: #d1edff;
+        }
+    </style>
+} *@
+
+
+@model PRNFE.MVC.Models.Request.BillCreateRequest
+@using PRNFE.MVC.Models.Request
+@{
+    ViewData["Title"] = "Tạo hóa đơn mới";
+    var rooms = ViewBag.Rooms as List<PRNFE.MVC.Models.Request.BillRoomResponse> ?? new List<PRNFE.MVC.Models.Request.BillRoomResponse>();
+    var services = ViewBag.Services as List<PRNFE.MVC.Models.Request.BillServiceResponse> ?? new List<PRNFE.MVC.Models.Request.BillServiceResponse>();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">
+            <i class="fas fa-plus-circle me-2 text-primary"></i>
+            Tạo hóa đơn mới
+        </h1>
+        <p class="text-muted">Tạo hóa đơn mới cho phòng trong tòa nhà</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>
+        Quay lại danh sách
+    </a>
+</div>
+
+<form asp-action="Create" method="post" id="billForm">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert" style="@(ViewData.ModelState.IsValid ? "display: none;" : "")"></div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Basic Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle me-2"></i>
+                Thông tin cơ bản
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="RoomId" class="form-label">
+                            <i class="fas fa-door-open me-1"></i>
+                            Phòng *
+                        </label>
+                        @if (rooms.Any())
+                        {
+                            <select asp-for="RoomId" class="form-select" id="roomSelect" onchange="updateRoomInfo()">
+                                <option value="">-- Chọn phòng --</option>
+                                @foreach (var room in rooms)
+                                {
+                                    var roomStatus = room.Status == 1 ? "Đang thuê" : "Trống";
+                                    var roomClass = room.Status == 1 ? "occupied" : "available";
+                                    <option value="@room.Id"
+                                            data-room-number="@room.RoomNumber"
+                                            data-floor="@room.Floor"
+                                            data-tenant="@room.TenantId"
+                                            data-area="@room.Area"
+                                            data-type="@room.RoomType"
+                                            data-max-opt="@room.MaxOpt"
+                                            data-status="@room.Status"
+                                            class="@roomClass">
+                                        @room.RoomNumber - Tầng @room.Floor
+                                        (@GetRoomTypeName(room.RoomType)) - @roomStatus
+                                        @if (!string.IsNullOrEmpty(room.TenantId))
+                                        {
+                                            <text> - @room.TenantId</text>
+                                        }
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="RoomId" class="text-danger"></span>
+                            <div class="form-text">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Chọn phòng để tạo hóa đơn. Phòng đang thuê sẽ hiển thị mã thuê.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Không có phòng nào khả dụng. Vui lòng kiểm tra cấu hình tòa nhà hoặc liên hệ quản trị viên.
+                            </div>
+                            <select asp-for="RoomId" class="form-select" id="roomSelect" disabled>
+                                <option value="">-- Không có phòng --</option>
+                            </select>
+                            <span asp-validation-for="RoomId" class="text-danger"></span>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="DueDate" class="form-label">
+                            <i class="fas fa-calendar me-1"></i>
+                            Ngày đến hạn *
+                        </label>
+                        <input asp-for="DueDate"
+                               type="date"
+                               class="form-control"
+                               value="@Model.DueDate.ToString("yyyy-MM-dd")"
+                               min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                        <span asp-validation-for="DueDate" class="text-danger"></span>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Ngày khách hàng cần thanh toán hóa đơn.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Room Information Display -->
+            <div id="roomInfoDisplay" class="mt-3" style="display: none;">
+                <div class="alert alert-info">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-home me-1"></i>
+                        Thông tin phòng đã chọn
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Số phòng:</strong> <span id="selectedRoomNumber"></span></p>
+                            <p class="mb-1"><strong>Tầng:</strong> <span id="selectedFloor"></span></p>
+                            <p class="mb-1"><strong>Loại phòng:</strong> <span id="selectedRoomType"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Diện tích:</strong> <span id="selectedArea"></span> m²</p>
+                            <p class="mb-1"><strong>Sức chứa:</strong> <span id="selectedMaxOpt"></span> người</p>
+                            <p class="mb-1"><strong>Mã thuê:</strong> <span id="selectedTenant"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bill Details -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                Chi tiết dịch vụ
+            </h5>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-success me-2" onclick="addMandatoryServices()">
+                    <i class="fas fa-magic me-1"></i>
+                    Thêm dịch vụ bắt buộc
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addBillDetail()">
+                    <i class="fas fa-plus me-1"></i>
+                    Thêm dịch vụ
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="billDetailsContainer">
+                <div class="text-center py-4 text-muted" id="emptyState">
+                    <i class="fas fa-plus-circle fa-3x mb-3"></i>
+                    <h6>Chưa có dịch vụ nào</h6>
+                    <p>Nhấn "Thêm dịch vụ" hoặc "Thêm dịch vụ bắt buộc" để bắt đầu.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Amount -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-calculator fa-2x text-primary me-3"></i>
+                        <div>
+                            <h5 class="mb-0">Tổng cộng</h5>
+                            <small class="text-muted">Tổng tiền các dịch vụ đã chọn</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <h2 class="mb-0 text-success" id="totalAmount">0 ₫</h2>
+                </div>
+            </div>
+            <input asp-for="Amount" type="hidden" id="hiddenAmount" />
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Vui lòng kiểm tra kỹ thông tin trước khi tạo hóa đơn.
+                </div>
+                <div class="d-flex gap-2">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>
+                        Hủy
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-1"></i>
+                        Tạo hóa đơn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Error Modal -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="errorModalLabel">Lỗi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="errorModalMessage">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetRoomTypeName(int? roomType)
+    {
+        return roomType switch
+        {
+            1 => "Phòng đơn",
+            2 => "Phòng đôi",
+            3 => "Phòng ba",
+            4 => "Phòng bốn",
+            5 => "Phòng năm",
+            _ => "Không xác định"
+        };
+    }
+}
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
+    <script>
+        let billDetailIndex = 0;
+        const services = @Html.Raw(Json.Serialize(services));
+        const roomTypes = {
+            1: "Phòng đơn",
+            2: "Phòng đôi",
+            3: "Phòng ba",
+            4: "Phòng bốn",
+            5: "Phòng năm"
+        };
+
+        function updateRoomInfo() {
+            const roomSelect = document.getElementById('roomSelect');
+            const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+            const roomInfoDisplay = document.getElementById('roomInfoDisplay');
+
+            if (selectedOption && selectedOption.value) {
+                document.getElementById('selectedRoomNumber').textContent = selectedOption.dataset.roomNumber || 'N/A';
+                document.getElementById('selectedFloor').textContent = `Tầng ${selectedOption.dataset.floor || '0'}`;
+                document.getElementById('selectedRoomType').textContent = roomTypes[selectedOption.dataset.type] || 'Không xác định';
+                document.getElementById('selectedArea').textContent = selectedOption.dataset.area || '0';
+                document.getElementById('selectedMaxOpt').textContent = selectedOption.dataset.maxOpt || '0';
+                document.getElementById('selectedTenant').textContent = selectedOption.dataset.tenant || 'Chưa có';
+                roomInfoDisplay.style.display = 'block';
+            } else {
+                roomInfoDisplay.style.display = 'none';
+            }
+        }
+
+        function addBillDetail(serviceId = null, quantity = 1, unitPrice = null) {
+            const container = document.getElementById('billDetailsContainer');
+            const emptyState = document.getElementById('emptyState');
+
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+
+            const detailHtml = `
+                <div class="bill-detail-item border rounded p-3 mb-3" data-index="${billDetailIndex}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Dịch vụ *</label>
+                                <select name="BillDetails[${billDetailIndex}].ServiceId" class="form-select service-select" onchange="updateUnitPrice(this, ${billDetailIndex})">
+                                    <option value="">-- Chọn dịch vụ --</option>
+                                    ${services.map(s => `
+                                        <option value="${s.id}"
+                                                data-price="${s.pricePerUnit || 0}"
+                                                data-unit="${s.unit || ''}"
+                                                data-mandatory="${s.isMandatory}"
+                                                ${serviceId == s.id ? 'selected' : ''}>
+                                            ${s.name} (${s.unit})${s.isMandatory ? ' - Bắt buộc' : ''}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">Số lượng *</label>
+                                <input name="BillDetails[${billDetailIndex}].Quantity"
+                                       type="number"
+                                       class="form-control quantity-input"
+                                       min="0.01"
+                                       step="0.01"
+                                       value="${quantity}"
+                                       onchange="calculateTotal()" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Đơn giá *</label>
+                                <input name="BillDetails[${billDetailIndex}].UnitPrice"
+                                       type="number"
+                                       class="form-control unit-price-input"
+                                       min="0"
+                                       step="1000"
+                                       value="${unitPrice || 0}"
+                                       onchange="calculateTotal()" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">Thành tiền</label>
+                                <div class="form-control-plaintext fw-bold subtotal text-success">0 ₫</div>
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-sm d-block"
+                                        onclick="removeBillDetail(this)"
+                                        title="Xóa dịch vụ">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', detailHtml);
+            billDetailIndex++;
+
+            if (serviceId && unitPrice) {
+                calculateTotal();
+            }
+        }
+
+        function addMandatoryServices() {
+            const mandatoryServices = services.filter(s => s.isMandatory);
+
+            if (mandatoryServices.length === 0) {
+                showErrorModal('Không có dịch vụ bắt buộc nào.');
+                return;
+            }
+
+            const existingServices = Array.from(document.querySelectorAll('.service-select'))
+                .map(select => parseInt(select.value))
+                .filter(id => !isNaN(id));
+
+            mandatoryServices.forEach(service => {
+                if (!existingServices.includes(service.id)) {
+                    addBillDetail(service.id, 1, service.pricePerUnit);
+                }
+            });
+
+            if (mandatoryServices.length > 0) {
+                calculateTotal();
+            }
+        }
+
+        function removeBillDetail(button) {
+            const container = document.getElementById('billDetailsContainer');
+            const item = button.closest('.bill-detail-item');
+            const emptyState = document.getElementById('emptyState');
+
+            item.remove();
+
+            if (container.children.length === 1) {
+                emptyState.style.display = 'block';
+            }
+
+            calculateTotal();
+        }
+
+        function updateUnitPrice(select, index) {
+            const selectedOption = select.options[select.selectedIndex];
+            const price = selectedOption.getAttribute('data-price') || 0;
+            const unit = selectedOption.getAttribute('data-unit') || '';
+            const isMandatory = selectedOption.getAttribute('data-mandatory') === 'true';
+            const unitPriceInput = select.closest('.bill-detail-item').querySelector('.unit-price-input');
+            const quantityInput = select.closest('.bill-detail-item').querySelector('.quantity-input');
+
+            unitPriceInput.value = price;
+            quantityInput.setAttribute('title', `Đơn vị: ${unit}`);
+
+            const serviceLabel = select.closest('.mb-3').querySelector('.form-label');
+            if (isMandatory) {
+                serviceLabel.innerHTML = 'Dịch vụ * <span class="badge bg-warning text-dark">Bắt buộc</span>';
+            } else {
+                serviceLabel.innerHTML = 'Dịch vụ *';
+            }
+
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            const items = document.querySelectorAll('.bill-detail-item');
+
+            items.forEach(item => {
+                const quantity = parseFloat(item.querySelector('.quantity-input')?.value) || 0;
+                const unitPrice = parseFloat(item.querySelector('.unit-price-input')?.value) || 0;
+                const subtotal = quantity * unitPrice;
+
+                const subtotalElement = item.querySelector('.subtotal');
+                if (subtotalElement) {
+                    subtotalElement.textContent = formatCurrency(subtotal);
+                }
+                total += subtotal;
+            });
+
+            document.getElementById('totalAmount').textContent = formatCurrency(total);
+            document.getElementById('hiddenAmount').value = total;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        }
+
+        function showErrorModal(message) {
+            document.getElementById('errorModalMessage').textContent = message;
+            const modal = new bootstrap.Modal(document.getElementById('errorModal'));
+            modal.show();
+        }
+
+        document.getElementById('billForm').addEventListener('submit', function(e) {
+            const roomId = document.getElementById('roomSelect').value;
+            const billDetails = document.querySelectorAll('.bill-detail-item');
+
+            if (!roomId) {
+                e.preventDefault();
+                showErrorModal('Vui lòng chọn phòng.');
+                document.getElementById('roomSelect').focus();
+                return false;
+            }
+
+            if (billDetails.length === 0) {
+                e.preventDefault();
+                showErrorModal('Vui lòng thêm ít nhất một dịch vụ.');
+                return false;
+            }
+
+            let hasValidDetail = false;
+            billDetails.forEach(item => {
+                const serviceId = item.querySelector('.service-select')?.value;
+                const quantity = parseFloat(item.querySelector('.quantity-input')?.value) || 0;
+                const unitPrice = parseFloat(item.querySelector('.unit-price-input')?.value) || 0;
+
+                if (serviceId && quantity > 0 && unitPrice >= 0) {
+                    hasValidDetail = true;
+                }
+            });
+
+            if (!hasValidDetail) {
+                e.preventDefault();
+                showErrorModal('Vui lòng điền đầy đủ thông tin cho ít nhất một dịch vụ.');
+                return false;
+            }
+
+            const total = parseFloat(document.getElementById('hiddenAmount').value);
+            const confirmModal = new bootstrap.Modal(document.getElementById('errorModal'));
+            document.getElementById('errorModalLabel').textContent = 'Xác nhận tạo hóa đơn';
+            document.getElementById('errorModalMessage').innerHTML = `Bạn có chắc chắn muốn tạo hóa đơn với tổng tiền ${formatCurrency(total)}?`;
+            document.getElementById('errorModal').querySelector('.modal-footer').innerHTML = `
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('billForm').submit()">Xác nhận</button>
+            `;
+            e.preventDefault();
+            confirmModal.show();
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const tooltips = document.querySelectorAll('[title]');
+            tooltips.forEach(element => {
+                new bootstrap.Tooltip(element);
+            });
+
+            const dueDateInput = document.querySelector('input[name="DueDate"]');
+            if (!dueDateInput.value) {
+                const defaultDate = new Date();
+                defaultDate.setDate(defaultDate.getDate() + 30);
+                dueDateInput.value = defaultDate.toISOString().split('T')[0];
+            }
+
+            updateRoomInfo();
+        });
+    </script>
+
+    <style>
+        .bill-detail-item {
+            transition: all 0.3s ease;
+        }
+
+            .bill-detail-item:hover {
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+
+        #emptyState {
+            transition: all 0.3s ease;
+        }
+
+        .form-select option.occupied {
+            background-color: #fff3cd;
+        }
+
+        .form-select option.available {
+            background-color: #d1edff;
+        }
+
+        .alert-dismissible .btn-close {
+            padding: 0.75rem 1.25rem;
         }
     </style>
 }
