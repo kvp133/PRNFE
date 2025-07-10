@@ -5,6 +5,50 @@
     var serviceId = ViewBag.ServiceId;
 }
 
+<style>
+    .btn-pink {
+        background-color: #e91e63 !important;
+        color: #fff !important;
+        border: none;
+    }
+
+        .btn-pink:hover, .btn-pink:focus {
+            background-color: #ad1457 !important;
+            color: #fff !important;
+        }
+
+    .btn-outline-pink {
+        color: #e91e63 !important;
+        border-color: #e91e63 !important;
+        background: #fff !important;
+    }
+
+        .btn-outline-pink:hover, .btn-outline-pink:focus {
+            color: #fff !important;
+            background-color: #e91e63 !important;
+            border-color: #e91e63 !important;
+        }
+
+    .badge-pink {
+        background: #e91e63 !important;
+        color: #fff !important;
+    }
+
+    .badge-pink-light {
+        background: rgba(233,30,99,0.08) !important;
+        color: #e91e63 !important;
+        border: 1px solid #e91e63 !important;
+    }
+
+    .text-pink {
+        color: #e91e63 !important;
+    }
+
+    .bg-pink-light {
+        background: rgba(233,30,99,0.08) !important;
+    }
+</style>
+
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -12,10 +56,10 @@
                 <div class="card-header bg-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <h4 class="mb-0">
-                            <i class="fas fa-edit me-2"></i>@ViewData["Title"]
+                            <i class="fas fa-edit me-2 text-pink"></i>@ViewData["Title"]
                         </h4>
                         <div>
-                            <a href="@Url.Action("Details", "Services", new { id = serviceId })" class="btn btn-outline-info btn-sm me-2">
+                            <a href="@Url.Action("Details", "Services", new { id = serviceId })" class="btn btn-outline-pink btn-sm me-2">
                                 <i class="fas fa-eye"></i> Xem chi tiết
                             </a>
                             <a href="@Url.Action("Index", "Services")" class="btn btn-outline-secondary btn-sm">
@@ -39,7 +83,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label asp-for="Name" class="form-label">
-                                        <i class="fas fa-tag me-1 text-primary"></i>Tên dịch vụ <span class="text-danger">*</span>
+                                        <i class="fas fa-tag me-1 text-pink"></i>Tên dịch vụ <span class="text-danger">*</span>
                                     </label>
                                     <input asp-for="Name" class="form-control" placeholder="Nhập tên dịch vụ" />
                                     <span asp-validation-for="Name" class="text-danger small"></span>
@@ -48,7 +92,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label asp-for="Unit" class="form-label">
-                                        <i class="fas fa-ruler me-1 text-info"></i>Đơn vị tính <span class="text-danger">*</span>
+                                        <i class="fas fa-ruler me-1 text-pink"></i>Đơn vị tính <span class="text-danger">*</span>
                                     </label>
                                     <input asp-for="Unit" class="form-control" placeholder="VD: tháng, lần, m³, kWh" />
                                     <span asp-validation-for="Unit" class="text-danger small"></span>
@@ -60,7 +104,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label asp-for="PricePerUnit" class="form-label">
-                                        <i class="fas fa-money-bill-wave me-1 text-success"></i>Giá mỗi đơn vị <span class="text-danger">*</span>
+                                        <i class="fas fa-money-bill-wave me-1 text-pink"></i>Giá mỗi đơn vị <span class="text-danger">*</span>
                                     </label>
                                     <div class="input-group">
                                         <input asp-for="PricePerUnit" class="form-control" type="number" step="0.01" min="0" placeholder="0" />
@@ -72,20 +116,20 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">
-                                        <i class="fas fa-cog me-1 text-warning"></i>Tùy chọn dịch vụ
+                                        <i class="fas fa-cog me-1 text-pink"></i>Tùy chọn dịch vụ
                                     </label>
-                                    <div class="card border-light bg-light p-3">
+                                    <div class="card border-light bg-pink-light p-3">
                                         <div class="form-check mb-2">
                                             <input asp-for="IsMandatory" class="form-check-input" />
                                             <label asp-for="IsMandatory" class="form-check-label fw-medium">
-                                                <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                                <i class="fas fa-exclamation-triangle text-pink me-1"></i>
                                                 Dịch vụ bắt buộc
                                             </label>
                                         </div>
                                         <div class="form-check">
                                             <input asp-for="IsActive" class="form-check-input" />
                                             <label asp-for="IsActive" class="form-check-label fw-medium">
-                                                <i class="fas fa-power-off text-success me-1"></i>
+                                                <i class="fas fa-power-off text-pink me-1"></i>
                                                 Dịch vụ đang hoạt động
                                             </label>
                                         </div>
@@ -102,14 +146,14 @@
 
                         <div class="d-flex justify-content-between">
                             <div>
-                                <a href="@Url.Action("Index", "Services")" class="btn btn-secondary">
+                                <a href="@Url.Action("Index", "Services")" class="btn btn-outline-pink">
                                     <i class="fas fa-times me-1"></i> Hủy bỏ
                                 </a>
                                 <button type="button" class="btn btn-outline-danger ms-2" onclick="confirmDelete(@serviceId)">
                                     <i class="fas fa-trash me-1"></i> Xóa dịch vụ
                                 </button>
                             </div>
-                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <button type="submit" class="btn btn-pink" id="submitBtn">
                                 <i class="fas fa-save me-1"></i> Cập nhật dịch vụ
                             </button>
                         </div>
@@ -152,50 +196,22 @@
         </div>
     </div>
 </div>
-@*
+
+@* 
 <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Xác nhận xóa dịch vụ
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-center mb-3">
-                    <i class="fas fa-trash-alt fa-3x text-danger"></i>
-                </div>
-                <p class="text-center">Bạn có chắc chắn muốn xóa dịch vụ này không?</p>
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác và sẽ ảnh hưởng đến tất cả dữ liệu liên quan.
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i> Hủy bỏ
-                </button>
-                <form id="deleteForm" method="post" style="display: inline;">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-1"></i> Xóa vĩnh viễn
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+... (giữ nguyên modal xóa nếu bạn muốn, có thể chỉnh màu nút confirm là btn-pink) 
 *@
+
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-    
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('editServiceForm');
             const submitBtn = document.getElementById('submitBtn');
-            
+
             // Format price input
             const priceInput = document.querySelector('input[name="PricePerUnit"]');
             if (priceInput) {
@@ -211,7 +227,7 @@
             form.addEventListener('submit', function(e) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Đang cập nhật...';
-                
+
                 setTimeout(function() {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Cập nhật dịch vụ';

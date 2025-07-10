@@ -14,6 +14,7 @@ namespace PRNFE.MVC.Controllers
     {
         protected readonly HttpClient _httpClient;
         protected readonly string _apiBaseUrl;
+        protected readonly string _apiQLPTUrl;
         protected readonly IHttpClientFactory _httpClientFactory;
 
         protected BaseController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
@@ -21,13 +22,14 @@ namespace PRNFE.MVC.Controllers
 
             _httpClient = httpClientFactory.CreateClient();
             _apiBaseUrl = configuration["ApiSettings:BaseUrl"];
+            _apiQLPTUrl = configuration["ApiSettings:Url_qlpt"];
             _httpClientFactory = httpClientFactory;
 
         }
         protected HttpClient CreateHttpClientWithCookies()
         {
             var httpClient = _httpClientFactory.CreateClient();
-            httpClient.BaseAddress = new Uri(_apiBaseUrl);
+            httpClient.BaseAddress = new Uri(_apiQLPTUrl);
 
             // Add all cookies from current request
             if (Request.Cookies.Any())
