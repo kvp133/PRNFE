@@ -213,9 +213,7 @@
                             <a href="@Url.Action("Edit", "Rooms", new { id = Model.Id })" class="btn btn-warning btn-sm">
                                 <i class="fas fa-edit me-1"></i>Chỉnh sửa
                             </a>
-                            <a href="@Url.Action("Maintenance", "Rooms", new { roomId = Model.Id })" class="btn btn-secondary btn-sm">
-                                <i class="fas fa-tools me-1"></i>Bảo trì
-                            </a>
+                           
                             <a href="@Url.Action("Index", "Rooms")" class="btn btn-outline-pink btn-sm">
                                 <i class="fas fa-arrow-left me-1"></i>Danh sách
                             </a>
@@ -224,14 +222,14 @@
                 </div>
             </div>
 
-            @if (!string.IsNullOrEmpty(TempData["Message"]?.ToString()))
-            {
-                <div class="alert @(TempData["IsSuccess"]?.ToString() == "True" ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
-                    <i class="fas @(TempData["IsSuccess"]?.ToString() == "True" ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
-                    @TempData["Message"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            }
+            @* @if (!string.IsNullOrEmpty(TempData["Message"]?.ToString())) *@
+            @* { *@
+            @*     <div class="alert @(TempData["IsSuccess"]?.ToString() == "True" ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert"> *@
+            @*         <i class="fas @(TempData["IsSuccess"]?.ToString() == "True" ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i> *@
+            @*         @TempData["Message"] *@
+            @*         <button type="button" class="btn-close" data-bs-dismiss="alert"></button> *@
+            @*     </div> *@
+            @* } *@
 
             <div class="row">
                 <!-- Main Content -->
@@ -286,9 +284,7 @@
                                                 <span class="badge badge-pink-light fs-6">
                                                     @RoomsController.GetRoomStatusText(Model.Status)
                                                 </span>
-                                                <button class="btn btn-outline-pink btn-sm ms-2" onclick="changeStatus()">
-                                                    <i class="fas fa-edit"></i> Đổi
-                                                </button>
+                                                
                                             </td>
                                         </tr>
                                         <tr>
@@ -300,7 +296,7 @@
                             </div>
                         </div>
                     </div>
-
+@*
                     <!-- Residents -->
                     <div class="card shadow-sm mb-4">
                         <div class="card-header bg-pink-light d-flex justify-content-between align-items-center">
@@ -471,7 +467,7 @@
                             }
                         </div>
                     </div>
-
+                    *@
                     <!-- Room History -->
                     @if (Model.History?.Any() == true)
                     {

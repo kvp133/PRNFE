@@ -214,11 +214,23 @@ namespace PRNFE.MVC.Controllers
         }
 
         [HttpGet]
+        [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
             try
             {
+                if (!ValidateBuildingId())
+                {
+                    TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                    TempData["IsSuccess"] = false;
+                    return RedirectToAction(nameof(Index));
+                }
+
                 using var httpClient = CreateHttpClientWithCookies();
+
+                // Thêm buildingId vào header
+                var buildingId = GetBuildingId();
+                httpClient.DefaultRequestHeaders.Add("buildingId", buildingId);
 
                 var response = await httpClient.GetAsync($"api/Rooms/{id}");
 
@@ -238,13 +250,14 @@ namespace PRNFE.MVC.Controllers
                             RoomTypeId = room.RoomTypeId,
                             MaxOpt = room.MaxOpt,
                             Status = room.Status,
+                            Notes = string.Empty, // Set default value since Notes might not exist in DetailRoomResponse
                             Residents = room.Residents?.Select(r => new UpdateResidentInRoomRequest
                             {
                                 ResidentId = r.ResidentId,
                                 IsActive = r.IsActive,
                                 JoinDate = r.JoinDate,
                                 LeaveDate = r.LeaveDate,
-                                Notes = r.Notes,
+                                Notes = r.Notes ?? string.Empty,
                                 Resident = r.Resident
                             }).ToList() ?? new List<UpdateResidentInRoomRequest>(),
                             Services = room.Services?.Select(s => new UpdateServiceInRoomRequest
@@ -254,7 +267,7 @@ namespace PRNFE.MVC.Controllers
                                 IsActive = s.IsActive,
                                 StartDate = s.StartDate,
                                 EndDate = s.EndDate,
-                                Notes = s.Notes,
+                                Notes = s.Notes ?? string.Empty,
                                 Service = s.Service
                             }).ToList() ?? new List<UpdateServiceInRoomRequest>()
                         };
@@ -264,6 +277,7 @@ namespace PRNFE.MVC.Controllers
                         ViewBag.AvailableResidents = await GetAvailableResidents();
                         ViewBag.AvailableServices = await GetAvailableServices();
                         ViewBag.RoomHistory = room.History ?? new List<RoomHistoryResponse>();
+                        ViewBag.BuildingId = buildingId;
 
                         return View(updateRequest);
                     }
@@ -292,6 +306,19 @@ namespace PRNFE.MVC.Controllers
                 ViewBag.RoomTypes = await GetRoomTypes();
                 ViewBag.AvailableResidents = await GetAvailableResidents();
                 ViewBag.AvailableServices = await GetAvailableServices();
+                ViewBag.BuildingId = GetBuildingId();
+                return View(request);
+            }
+
+            if (!ValidateBuildingId())
+            {
+                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                ViewBag.RoomId = id;
+                ViewBag.RoomTypes = await GetRoomTypes();
+                ViewBag.AvailableResidents = await GetAvailableResidents();
+                ViewBag.AvailableServices = await GetAvailableServices();
+                ViewBag.BuildingId = GetBuildingId();
                 return View(request);
             }
 
@@ -299,12 +326,52 @@ namespace PRNFE.MVC.Controllers
             {
                 using var httpClient = CreateHttpClientWithCookies();
 
-                var json = JsonConvert.SerializeObject(request, new JsonSerializerSettings
+                // Thêm buildingId vào header
+                var buildingId = GetBuildingId();
+                httpClient.DefaultRequestHeaders.Add("buildingId", buildingId);
+
+                // Tạo đối tượng request với buildingId
+                var requestWithBuildingId = new
+                {
+                    buildingId = int.Parse(buildingId),
+                    tenantId = request.TenantId,
+                    roomNumber = request.RoomNumber,
+                    floor = request.Floor,
+                    area = request.Area,
+                    roomTypeId = request.RoomTypeId,
+                    maxOpt = request.MaxOpt,
+                    status = request.Status,
+                    notes = request.Notes ?? string.Empty,
+                    residents = request.Residents?.Select(r => new
+                    {
+                        residentId = r.ResidentId,
+                        isActive = r.IsActive,
+                        joinDate = r.JoinDate.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                        leaveDate = r.LeaveDate?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                        notes = r.Notes ?? string.Empty
+                    }).ToList(),
+                    services = request.Services?.Select(s => new
+                    {
+                        serviceId = s.ServiceId,
+                        customPrice = s.CustomPrice,
+                        isActive = s.IsActive,
+                        startDate = s.StartDate.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                        endDate = s.EndDate?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                        notes = s.Notes ?? string.Empty
+                    }).ToList()
+                };
+
+                var json = JsonConvert.SerializeObject(requestWithBuildingId, new JsonSerializerSettings
                 {
                     DateFormatHandling = DateFormatHandling.IsoDateFormat,
-                    DateTimeZoneHandling = DateTimeZoneHandling.Utc
+                    DateTimeZoneHandling = DateTimeZoneHandling.Utc,
+                    NullValueHandling = NullValueHandling.Ignore
                 });
+
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                Console.WriteLine($"Updating room {id} with buildingId: {buildingId}");
+                Console.WriteLine($"Request data: {json}");
 
                 var response = await httpClient.PutAsync($"api/Rooms/{id}", content);
 
@@ -319,6 +386,7 @@ namespace PRNFE.MVC.Controllers
                     var errorContent = await response.Content.ReadAsStringAsync();
                     TempData["Message"] = $"Không thể cập nhật phòng: {errorContent}";
                     TempData["IsSuccess"] = false;
+                    Console.WriteLine($"Error response: {errorContent}");
                 }
             }
             catch (Exception ex)
@@ -332,6 +400,7 @@ namespace PRNFE.MVC.Controllers
             ViewBag.RoomTypes = await GetRoomTypes();
             ViewBag.AvailableResidents = await GetAvailableResidents();
             ViewBag.AvailableServices = await GetAvailableServices();
+            ViewBag.BuildingId = GetBuildingId();
             return View(request);
         }
 
