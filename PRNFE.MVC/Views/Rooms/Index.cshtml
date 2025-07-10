@@ -1,10 +1,17 @@
 ﻿@model List<PRNFE.MVC.Models.Response.RoomResponse>
 @using PRNFE.MVC.Controllers
-
 @{
     ViewData["Title"] = "Quản lý phòng";
     var currentPage = ViewBag.CurrentPage as int? ?? 1;
     var pageSize = ViewBag.PageSize as int? ?? 10;
+    var roomTypes = ViewBag.RoomTypes as List<PRNFE.MVC.Controllers.RoomTypeOption> ?? new List<PRNFE.MVC.Controllers.RoomTypeOption>();
+    var roomStatuses = ViewBag.RoomStatuses as List<PRNFE.MVC.Controllers.RoomStatusOption> ?? new List<PRNFE.MVC.Controllers.RoomStatusOption>();
+    var isFiltered = ViewBag.IsFiltered as bool? ?? false;
+    var filterCount = ViewBag.FilterCount as int? ?? 0;
+
+    // Get current filter values
+    var filterRoomTypeId = ViewBag.FilterRoomTypeId?.ToString() ?? "";
+    var filterStatus = ViewBag.FilterStatus?.ToString() ?? "";
 }
 
 <style>
@@ -66,6 +73,10 @@
     .badge {
         font-size: 0.75rem;
     }
+
+    .filter-card {
+        border-left: 4px solid #e91e63;
+    }
 </style>
 
 <div class="container-fluid">
@@ -79,16 +90,91 @@
                             <h4 class="mb-0">
                                 <i class="fas fa-home me-2 text-pink"></i>@ViewData["Title"]
                             </h4>
-                            <small class="text-muted">Tổng số: @Model.Count phòng</small>
+                            <small class="text-muted">
+                                @if (isFiltered)
+                                {
+                                    <span>Tìm thấy: @filterCount phòng</span>
+                                }
+                                else
+                                {
+                                    <span>Tổng số: @Model.Count phòng</span>
+                                }
+                            </small>
                         </div>
                         <div class="btn-group">
+                            <button type="button" class="btn btn-outline-pink" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                                <i class="fas fa-filter me-1"></i>Lọc phòng
+                            </button>
                             <a href="@Url.Action("Create", "Rooms")" class="btn btn-pink">
                                 <i class="fas fa-plus me-1"></i>Thêm phòng mới
                             </a>
-                            <a href="@Url.Action("Filter", "Rooms")" class="btn btn-outline-pink">
-                                <i class="fas fa-filter me-1"></i>Lọc & Tìm kiếm
-                            </a>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Form -->
+            <div class="collapse @(isFiltered ? "show" : "")" id="filterCollapse">
+                <div class="card shadow-sm mb-4 filter-card">
+                    <div class="card-header bg-pink-light">
+                        <h6 class="mb-0 text-pink">
+                            <i class="fas fa-search me-2"></i>Bộ lọc tìm kiếm
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="get" action="@Url.Action("Index", "Rooms")">
+                            <input type="hidden" name="isFilter" value="true" />
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="roomNumber" class="form-label">Số phòng</label>
+                                    <input type="text" class="form-control" id="roomNumber" name="roomNumber"
+                                           value="@ViewBag.FilterRoomNumber" placeholder="Nhập số phòng...">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="floor" class="form-label">Tầng</label>
+                                    <input type="number" class="form-control" id="floor" name="floor"
+                                           value="@ViewBag.FilterFloor" placeholder="Nhập tầng..." min="1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="roomTypeId" class="form-label">Loại phòng</label>
+                                    <select class="form-select" id="roomTypeId" name="roomTypeId">
+                                        <option value="">-- Tất cả loại phòng --</option>
+                                        @foreach (var roomType in roomTypes)
+                                        {
+                                            var isSelected = filterRoomTypeId == roomType.Id.ToString();
+                                            <option value="@roomType.Id" selected="@isSelected">
+                                                @roomType.Name
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="status" class="form-label">Trạng thái</label>
+                                    <select class="form-select" id="status" name="status">
+                                        <option value="">-- Tất cả trạng thái --</option>
+                                        @foreach (var status in roomStatuses)
+                                        {
+                                            var isSelected = filterStatus == status.Value.ToString();
+                                            <option value="@status.Value" selected="@isSelected">
+                                                @status.Text
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="btn-group">
+                                        <button type="submit" class="btn btn-pink">
+                                            <i class="fas fa-search me-1"></i>Tìm kiếm
+                                        </button>
+                                        <a href="@Url.Action("Index", "Rooms")" class="btn btn-outline-pink">
+                                            <i class="fas fa-times me-1"></i>Xóa bộ lọc
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -99,6 +185,16 @@
                     <i class="fas @(TempData["IsSuccess"]?.ToString() == "True" ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
                     @TempData["Message"]
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <!-- Filter Results Info -->
+            @if (isFiltered)
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Kết quả lọc:</strong> Tìm thấy @filterCount phòng phù hợp với điều kiện tìm kiếm.
+                    <a href="@Url.Action("Index", "Rooms")" class="alert-link ms-2">Xem tất cả phòng</a>
                 </div>
             }
 
@@ -138,7 +234,6 @@
                                             <small class="text-muted">người</small>
                                         </div>
                                     </div>
-
                                     <div class="room-info">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <small class="text-muted">Tenant ID:</small>
@@ -146,7 +241,13 @@
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <small class="text-muted">Loại phòng:</small>
-                                            <span class="badge badge-pink-light">#@room.RoomTypeId</span>
+                                            <span class="badge badge-pink-light">
+                                                @{
+                                                    var roomType = roomTypes.FirstOrDefault(rt => rt.Id == room.RoomTypeId);
+                                                    var roomTypeName = roomType?.Name ?? $"#{room.RoomTypeId}";
+                                                }
+                                                @roomTypeName
+                                            </span>
                                         </div>
                                         <div class="d-flex justify-content-between align-items-center">
                                             <small class="text-muted">Ngày tạo:</small>
@@ -170,40 +271,27 @@
                         </div>
                     }
                 </div>
-
-                @* <!-- Pagination --> *@
-                @* <nav aria-label="Room pagination"> *@
-                @*     <ul class="pagination justify-content-center"> *@
-                @*         <li class="page-item @(currentPage <= 1 ? "disabled" : "")"> *@
-                @*             <a class="page-link" href="@Url.Action("Index", new { page = currentPage - 1, size = pageSize })"> *@
-                @*                 <i class="fas fa-chevron-left"></i> Trước *@
-                @*             </a> *@
-                @*         </li> *@
-
-                @*         @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(currentPage + 2, (Model.Count + pageSize - 1) / pageSize); i++) *@
-                @*         { *@
-                @*             <li class="page-item @(i == currentPage ? "active" : "")"> *@
-                @*                 <a class="page-link" href="@Url.Action("Index", new { page = i, size = pageSize })">@i</a> *@
-                @*             </li> *@
-                @*         } *@
-
-                @*         <li class="page-item"> *@
-                @*             <a class="page-link" href="@Url.Action("Index", new { page = currentPage + 1, size = pageSize })"> *@
-                @*                 Sau <i class="fas fa-chevron-right"></i> *@
-                @*             </a> *@
-                @*         </li> *@
-                @*     </ul> *@
-                @* </nav> *@
             }
             else
             {
                 <div class="card">
                     <div class="card-body text-center py-5">
                         <i class="fas fa-home fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">Chưa có phòng nào</h5>
-                        <p class="text-muted">Bắt đầu bằng cách thêm phòng đầu tiên cho tòa nhà</p>
+                        @if (isFiltered)
+                        {
+                            <h5 class="text-muted">Không tìm thấy phòng nào</h5>
+                            <p class="text-muted">Không có phòng nào phù hợp với điều kiện lọc của bạn</p>
+                            <a href="@Url.Action("Index", "Rooms")" class="btn btn-outline-pink me-2">
+                                <i class="fas fa-list me-1"></i>Xem tất cả phòng
+                            </a>
+                        }
+                        else
+                        {
+                            <h5 class="text-muted">Chưa có phòng nào</h5>
+                            <p class="text-muted">Bắt đầu bằng cách thêm phòng đầu tiên cho tòa nhà</p>
+                        }
                         <a href="@Url.Action("Create", "Rooms")" class="btn btn-pink">
-                            <i class="fas fa-plus me-1"></i>Thêm phòng đầu tiên
+                            <i class="fas fa-plus me-1"></i>Thêm phòng mới
                         </a>
                     </div>
                 </div>
@@ -263,7 +351,6 @@
                     this.style.transform = 'translateY(-5px)';
                     this.style.transition = 'transform 0.3s ease';
                 });
-
                 card.addEventListener('mouseleave', function() {
                     this.style.transform = 'translateY(0)';
                 });

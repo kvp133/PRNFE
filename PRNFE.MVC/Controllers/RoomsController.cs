@@ -16,9 +16,9 @@ namespace PRNFE.MVC.Controllers
             : base(httpClientFactory, configuration)
         {
         }
-
         [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int size = 10)
+        public async Task<IActionResult> Index(int page = 1, int size = 10, string? roomNumber = null,
+            int? floor = null, int? roomTypeId = null, int? status = null, bool isFilter = false)
         {
             try
             {
@@ -30,34 +30,80 @@ namespace PRNFE.MVC.Controllers
                 }
 
                 using var httpClient = CreateHttpClientWithCookies();
-
                 var buildingId = GetBuildingId();
                 httpClient.DefaultRequestHeaders.Add("buildingId", buildingId);
 
-                var apiUrl = $"api/Rooms?$skip={((page - 1) * size)}&$top={size}";
-                var response = await httpClient.GetAsync(apiUrl);
+                List<RoomResponse> rooms;
 
-                if (response.IsSuccessStatusCode)
+                if (isFilter && (roomNumber != null || floor.HasValue || roomTypeId.HasValue || status.HasValue))
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var rooms = JsonConvert.DeserializeObject<List<RoomResponse>>(json);
+                    // Use filter endpoint
+                    var filterDto = new
+                    {
+                        roomNumber = roomNumber ?? string.Empty,
+                        floor = floor,
+                        roomTypeId = roomTypeId,
+                        status = status
+                    };
 
-                    ViewBag.CurrentPage = page;
-                    ViewBag.PageSize = size;
+                    var json = JsonConvert.SerializeObject(filterDto);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                    ViewBag.Rooms = rooms ?? new List<RoomResponse>();
+                    var response = await httpClient.PostAsync("api/Rooms/filter", content);
 
-                    // Get room statistics
-                    ViewBag.Statistics = await GetRoomStatistics();
-
-                    return View(rooms);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseJson = await response.Content.ReadAsStringAsync();
+                        rooms = JsonConvert.DeserializeObject<List<RoomResponse>>(responseJson) ?? new List<RoomResponse>();
+                        ViewBag.IsFiltered = true;
+                        ViewBag.FilterCount = rooms.Count;
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        TempData["Message"] = $"Không thể lọc phòng: {errorContent}";
+                        TempData["IsSuccess"] = false;
+                        rooms = new List<RoomResponse>();
+                    }
                 }
                 else
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["Message"] = $"Không thể tải danh sách phòng: {errorContent}";
-                    TempData["IsSuccess"] = false;
+                    // Use regular endpoint with pagination
+                    var apiUrl = $"api/Rooms?$skip={((page - 1) * size)}&$top={size}";
+                    var response = await httpClient.GetAsync(apiUrl);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseJson = await response.Content.ReadAsStringAsync();
+                        rooms = JsonConvert.DeserializeObject<List<RoomResponse>>(responseJson) ?? new List<RoomResponse>();
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        TempData["Message"] = $"Không thể tải danh sách phòng: {errorContent}";
+                        TempData["IsSuccess"] = false;
+                        rooms = new List<RoomResponse>();
+                    }
                 }
+
+                ViewBag.CurrentPage = page;
+                ViewBag.PageSize = size;
+                ViewBag.Rooms = rooms;
+
+                // Get data for filter dropdowns
+                ViewBag.RoomTypes = await GetRoomTypes();
+                ViewBag.RoomStatuses = GetRoomStatusOptions();
+
+                // Preserve filter values
+                ViewBag.FilterRoomNumber = roomNumber;
+                ViewBag.FilterFloor = floor;
+                ViewBag.FilterRoomTypeId = roomTypeId;
+                ViewBag.FilterStatus = status;
+
+                // Get room statistics
+                ViewBag.Statistics = await GetRoomStatistics();
+
+                return View(rooms);
             }
             catch (Exception ex)
             {
@@ -66,7 +112,25 @@ namespace PRNFE.MVC.Controllers
                 Console.WriteLine($"Error: {ex.Message}");
             }
 
+            ViewBag.RoomTypes = await GetRoomTypes();
+            ViewBag.RoomStatuses = GetRoomStatusOptions();
             return View(new List<RoomResponse>());
+        }
+
+        // Add this helper method to get room status options
+        private List<RoomStatusOption> GetRoomStatusOptions()
+        {
+            return new List<RoomStatusOption>
+    {
+        new RoomStatusOption { Value = 0, Text = "Trống" },
+        new RoomStatusOption { Value = 1, Text = "Đã thuê" },
+        new RoomStatusOption { Value = 2, Text = "Đã đặt" },
+        new RoomStatusOption { Value = 3, Text = "Bảo trì" },
+        new RoomStatusOption { Value = 4, Text = "Không sử dụng" },
+        new RoomStatusOption { Value = 5, Text = "Chờ dọn dẹp" },
+        new RoomStatusOption { Value = 6, Text = "Sắp hết hạn" },
+        new RoomStatusOption { Value = 7, Text = "Tạm khóa" }
+    };
         }
 
         [HttpGet]
@@ -929,4 +993,10 @@ namespace PRNFE.MVC.Controllers
         public decimal PricePerUnit { get; set; }
         public bool IsMandatory { get; set; }
     }
+    public class RoomStatusOption
+    {
+        public int Value { get; set; }
+        public string Text { get; set; } = string.Empty;
+    }
+
 }
