@@ -14,7 +14,7 @@ namespace PRNFE.MVC.Models.Response
         public string Address { get; set; } = string.Empty;
         public bool Gender { get; set; }
         public DateTime CreateAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
     }
 
  

@@ -191,6 +191,7 @@ namespace PRNFE.MVC.Controllers
             }
         }
 
+        //CREAET
         public async Task<IActionResult> Create()
         {
             try
@@ -500,10 +501,6 @@ namespace PRNFE.MVC.Controllers
                 ViewBag.Services = new List<BillServiceResponse>();
             }
         }
-
-
-
-
 
         private async Task LoadEditFormData(string billId)
         {

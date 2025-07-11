@@ -105,7 +105,7 @@ namespace PRNFE.MVC.Models.Request
         public DateTime DueDate { get; set; }
 
         [Required(ErrorMessage = "Vui lòng chọn trạng thái")]
-        public int Status { get; set; } // API nhận số, không phải enum
+        public int Status { get; set; }
 
         [Required(ErrorMessage = "Phải có ít nhất một dịch vụ")]
         public List<BillDetailCreateRequest> BillDetails { get; set; } = new();

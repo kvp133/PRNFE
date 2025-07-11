@@ -1,0 +1,241 @@
+﻿@model PRNFE.MVC.Models.Response.DetailedVehicleResponse
+@{
+    ViewData["Title"] = "Chi tiết Phương tiện";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Chi tiết Phương tiện</h1>
+        <p class="text-muted">Thông tin chi tiết phương tiện #@Model.Id</p>
+    </div>
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left me-1"></i>
+            Quay lại danh sách
+        </a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning me-2">
+            <i class="fas fa-edit me-1"></i>
+            Chỉnh sửa
+        </a>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa phương tiện này?')">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash me-1"></i>
+                Xóa
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Vehicle Information -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-car me-2"></i>
+            Thông tin phương tiện
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">
+                        <i class="fas fa-hashtag me-1"></i>
+                        ID
+                    </dt>
+                    <dd class="col-sm-8">
+                        <strong class="text-primary">#@Model.Id</strong>
+                    </dd>
+
+                    <dt class="col-sm-4">
+                        <i class="fas fa-car me-1"></i>
+                        Loại xe
+                    </dt>
+                    <dd class="col-sm-8">
+                        @{
+                            var typeInfo = GetVehicleTypeInfo(Model.Type);
+                        }
+                        <span class="badge @typeInfo.BadgeClass">
+                            <i class="@typeInfo.Icon me-1"></i>@typeInfo.Text
+                        </span>
+                    </dd>
+
+                    <dt class="col-sm-4">
+                        <i class="fas fa-id-card me-1"></i>
+                        Biển số
+                    </dt>
+                    <dd class="col-sm-8">
+                        <strong class="text-dark fs-5">@Model.LicensePlate</strong>
+                    </dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4">
+                        <i class="fas fa-clock me-1"></i>
+                        Ngày tạo
+                    </dt>
+                    <dd class="col-sm-8">
+                        <small class="text-muted">
+                            @Model.CreateAt.ToString("dd/MM/yyyy HH:mm:ss")
+                        </small>
+                    </dd>
+
+                    <dt class="col-sm-4">
+                        <i class="fas fa-edit me-1"></i>
+                        Cập nhật lần cuối
+                    </dt>
+                    <dd class="col-sm-8">
+                        @if (Model.UpdatedAt.HasValue)
+                        {
+                            <small class="text-muted">
+                                @Model.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm:ss")
+                            </small>
+                        }
+                        else
+                        {
+                            <small class="text-muted">Chưa cập nhật</small>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Owner Information -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-user me-2"></i>
+            Thông tin chủ sở hữu
+        </h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Resident != null)
+        {
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-4">
+                            <i class="fas fa-hashtag me-1"></i>
+                            ID Cư dân
+                        </dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-info">#@Model.Resident.Id</span>
+                        </dd>
+
+                        <dt class="col-sm-4">
+                            <i class="fas fa-user me-1"></i>
+                            Họ tên
+                        </dt>
+                        <dd class="col-sm-8">
+                            <strong>@Model.Resident.FullName</strong>
+                        </dd>
+
+                        <dt class="col-sm-4">
+                            <i class="fas fa-phone me-1"></i>
+                            Số điện thoại
+                        </dt>
+                        <dd class="col-sm-8">
+                            <a href="tel:@Model.Resident.PhoneNumber" class="text-decoration-none">
+                                @Model.Resident.PhoneNumber
+                            </a>
+                        </dd>
+
+                        <dt class="col-sm-4">
+                            <i class="fas fa-envelope me-1"></i>
+                            Email
+                        </dt>
+                        <dd class="col-sm-8">
+                            <a href="mailto:@Model.Resident.Email" class="text-decoration-none">
+                                @Model.Resident.Email
+                            </a>
+                        </dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-4">
+                            <i class="fas fa-id-badge me-1"></i>
+                            User ID
+                        </dt>
+                        <dd class="col-sm-8">
+                            <code>@Model.Resident.UserId</code>
+                        </dd>
+
+                        <dt class="col-sm-4">
+                            <i class="fas fa-birthday-cake me-1"></i>
+                            Ngày sinh
+                        </dt>
+                        <dd class="col-sm-8">
+                            @Model.Resident.DateOfBirth.ToString("dd/MM/yyyy")
+                        </dd>
+
+                        <dt class="col-sm-4">
+                            <i class="fas fa-venus-mars me-1"></i>
+                            Giới tính
+                        </dt>
+                        <dd class="col-sm-8">
+                            @if (Model.Resident.Gender)
+                            {
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-mars me-1"></i>Nam
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-pink">
+                                    <i class="fas fa-venus me-1"></i>Nữ
+                                </span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            Địa chỉ
+                        </dt>
+                        <dd class="col-sm-8">
+                            <small class="text-muted">@Model.Resident.Address</small>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-4">
+                <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                <h6 class="text-muted">Không có thông tin chủ sở hữu</h6>
+            </div>
+        }
+    </div>
+</div>
+
+@functions {
+    private (string BadgeClass, string Icon, string Text) GetVehicleTypeInfo(int type)
+    {
+        return type switch
+        {
+            0 => ("bg-primary", "fas fa-motorcycle", "Xe máy"),
+            1 => ("bg-success", "fas fa-car", "Ô tô"),
+            2 => ("bg-info", "fas fa-bicycle", "Xe đạp"),
+            3 => ("bg-warning", "fas fa-truck", "Xe tải"),
+            4 => ("bg-secondary", "fas fa-bus", "Xe buýt"),
+            5 => ("bg-dark", "fas fa-question", "Khác"),
+            _ => ("bg-light text-dark", "fas fa-question-circle", "Không xác định")
+        };
+    }
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+}
