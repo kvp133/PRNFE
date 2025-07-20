@@ -53,7 +53,7 @@
                             <i class="fas fa-eye me-2"></i>@ViewData["Title"]
                         </h4>
                         <div class="btn-group">
-                            <a href="@Url.Action("Edit", "Buildings", new { id = buildingId })" class="btn btn-outline-light btn-sm">
+                            <a href="@Url.Action("Edit", "Buildings", new { id = Model.Id })" class="btn btn-outline-light btn-sm">
                                 <i class="fas fa-edit me-1"></i>Chỉnh sửa
                             </a>
                             <a href="@Url.Action("Index", "Buildings")" class="btn btn-outline-light btn-sm">
@@ -63,15 +63,6 @@
                     </div>
                 </div>
             </div>
-
-            @* @if (!string.IsNullOrEmpty(TempData["Message"]?.ToString())) *@
-            @* { *@
-            @*     <div class="alert @(TempData["IsSuccess"]?.ToString() == "True" ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert"> *@
-            @*         <i class="fas @(TempData["IsSuccess"]?.ToString() == "True" ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i> *@
-            @*         @TempData["Message"] *@
-            @*         <button type="button" class="btn-close" data-bs-dismiss="alert"></button> *@
-            @*     </div> *@
-            @* } *@
 
             <div class="row">
                 <!-- Main Content -->
@@ -84,11 +75,17 @@
                         </div>
                         <div class="card-body">
                             <dl class="row mb-0">
+                                <dt class="col-sm-4">Mã tòa nhà:</dt>
+                                <dd class="col-sm-8">@Model.Id</dd>
+
                                 <dt class="col-sm-4">Tên tòa nhà:</dt>
                                 <dd class="col-sm-8">@Model.Name</dd>
 
                                 <dt class="col-sm-4">Địa chỉ:</dt>
                                 <dd class="col-sm-8">@Model.Address</dd>
+
+                                <dt class="col-sm-4">Mô tả:</dt>
+                                <dd class="col-sm-8">@Model.Description</dd>
 
                                 <dt class="col-sm-4">Số tầng:</dt>
                                 <dd class="col-sm-8">@Model.NumberOfFloors</dd>
@@ -96,15 +93,18 @@
                                 <dt class="col-sm-4">Số căn hộ:</dt>
                                 <dd class="col-sm-8">@Model.NumberOfApartments</dd>
 
-                                <dt class="col-sm-4">Mô tả:</dt>
-                                <dd class="col-sm-8">@Model.Description</dd>
-
                                 <dt class="col-sm-4">Trạng thái:</dt>
                                 <dd class="col-sm-8">
                                     <span class="badge bg-@(Model.IsActive ? "success" : "danger")">
                                         @(Model.IsActive ? "Hoạt động" : "Không hoạt động")
                                     </span>
                                 </dd>
+
+                                <dt class="col-sm-4">Ngày tạo:</dt>
+                                <dd class="col-sm-8">@Model.CreateAt.ToString("dd/MM/yyyy")</dd>
+
+                                <dt class="col-sm-4">Cập nhật lần cuối:</dt>
+                                <dd class="col-sm-8">@(Model.UpdatedAt?.ToString("dd/MM/yyyy") ?? "-")</dd>
                             </dl>
                         </div>
                     </div>
@@ -153,18 +153,29 @@
                 <!-- Sidebar -->
                 <div class="col-lg-4">
                     <div class="card shadow-sm mb-4 sticky-top" style="top: 20px;">
-                       
-                       
-                    </div>
-                    <div class="card shadow-sm mb-4">
-                        
+                        <div class="card-header bg-pink-light">
+                            <h5 class="mb-0 text-pink">
+                                <i class="fas fa-info-circle me-2"></i>Thông tin bổ sung
+                            </h5>
+                        </div>
                         <div class="card-body">
-                           
+                            <div class="mb-3">
+                                <small class="text-muted">Mã tòa nhà:</small><br>
+                                <span>@Model.Id</span>
+                            </div>
                             <div class="mb-3">
                                 <small class="text-muted">Trạng thái:</small><br>
                                 <span class="badge bg-@(Model.IsActive ? "success" : "danger")">
                                     @(Model.IsActive ? "Hoạt động" : "Không hoạt động")
                                 </span>
+                            </div>
+                            <div class="mb-3">
+                                <small class="text-muted">Ngày tạo:</small><br>
+                                <span>@Model.CreateAt.ToString("dd/MM/yyyy")</span>
+                            </div>
+                            <div class="mb-3">
+                                <small class="text-muted">Cập nhật lần cuối:</small><br>
+                                <span>@(Model.UpdatedAt?.ToString("dd/MM/yyyy") ?? "-")</span>
                             </div>
                         </div>
                     </div>
@@ -197,6 +208,6 @@
 
 @section Scripts {
     <script>
-        // You can add scripts here if you want interactive features for Details page in the future
+        // Add interactive features for the Details page if needed
     </script>
 }

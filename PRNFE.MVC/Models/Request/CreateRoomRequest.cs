@@ -1,21 +1,23 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace PRNFE.MVC.Models.Response
+namespace PRNFE.MVC.Models.Request
 {
-    public class RoomResponse
+    public class CreateRoomRequest
     {
-        public int Id { get; set; }
-        public string TenantId { get; set; }
+        [Required(ErrorMessage = "RoomNumber is required")]
+        [StringLength(10, ErrorMessage = "RoomNumber cannot exceed 10 characters.")]
         public string RoomNumber { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Floor is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Floor must be a positive integer.")]
         public int Floor { get; set; }
-        public decimal Area { get; set; }
-        public int RoomType { get; set; }
+        [Required(ErrorMessage = "Area is required")]
+        [Range(1, double.MaxValue, ErrorMessage = "Area must be a positive number.")]
+        public decimal? Area { get; set; }
+        [Required(ErrorMessage = "RoomTypeId is required")]
+        public int? RoomType { get; set; }
+
+        [Range(1, int.MaxValue, ErrorMessage = "MaxOpt must be a positive integer.")]
         public int MaxOpt { get; set; }
-        public int Status { get; set; }
-        public DateTime CreateAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
-
-
         public enum RoomStatus
         {
             Available = 0,          // Phòng chưa ai thuê

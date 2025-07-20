@@ -1,21 +1,16 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace PRNFE.MVC.Models.Response
+namespace PRNFE.MVC.Models.Request
 {
-    public class RoomResponse
+    public class FilterRoomRequest
     {
-        public int Id { get; set; }
-        public string TenantId { get; set; }
-        public string RoomNumber { get; set; } = string.Empty;
-        public int Floor { get; set; }
-        public decimal Area { get; set; }
-        public int RoomType { get; set; }
-        public int MaxOpt { get; set; }
-        public int Status { get; set; }
-        public DateTime CreateAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
-
-
+        [StringLength(10, ErrorMessage = "RoomNumber cannot exceed 10 characters.")]
+        public string? RoomNumber { get; set; } = string.Empty;
+        [Range(1, int.MaxValue, ErrorMessage = "Floor must be a positive integer.")]
+        public int? Floor { get; set; }
+        public int? RoomType { get; set; }
+        [Range(0, 7, ErrorMessage = "Area must be a positive number.")]
+        public int? Status { get; set; }
         public enum RoomStatus
         {
             Available = 0,          // Phòng chưa ai thuê
