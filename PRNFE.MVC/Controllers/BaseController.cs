@@ -45,7 +45,7 @@ namespace PRNFE.MVC.Controllers
             try
             {
                 var refreshRequest = new { refreshToken = refreshToken };
-                var apiUrl = $"{_apiBaseUrl}/api/Auth/refresh";
+                var apiUrl = $"{_apiBaseUrl}/users/api/Auth/refresh";
                 var content = new StringContent(JsonConvert.SerializeObject(refreshRequest), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync(apiUrl, content);
                 var result = await response.Content.ReadAsStringAsync();

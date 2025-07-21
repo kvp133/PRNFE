@@ -28,7 +28,7 @@ namespace PRNFE.MVC.Controllers
             try
             {
                 // Lấy danh sách tỉnh/thành phố
-                var provincesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Location/provinces");
+                var provincesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/users/api/Location/provinces");
                 if (provincesResponse.IsSuccessStatusCode)
                 {
                     var provincesJson = await provincesResponse.Content.ReadAsStringAsync();
@@ -49,7 +49,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Location/districts/{provinceCode}");
+                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/users/api/Location/districts/{provinceCode}");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
@@ -70,7 +70,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Location/wards/{districtCode}");
+                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/users/api/Location/wards/{districtCode}");
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
@@ -99,7 +99,7 @@ namespace PRNFE.MVC.Controllers
             try
             {
                 var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/User/register", content);
+                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/User/register", content);
                 var result = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -151,7 +151,7 @@ namespace PRNFE.MVC.Controllers
             try
             {
                 var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/User/forgot-password", content);
+                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/User/forgot-password", content);
                 var result = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -204,7 +204,7 @@ namespace PRNFE.MVC.Controllers
             try
             {
                 var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/User/reset-password", content);
+                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/User/reset-password", content);
                 var result = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -257,7 +257,7 @@ namespace PRNFE.MVC.Controllers
             try
             {
                 var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/User/verify-email", content);
+                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/User/verify-email", content);
                 var result = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -297,7 +297,7 @@ namespace PRNFE.MVC.Controllers
         public async Task<IActionResult> RegisterApi([FromBody] RegisterRequest model)
         {
             var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/User/register", content);
+            var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/User/register", content);
             var result = await response.Content.ReadAsStringAsync();
             return Content(result, "application/json");
         }
@@ -306,7 +306,7 @@ namespace PRNFE.MVC.Controllers
         public async Task<IActionResult> VerifyEmailApi([FromBody] VerifyEmailRequest model)
         {
             var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/User/verify-email", content);
+            var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/User/verify-email", content);
             var result = await response.Content.ReadAsStringAsync();
             return Content(result, "application/json");
         }
@@ -315,7 +315,7 @@ namespace PRNFE.MVC.Controllers
         public async Task<IActionResult> ForgotPasswordApi([FromBody] ForgotPasswordRequest model)
         {
             var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/User/forgot-password", content);
+            var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/User/forgot-password", content);
             var result = await response.Content.ReadAsStringAsync();
             return Content(result, "application/json");
         }
@@ -324,7 +324,7 @@ namespace PRNFE.MVC.Controllers
         public async Task<IActionResult> ResetPasswordApi([FromBody] ResetPasswordRequest model)
         {
             var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/User/reset-password", content);
+            var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/User/reset-password", content);
             var result = await response.Content.ReadAsStringAsync();
             return Content(result, "application/json");
         }
