@@ -1,0 +1,227 @@
+﻿@model List<PRNFE.MVC.Models.Response.ServiceResponse>
+
+@{
+    ViewData["Title"] = "Quản lý dịch vụ";
+    // Màu hồng chủ đạo
+    var pinkBase = "rgb(233, 30, 99)"; // #e91e63
+    var pinkLight = "rgba(233, 30, 99, 0.1)";
+    var pinkText = "text-pink";
+}
+
+<style>
+    .btn-pink {
+        background-color: @pinkBase;
+        color: #fff;
+        border: none;
+    }
+
+        .btn-pink:hover, .btn-pink:focus {
+            background-color: #ad1457;
+            color: #fff;
+        }
+
+    .btn-outline-pink {
+        color: @pinkBase;
+        border-color: @pinkBase;
+        background: #fff;
+    }
+
+        .btn-outline-pink:hover, .btn-outline-pink:focus {
+            color: #fff;
+            background-color: @pinkBase;
+            border-color: @pinkBase;
+        }
+
+    .badge-pink {
+        background: @pinkBase;
+        color: #fff;
+    }
+
+    .badge-pink-light {
+        background: @pinkLight;
+        color: @pinkBase;
+        border: 1px solid @pinkBase;
+    }
+
+    .text-pink {
+        color: @pinkBase !important;
+    }
+
+    .bg-pink-light {
+        background: @pinkLight !important;
+    }
+
+    .modal-header.bg-pink-light {
+        border-bottom: 1px solid @pinkBase;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">@ViewData["Title"]</h2>
+                    <p class="text-muted mb-0">Quản lý các dịch vụ trong tòa nhà</p>
+                </div>
+                <div class="btn-group">
+                    <a href="@Url.Action("Filter", "Services")" class="btn btn-outline-pink me-2">
+                        <i class="fas fa-filter"></i> Lọc dịch vụ
+                    </a>
+                    <a href="@Url.Action("Create", "Services")" class="btn btn-pink">
+                        <i class="fas fa-plus"></i> Thêm dịch vụ mới
+                    </a>
+                </div>
+            </div>
+
+            @* @if (!string.IsNullOrEmpty(TempData["Message"]?.ToString())) *@
+            @* { *@
+            @*     <div class="alert @(TempData["IsSuccess"]?.ToString() == "True" ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert"> *@
+            @*         <i class="fas @(TempData["IsSuccess"]?.ToString() == "True" ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i> *@
+            @*         @TempData["Message"] *@
+            @*         <button type="button" class="btn-close" data-bs-dismiss="alert"></button> *@
+            @*     </div> *@
+            @* } *@
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="mb-0">Danh sách dịch vụ</h6>
+                            <small class="text-muted">Tổng cộng: @(Model?.Count ?? 0) dịch vụ</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model != null && Model.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="border-0">Tên dịch vụ</th>
+                                        <th class="border-0">Đơn vị</th>
+                                        <th class="border-0">Giá</th>
+                                        <th class="border-0">Trạng thái</th>
+                                        <th class="border-0">Loại</th>
+                                        <th class="border-0">Ngày tạo</th>
+                                        <th class="border-0 text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-sm bg-pink-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width:36px; height:36px;">
+                                                        <i class="fas fa-cog text-pink"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="mb-0">@item.Name</h6>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-pink-light">@item.Unit</span>
+                                            </td>
+                                            <td>
+                                                <strong class="text-pink">@item.PricePerUnit.ToString("N0") VNĐ</strong>
+                                            </td>
+                                            <td>
+                                                @if (item.IsActive)
+                                                {
+                                                    <span class="badge badge-pink">
+                                                        <i class="fas fa-check-circle me-1"></i>Hoạt động
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">
+                                                        <i class="fas fa-pause-circle me-1"></i>Tạm dừng
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (item.IsMandatory)
+                                                {
+                                                    <span class="badge badge-pink-light">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Bắt buộc
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-info">
+                                                        <i class="fas fa-hand-paper me-1"></i>Tùy chọn
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">@item.CreateAt.ToString("dd/MM/yyyy")</small>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <a href="@Url.Action("Details", "Services", new { id = item.Id })"
+                                                       class="btn btn-outline-pink" title="Xem chi tiết">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <div class="mb-4">
+                                <i class="fas fa-inbox fa-4x text-pink"></i>
+                            </div>
+                            <h5 class="text-muted mb-3">Chưa có dịch vụ nào</h5>
+                            <p class="text-muted mb-4">Bắt đầu bằng cách tạo dịch vụ đầu tiên cho tòa nhà.</p>
+                            <a href="@Url.Action("Create", "Services")" class="btn btn-pink">
+                                <i class="fas fa-plus me-2"></i>Tạo dịch vụ đầu tiên
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-pink-light">
+                <h5 class="modal-title text-pink"><i class="fas fa-exclamation-circle me-2"></i>Xác nhận xóa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa dịch vụ "<span id="serviceName"></span>"?</p>
+                <p class="text-danger"><small>Hành động này không thể hoàn tác.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-pink">Xóa</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmDelete(serviceId, serviceName) {
+            document.getElementById('serviceName').textContent = serviceName;
+            document.getElementById('deleteForm').action = '@Url.Action("Delete", "Services")/' + serviceId;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+    </script>
+}

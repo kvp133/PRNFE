@@ -14,13 +14,45 @@ namespace PRNFE.MVC.Controllers
     {
         protected readonly HttpClient _httpClient;
         protected readonly string _apiBaseUrl;
+        protected readonly string _apiQLPTUrl;
+        protected readonly IHttpClientFactory _httpClientFactory;
 
         protected BaseController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
+
             _httpClient = httpClientFactory.CreateClient();
             _apiBaseUrl = configuration["ApiSettings:BaseUrl"];
+            _apiQLPTUrl = configuration["ApiSettings:Url_qlpt"];
+            _httpClientFactory = httpClientFactory;
+
+        }
+        protected HttpClient CreateHttpClientWithCookies()
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.BaseAddress = new Uri(_apiQLPTUrl);
+
+            // Add all cookies from current request
+            if (Request.Cookies.Any())
+            {
+                var cookieHeader = string.Join("; ", Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
+                httpClient.DefaultRequestHeaders.Add("Cookie", cookieHeader);
+
+                // Debug logging
+                Console.WriteLine($"Sending cookies: {cookieHeader}");
+            }
+
+            return httpClient;
+        }
+        protected bool ValidateBuildingId()
+        {
+            var buildingId = Request.Cookies["buildingId"];
+            return !string.IsNullOrEmpty(buildingId);
         }
 
+        protected string GetBuildingId()
+        {
+            return Request.Cookies["buildingId"] ?? string.Empty;
+        }
         protected bool IsAuthenticated()
         {
             return Request.Cookies["AccessToken"] != null;
