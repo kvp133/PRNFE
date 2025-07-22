@@ -5,7 +5,7 @@ namespace PRNFE.MVC.Models.Request
 {
 
     // Model cho API /api/Vehicles/filters
-    public class VehicleFilterRequest
+    public class VehicleFilterRequests
     {
         [Display(Name = "Mã cư dân")]
         public List<int>? ResidentIds { get; set; }
@@ -23,7 +23,7 @@ namespace PRNFE.MVC.Models.Request
     }
 
     // API POST /api/Vehicles
-    public class VehicleCreateDto
+    public class VehicleCreateDtos
     {
         public int ResidentId { get; set; }
 
@@ -37,7 +37,7 @@ namespace PRNFE.MVC.Models.Request
     }
 
     //PUT VEHICLE
-    public class VehicleUpdateDto
+    public class VehicleUpdateDtos
     {
         [Required(ErrorMessage = "Loại xe là bắt buộc")]
         [Display(Name = "Loại xe")]

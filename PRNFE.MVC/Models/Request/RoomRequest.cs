@@ -2,7 +2,7 @@
 
 namespace PRNFE.MVC.Models.Request
 {
-    public class RoomRequest
+    public class RoomRequests
     {
         [Required(ErrorMessage = "Số phòng là bắt buộc")]
         [Display(Name = "Số phòng")]

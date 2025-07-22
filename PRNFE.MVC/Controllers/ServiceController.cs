@@ -16,12 +16,12 @@ namespace PRNFE.MVC.Controllers
 
         public IActionResult Manager()
         {
-            return View(new ServiceRequest());
+            return View(new ServiceRequests());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Manager(ServiceRequest model)
+        public async Task<IActionResult> Manager(ServiceRequests model)
         {
             if (!ModelState.IsValid)
             {
@@ -39,7 +39,7 @@ namespace PRNFE.MVC.Controllers
                 {
                     ViewBag.IsSuccess = true;
                     ViewBag.Message = "Thêm dịch vụ thành công!";
-                    return View(new ServiceRequest());
+                    return View(new ServiceRequests());
                 }
                 else
                 {
@@ -62,7 +62,7 @@ namespace PRNFE.MVC.Controllers
     public class ServicesController : ControllerBase
     {
         [HttpPost]
-        public async Task<IActionResult> CreateService([FromBody] ServiceRequest request)
+        public async Task<IActionResult> CreateService([FromBody] ServiceRequests request)
         {
             if (!ModelState.IsValid)
             {
@@ -71,7 +71,7 @@ namespace PRNFE.MVC.Controllers
 
             try
             {
-                var service = new ServiceResponse
+                var service = new ServiceResponses
                 {
                     ServiceId = Guid.NewGuid(),
                     ServiceName = request.ServiceName,
@@ -94,7 +94,7 @@ namespace PRNFE.MVC.Controllers
         public async Task<IActionResult> GetServices()
         {
             // TODO: Implement get services from database
-            return Ok(new List<ServiceResponse>());
+            return Ok(new List<ServiceResponses>());
         }
     }
 }

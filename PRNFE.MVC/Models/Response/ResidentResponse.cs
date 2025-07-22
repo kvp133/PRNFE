@@ -3,7 +3,7 @@
 namespace PRNFE.MVC.Models.Response
 {
     // Response for GET /api/Residents
-    public class ResidentListResponse
+    public class ResidentListResponses
     {
         public int Id { get; set; }
         public string UserId { get; set; } = string.Empty;
@@ -20,7 +20,7 @@ namespace PRNFE.MVC.Models.Response
  
 
     // Response for GET /api/Residents/{id} (detailed)
-    public class ResidentResponse
+    public class ResidentResponses
     {
         public int Id { get; set; }
         public string UserId { get; set; } = string.Empty; // Sửa từ int thành string
@@ -32,14 +32,14 @@ namespace PRNFE.MVC.Models.Response
         public bool Gender { get; set; }
         public DateTime CreateAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public List<VehicleResponse>? Vehicles { get; set; }
-        public TemporaryStayResponse? TemporaryStay { get; set; }
-        public List<SupportRequestResponse>? SupportRequests { get; set; }
-        public List<RoomsResponse>? Rooms { get; set; }
+        public List<VehicleResponses>? Vehicles { get; set; }
+        public TemporaryStayResponses? TemporaryStay { get; set; }
+        public List<SupportRequestResponses>? SupportRequests { get; set; }
+        public List<RoomsResponses>? Rooms { get; set; }
     }
 
 
-    public class TemporaryStayResponse
+    public class TemporaryStayResponses
     {
         public int Id { get; set; }
         public int ResidentId { get; set; }
@@ -49,10 +49,10 @@ namespace PRNFE.MVC.Models.Response
         public int Status { get; set; }
         public DateTime CreateAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public ResidentListResponse? Resident { get; set; }
+        public ResidentListResponses? Resident { get; set; }
     }
 
-    public class SupportRequestResponse
+    public class SupportRequestResponses
     {
         public int Id { get; set; }
         public int RequestType { get; set; }
@@ -66,11 +66,11 @@ namespace PRNFE.MVC.Models.Response
     }
 
     //Response for filtered results
-    public class ResidentFilterResponse
+    public class ResidentFilterResponses
     {
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
-        public List<ResidentListResponse> Data { get; set; } = new List<ResidentListResponse>();
+        public List<ResidentListResponses> Data { get; set; } = new List<ResidentListResponses>();
         public List<string>? Errors { get; set; }
     }
 }

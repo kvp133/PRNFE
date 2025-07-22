@@ -1,8 +1,8 @@
-﻿@model PRNFE.MVC.Models.Request.VehicleCreateDto
+﻿@model PRNFE.MVC.Models.Request.VehicleCreateDtos
 @using PRNFE.MVC.Models.Response
 @{
     ViewData["Title"] = "Thêm phương tiện mới";
-    var residents = ViewBag.Residents as List<PRNFE.MVC.Models.Response.ResidentListResponse> ?? new List<PRNFE.MVC.Models.Response.ResidentListResponse>();
+    var residents = ViewBag.Residents as List<PRNFE.MVC.Models.Response.ResidentListResponses> ?? new List<PRNFE.MVC.Models.Response.ResidentListResponses>();
     var vehicleTypes = ViewBag.VehicleTypes as Dictionary<int, string> ?? new Dictionary<int, string>();
 }
 

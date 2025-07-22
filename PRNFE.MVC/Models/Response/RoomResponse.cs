@@ -1,7 +1,7 @@
 ﻿namespace PRNFE.MVC.Models.Response
 {
 
-    public class RoomResponse
+    public class RoomResponses
     {
         public Guid RoomId { get; set; }
         public string RoomNumber { get; set; }
@@ -13,7 +13,7 @@
     }
 
     // không được xóa 
-    public class RoomsResponse
+    public class RoomsResponses
     {
         public int RoomId { get; set; }
         public string RoomNumber { get; set; } = string.Empty;

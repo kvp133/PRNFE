@@ -1,10 +1,10 @@
-﻿@model PRNFE.MVC.Models.Request.BillUpdateRequest
+﻿@model PRNFE.MVC.Models.Request.BillUpdateRequests
 @using PRNFE.MVC.Models.Response
 @{
     ViewData["Title"] = "Chỉnh sửa hóa đơn";
-    var services = ViewBag.Services as List<PRNFE.MVC.Models.Request.BillServiceResponse> ?? new List<PRNFE.MVC.Models.Request.BillServiceResponse>();
+    var services = ViewBag.Services as List<PRNFE.MVC.Models.Request.BillServiceResponses> ?? new List<PRNFE.MVC.Models.Request.BillServiceResponses>();
     var billId = ViewBag.BillId as string ?? "";
-    var room = ViewBag.Room as PRNFE.MVC.Models.Request.BillRoomResponse;
+    var room = ViewBag.Room as PRNFE.MVC.Models.Request.BillRoomResponses;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">

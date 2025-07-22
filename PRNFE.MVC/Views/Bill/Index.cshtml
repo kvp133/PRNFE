@@ -1,12 +1,12 @@
 ﻿
 
-@model PRNFE.MVC.Models.Request.BillFilterRequest
+@model PRNFE.MVC.Models.Request.BillFilterRequests
 @using PRNFE.MVC.Models.Response
 @using PRNFE.MVC.Models.Request
 @{
     ViewData["Title"] = "Quản lý Hóa đơn";
-    var bills = ViewBag.Bills as List<PRNFE.MVC.Models.Request.BillResponse> ?? new List<PRNFE.MVC.Models.Request.BillResponse>();
-    var filter = ViewBag.Filter as BillFilterRequest ?? new BillFilterRequest();
+    var bills = ViewBag.Bills as List<PRNFE.MVC.Models.Request.BillResponses> ?? new List<PRNFE.MVC.Models.Request.BillResponses>();
+    var filter = ViewBag.Filter as BillFilterRequests ?? new BillFilterRequests();
     var totalCount = (int)(ViewBag.TotalCount ?? 0);
     var totalPages = (int)(ViewBag.TotalPages ?? 0);
     var currentPage = (int)(ViewBag.CurrentPage ?? 1);

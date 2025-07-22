@@ -27,12 +27,12 @@ namespace PRNFE.MVC.Controllers
         }
 
         // INDEX
-        public async Task<IActionResult> Index(ResidentFilterRequest filter)
+        public async Task<IActionResult> Index(ResidentFilterRequests filter)
         {
             if (!ModelState.IsValid)
             {
                 ViewBag.Error = "Invalid filter parameters.";
-                return View(new ResidentFilterResponse());
+                return View(new ResidentFilterResponses());
             }
 
             var queryParams = new List<string>
@@ -71,7 +71,7 @@ namespace PRNFE.MVC.Controllers
                 else
                 {
                     ViewBag.Error = "Missing buildingId in cookies.";
-                    return View(new ResidentFilterResponse());
+                    return View(new ResidentFilterResponses());
                 }
 
                 var response = await _httpClient.SendAsync(request);
@@ -81,7 +81,7 @@ namespace PRNFE.MVC.Controllers
                     var errorContent = await response.Content.ReadAsStringAsync();
                     ViewBag.Error = $"API Error: {response.StatusCode} - {errorContent}";
                     System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
-                    return View(new ResidentFilterResponse());
+                    return View(new ResidentFilterResponses());
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
@@ -90,34 +90,34 @@ namespace PRNFE.MVC.Controllers
                 if (string.IsNullOrWhiteSpace(json))
                 {
                     ViewBag.Error = "Empty JSON response from API.";
-                    return View(new ResidentFilterResponse());
+                    return View(new ResidentFilterResponses());
                 }
 
-                var result = JsonSerializer.Deserialize<ResidentFilterResponse>(json, _jsonOptions);
+                var result = JsonSerializer.Deserialize<ResidentFilterResponses>(json, _jsonOptions);
                 ViewBag.Filter = filter;
-                return View(result ?? new ResidentFilterResponse());
+                return View(result ?? new ResidentFilterResponses());
             }
             catch (Exception ex)
             {
                 ViewBag.Error = $"Error loading residents: {ex.Message}";
                 System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 ViewBag.Filter = filter;
-                return View(new ResidentFilterResponse());
+                return View(new ResidentFilterResponses());
             }
         }
 
 
         //// CREATE - GET
-        public IActionResult Create() => View(new ResidentRequest
+        public IActionResult Create() => View(new ResidentRequests
         {
             DateOfBirth = DateTime.Now.AddYears(-18),
-            Vehicles = new List<VehicleCreateDto>(),
-            Rooms = new List<RoomCreateDto>()
+            Vehicles = new List<VehicleCreateDtos>(),
+            Rooms = new List<RoomCreateDtos>()
         });
 
         // POST: Create
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(ResidentRequest model)
+        public async Task<IActionResult> Create(ResidentRequests model)
         {
             if (!ModelState.IsValid)
             {
@@ -197,14 +197,14 @@ namespace PRNFE.MVC.Controllers
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<ResidentResponse>>(json, _jsonOptions);
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<ResidentResponses>>(json, _jsonOptions);
                 if (apiResponse?.success != true || apiResponse.data == null)
                 {
                     TempData["ErrorMessage"] = $"Không tìm thấy cư dân với ID {id}.";
                     return RedirectToAction(nameof(Index));
                 }
-
-                var model = new ResidentUpdateRequest
+                
+                var model = new ResidentUpdateRequests
                 {
                     FullName = apiResponse.data.FullName,
                     PhoneNumber = apiResponse.data.PhoneNumber,
@@ -212,9 +212,9 @@ namespace PRNFE.MVC.Controllers
                     DateOfBirth = apiResponse.data.DateOfBirth,
                     Address = apiResponse.data.Address,
                     Gender = apiResponse.data.Gender,
-                    Rooms = apiResponse.data.Rooms?.Select(r => new RoomCreateDto { RoomId = r.RoomId }).ToList() ?? [],
-                    Vehicles = apiResponse.data.Vehicles?.Select(v => new VehicleUpdateDto { Type = v.Type, LicensePlate = v.LicensePlate }).ToList() ?? [],
-                    TemporaryStay = apiResponse.data.TemporaryStay != null ? new TemporaryStayUpdateDto
+                    Rooms = apiResponse.data.Rooms?.Select(r => new RoomCreateDtos { RoomId = r.RoomId }).ToList() ?? [],
+                    Vehicles = apiResponse.data.Vehicles?.Select(v => new VehicleUpdateDtos { Type = v.Type, LicensePlate = v.LicensePlate }).ToList() ?? [],
+                    TemporaryStay = apiResponse.data.TemporaryStay != null ? new TemporaryStayUpdateDtos
                     {
                         FromDate = apiResponse.data.TemporaryStay.FromDate,
                         ToDate = apiResponse.data.TemporaryStay.ToDate,
@@ -235,7 +235,7 @@ namespace PRNFE.MVC.Controllers
 
         // POST: Edit
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, ResidentUpdateRequest model)
+        public async Task<IActionResult> Edit(int id, ResidentUpdateRequests model)
         {
             if (!ModelState.IsValid)
             {
@@ -328,7 +328,7 @@ namespace PRNFE.MVC.Controllers
                     return RedirectToAction(nameof(Index));
                 }
                 var json = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<ResidentResponse>>(json, _jsonOptions)
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<ResidentResponses>>(json, _jsonOptions)
                     ?? throw new InvalidOperationException($"Deserialization returned null for resident ID {id}");
                 if (!apiResponse.success)
                 {

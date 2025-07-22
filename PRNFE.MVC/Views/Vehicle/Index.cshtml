@@ -1,10 +1,10 @@
-﻿@model PRNFE.MVC.Models.Request.VehicleFilterRequest
+﻿@model PRNFE.MVC.Models.Request.VehicleFilterRequests
 @using PRNFE.MVC.Models.Response
 @using PRNFE.MVC.Models.Request
 @{
     ViewData["Title"] = "Quản lý Phương tiện";
-    var vehicles = ViewBag.Vehicles as List<PRNFE.MVC.Models.Response.VehicleResponse> ?? new List<PRNFE.MVC.Models.Response.VehicleResponse>();
-    var filter = ViewBag.Filter as VehicleFilterRequest ?? new VehicleFilterRequest();
+    var vehicles = ViewBag.Vehicles as List<PRNFE.MVC.Models.Response.VehicleResponses> ?? new List<PRNFE.MVC.Models.Response.VehicleResponses>();
+    var filter = ViewBag.Filter as VehicleFilterRequests ?? new VehicleFilterRequests();
     var totalCount = (int)(ViewBag.TotalCount ?? 0);
     var totalPages = (int)(ViewBag.TotalPages ?? 0);
     var currentPage = (int)(ViewBag.CurrentPage ?? 1);

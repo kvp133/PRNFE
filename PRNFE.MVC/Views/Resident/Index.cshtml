@@ -1,9 +1,9 @@
-﻿@model PRNFE.MVC.Models.Response.ResidentFilterResponse
+﻿@model PRNFE.MVC.Models.Response.ResidentFilterResponses
 @using PRNFE.MVC.Models.Request
 
 @{
     ViewData["Title"] = "Danh sách cư dân";
-    var filter = ViewBag.Filter as ResidentFilterRequest ?? new ResidentFilterRequest();
+    var filter = ViewBag.Filter as ResidentFilterRequests ?? new ResidentFilterRequests();
 }
 
 <div class="container-fluid py-4">
@@ -257,7 +257,7 @@
 </div>
 
 @functions {
-    private string GetPageUrl(int page, ResidentFilterRequest filterRequest)
+    private string GetPageUrl(int page, ResidentFilterRequests filterRequest)
     {
         var routeValues = new RouteValueDictionary
         {
