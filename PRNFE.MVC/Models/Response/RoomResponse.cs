@@ -1,3 +1,4 @@
+
 ﻿using System.ComponentModel.DataAnnotations;
 
 namespace PRNFE.MVC.Models.Response
@@ -14,6 +15,7 @@ namespace PRNFE.MVC.Models.Response
         public int Status { get; set; }
         public DateTime CreateAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+
 
 
         public enum RoomStatus
@@ -40,4 +42,16 @@ namespace PRNFE.MVC.Models.Response
             Other = 7           // Phòng khác
         }
     }
+
+    // không được xóa 
+    public class RoomsResponse
+    {
+        public int RoomId { get; set; }
+        public string RoomNumber { get; set; } = string.Empty;
+        public int Floor { get; set; }
+        public double? Area { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+  
 }

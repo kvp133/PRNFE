@@ -1,5 +1,8 @@
+
 using Microsoft.AspNetCore.Http;
 using PRNFE.MVC.Middleware;
+﻿using Microsoft.AspNetCore.Http;
+
 
 namespace PRNFE.MVC
 {
@@ -12,7 +15,18 @@ namespace PRNFE.MVC
             // Add services to the container.
             builder.Services.AddRazorPages();
             builder.Services.AddControllersWithViews();
-            builder.Services.AddHttpClient();
+
+            // Cấu hình HttpClient với BaseUrl từ appsettings.json
+            builder.Services.AddHttpClient<Controllers.ResidentController>(client =>
+            {
+                var baseUrl = builder.Configuration["ApiSettings:BaseUrl"];
+                if (!string.IsNullOrEmpty(baseUrl))
+                {
+                    client.BaseAddress = new Uri(baseUrl);
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client.Timeout = TimeSpan.FromSeconds(30); // Set timeout
+                }
+            });
 
             var app = builder.Build();
 
@@ -21,16 +35,16 @@ namespace PRNFE.MVC
             {
                 app.UseExceptionHandler("/Error");
             }
-            app.UseStaticFiles();
 
+            app.UseStaticFiles();
             app.UseRouting();
 
             // Add custom authorization middleware
             app.UseMiddleware<AuthorizationMiddleware>();
 
             app.UseAuthorization();
-
             app.MapRazorPages();
+
             
             // Add specific routes for different controllers
             app.MapControllerRoute(
@@ -47,6 +61,7 @@ namespace PRNFE.MVC
                 name: "tenant",
                 pattern: "Tenant/{action=InvoiceInfo}/{id?}",
                 defaults: new { controller = "Tenant" });
+
 
             app.MapControllerRoute(
                 name: "default",

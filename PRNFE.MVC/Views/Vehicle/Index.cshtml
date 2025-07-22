@@ -1,0 +1,387 @@
+﻿@model PRNFE.MVC.Models.Request.VehicleFilterRequest
+@using PRNFE.MVC.Models.Response
+@using PRNFE.MVC.Models.Request
+@{
+    ViewData["Title"] = "Quản lý Phương tiện";
+    var vehicles = ViewBag.Vehicles as List<PRNFE.MVC.Models.Response.VehicleResponse> ?? new List<PRNFE.MVC.Models.Response.VehicleResponse>();
+    var filter = ViewBag.Filter as VehicleFilterRequest ?? new VehicleFilterRequest();
+    var totalCount = (int)(ViewBag.TotalCount ?? 0);
+    var totalPages = (int)(ViewBag.TotalPages ?? 0);
+    var currentPage = (int)(ViewBag.CurrentPage ?? 1);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Quản lý Phương tiện</h1>
+        <p class="text-muted">Quản lý phương tiện của cư dân trong tòa nhà</p>
+    </div>
+    <div>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>
+            Thêm phương tiện
+        </a>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Tổng phương tiện</h6>
+                        <h3 class="mb-0">@totalCount</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-car fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Xe máy</h6>
+                        <h3 class="mb-0">@vehicles.Count(v => v.Type == 0)</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-motorcycle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Ô tô</h6>
+                        <h3 class="mb-0">@vehicles.Count(v => v.Type == 1)</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-car fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Xe đạp</h6>
+                        <h3 class="mb-0">@vehicles.Count(v => v.Type == 2)</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-bicycle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-filter me-2"></i>
+            Bộ lọc
+        </h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="Index" method="get">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label asp-for="LicensePlate" class="form-label">Biển số</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input asp-for="LicensePlate" class="form-control" placeholder="Nhập biển số..." value="@filter.LicensePlate" />
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label asp-for="Type" class="form-label">Loại xe</label>
+                        <select asp-for="Type" class="form-select">
+                            <option value="">Tất cả</option>
+                            <option value="0" selected="@(filter.Type == 0)">Xe máy</option>
+                            <option value="1" selected="@(filter.Type == 1)">Ô tô</option>
+                            <option value="2" selected="@(filter.Type == 2)">Xe đạp</option>
+                            <option value="3" selected="@(filter.Type == 3)">Xe tải</option>
+                            <option value="4" selected="@(filter.Type == 4)">Xe buýt</option>
+                            <option value="5" selected="@(filter.Type == 5)">Khác</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label">Số/trang</label>
+                        <select asp-for="PageSize" class="form-select">
+                            <option value="5" selected="@(filter.PageSize == 5)">5</option>
+                            <option value="10" selected="@(filter.PageSize == 10)">10</option>
+                            <option value="20" selected="@(filter.PageSize == 20)">20</option>
+                            <option value="50" selected="@(filter.PageSize == 50)">50</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>
+                                Lọc
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="fas fa-undo me-1"></i>
+                                Đặt lại
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" asp-for="Page" value="1" />
+        </form>
+    </div>
+</div>
+
+<!-- Vehicles List -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            Danh sách phương tiện
+        </h5>
+        <small class="text-muted">
+            Hiển thị @vehicles.Count trên tổng số @totalCount phương tiện
+        </small>
+    </div>
+    <div class="card-body">
+        @if (vehicles.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th><i class="fas fa-hashtag me-1"></i>ID</th>
+                            <th><i class="fas fa-car me-1"></i>Loại xe</th>
+                            <th><i class="fas fa-id-card me-1"></i>Biển số</th>
+                            <th><i class="fas fa-clock me-1"></i>Ngày tạo</th>
+                            <th><i class="fas fa-edit me-1"></i>Cập nhật</th>
+                            <th class="text-end"><i class="fas fa-cogs me-1"></i>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var vehicle in vehicles)
+                        {
+                            <tr>
+                                <td><strong class="text-primary">#@vehicle.Id</strong></td>
+                                <td>
+                                    @{
+                                        var typeInfo = GetVehicleTypeInfo(vehicle.Type);
+                                    }
+                                    <span class="badge @typeInfo.BadgeClass">
+                                        <i class="@typeInfo.Icon me-1"></i>@typeInfo.Text
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong class="text-dark">@vehicle.LicensePlate</strong>
+                                </td>
+                                <td>
+                                    <small class="text-muted">@vehicle.CreateAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                </td>
+                                <td>
+                                    @if (vehicle.UpdatedAt.HasValue)
+                                    {
+                                        <small class="text-muted">@vehicle.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted">Chưa cập nhật</small>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Details" asp-route-id="@vehicle.Id" class="btn btn-sm btn-outline-primary" title="Xem chi tiết" data-bs-toggle="tooltip">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@vehicle.Id" class="btn btn-sm btn-outline-warning" title="Chỉnh sửa" data-bs-toggle="tooltip">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteVehicle(@vehicle.Id, '@vehicle.LicensePlate')" title="Xóa" data-bs-toggle="tooltip">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (totalPages > 1)
+            {
+                <nav aria-label="Phân trang" class="mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted">
+                            Trang @currentPage / @totalPages (Tổng: @totalCount phương tiện)
+                        </div>
+                    </div>
+                    <ul class="pagination justify-content-center">
+                        @if (currentPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-page="@(currentPage - 1)"
+                                   asp-route-licensePlate="@filter.LicensePlate"
+                                   asp-route-type="@filter.Type"
+                                   asp-route-pageSize="@filter.PageSize">
+                                    <i class="fas fa-chevron-left"></i>
+                                    Trước
+                                </a>
+                            </li>
+                        }
+
+                        @{
+                            var startPage = Math.Max(1, currentPage - 2);
+                            var endPage = Math.Min(totalPages, currentPage + 2);
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == currentPage ? "active" : "")">
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-page="@i"
+                                   asp-route-licensePlate="@filter.LicensePlate"
+                                   asp-route-type="@filter.Type"
+                                   asp-route-pageSize="@filter.PageSize">@i</a>
+                            </li>
+                        }
+
+                        @if (currentPage < totalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-page="@(currentPage + 1)"
+                                   asp-route-licensePlate="@filter.LicensePlate"
+                                   asp-route-type="@filter.Type"
+                                   asp-route-pageSize="@filter.PageSize">
+                                    Sau
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-car fa-4x text-muted"></i>
+                </div>
+                <h5 class="text-muted mb-3">Không có phương ti��n nào</h5>
+                @if (!string.IsNullOrWhiteSpace(filter.LicensePlate) || filter.Type.HasValue)
+                {
+                    <p class="text-muted mb-3">Không tìm thấy phương tiện nào phù hợp với bộ lọc hiện tại.</p>
+                    <a asp-action="Index" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-undo me-1"></i>
+                        Xóa bộ lọc
+                    </a>
+                }
+                else
+                {
+                    <p class="text-muted mb-3">Chưa có phương tiện nào được đăng ký.</p>
+                }
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>
+                    Thêm phương tiện đầu tiên
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Xác nhận xóa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa phương tiện <strong id="vehicleLicensePlate"></strong> không?</p>
+                <p class="text-muted small">Hành động này không thể hoàn tác.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>
+                        Xóa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private (string BadgeClass, string Icon, string Text) GetVehicleTypeInfo(int type)
+    {
+        return type switch
+        {
+            0 => ("bg-primary", "fas fa-motorcycle", "Xe máy"),
+            1 => ("bg-success", "fas fa-car", "Ô tô"),
+            2 => ("bg-info", "fas fa-bicycle", "Xe đạp"),
+            3 => ("bg-warning", "fas fa-truck", "Xe tải"),
+            4 => ("bg-secondary", "fas fa-bus", "Xe buýt"),
+            5 => ("bg-dark", "fas fa-question", "Khác"),
+            _ => ("bg-light text-dark", "fas fa-question-circle", "Không xác định")
+        };
+    }
+}
+
+@section Scripts {
+    <script>
+        function deleteVehicle(vehicleId, licensePlate) {
+            document.getElementById('vehicleLicensePlate').textContent = licensePlate || 'Không xác định';
+            document.getElementById('deleteForm').action = '@Url.Action("Delete", "Vehicle")/' + vehicleId;
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Auto submit on page size change
+            document.querySelector('select[name="PageSize"]').addEventListener('change', function() {
+                this.form.submit();
+            });
+        });
+    </script>
+}
