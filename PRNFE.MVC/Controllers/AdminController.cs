@@ -37,7 +37,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Permission");
+                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/users/api/Permission");
                 var content = await response.Content.ReadAsStringAsync();
                 
                 if (response.IsSuccessStatusCode)
@@ -71,7 +71,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Role");
+                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/users/api/Role");
                 var content = await response.Content.ReadAsStringAsync();
                 
                 if (response.IsSuccessStatusCode)
@@ -105,7 +105,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Role/{id}");
+                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/users/api/Role/{id}");
                 var content = await response.Content.ReadAsStringAsync();
                 
                 if (response.IsSuccessStatusCode)
@@ -142,7 +142,7 @@ namespace PRNFE.MVC.Controllers
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/Role", content);
+                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/Role", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
                 
                 if (response.IsSuccessStatusCode)
@@ -179,7 +179,7 @@ namespace PRNFE.MVC.Controllers
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PutAsync($"{_apiBaseUrl}/api/Role/{id}", content);
+                var response = await _httpClient.PutAsync($"{_apiBaseUrl}/users/api/Role/{id}", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
                 
                 if (response.IsSuccessStatusCode)
@@ -213,7 +213,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.DeleteAsync($"{_apiBaseUrl}/api/Role/{id}");
+                var response = await _httpClient.DeleteAsync($"{_apiBaseUrl}/users/api/Role/{id}");
                 var content = await response.Content.ReadAsStringAsync();
                 
                 if (response.IsSuccessStatusCode)
@@ -256,7 +256,7 @@ namespace PRNFE.MVC.Controllers
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/Role/assign-permissions", content);
+                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/Role/assign-permissions", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
                 
                 if (response.IsSuccessStatusCode)
@@ -299,7 +299,7 @@ namespace PRNFE.MVC.Controllers
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/api/Role/assign-users", content);
+                var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/Role/assign-users", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
                 
                 if (response.IsSuccessStatusCode)
@@ -339,7 +339,7 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Role/{id}/users");
+                var response = await _httpClient.GetAsync($"{_apiBaseUrl}/users/api/Role/{id}/users");
                 var content = await response.Content.ReadAsStringAsync();
                 
                 if (response.IsSuccessStatusCode)
