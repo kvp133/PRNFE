@@ -4,6 +4,7 @@ namespace PRNFE.MVC.Models.Request
 {
     public class UpdateBuildingRequest
     {
+
         [Required(ErrorMessage = "Name is required")]
         [MaxLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
         public string? Name { get; set; }
@@ -19,5 +20,6 @@ namespace PRNFE.MVC.Models.Request
         public bool IsActive { get; set; }
         public ICollection<UpdateRoomRequest>? Rooms { get; set; }
         public ICollection<UpdateServiceRequest>? Services { get; set; }
+
     }
 }

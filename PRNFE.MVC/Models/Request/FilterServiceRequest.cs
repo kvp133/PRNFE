@@ -4,8 +4,19 @@ namespace PRNFE.MVC.Models.Request
 {
     public class FilterServiceRequest
     {
-        [MaxLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+
+        [Display(Name = "Tên dịch vụ")]
         public string? Name { get; set; }
+
+        [Display(Name = "Dịch vụ bắt buộc")]
         public bool? IsMandatory { get; set; }
+
+        [Display(Name = "Trạng thái hoạt động")]
+        public bool? IsActive { get; set; }
+
+        [Display(Name = "Số kết quả mỗi trang")]
+        [Range(1, 100, ErrorMessage = "Số kết quả phải từ 1 đến 100")]
+        public int PageSize { get; set; } = 10;
+
     }
 }
