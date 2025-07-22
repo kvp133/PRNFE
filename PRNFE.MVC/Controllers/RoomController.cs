@@ -17,13 +17,13 @@ namespace PRNFE.MVC.Controllers
         // GET: Room/Manager
         public IActionResult Manager()
         {
-            return View(new RoomRequest());
+            return View(new RoomRequests());
         }
 
         // POST: Room/Manager
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Manager(RoomRequest model)
+        public async Task<IActionResult> Manager(RoomRequests model)
         {
             if (!ModelState.IsValid)
             {
@@ -41,7 +41,7 @@ namespace PRNFE.MVC.Controllers
                 {
                     ViewBag.IsSuccess = true;
                     ViewBag.Message = "Tạo phòng thành công!";
-                    return View(new RoomRequest()); // Reset form
+                    return View(new RoomRequests()); // Reset form
                 }
                 else
                 {
@@ -65,7 +65,7 @@ namespace PRNFE.MVC.Controllers
     public class RoomApiController : ControllerBase
     {
         [HttpPost("manager")]
-        public async Task<IActionResult> CreateRoom([FromBody] RoomRequest request)
+        public async Task<IActionResult> CreateRoom([FromBody] RoomRequests request)
         {
             if (!ModelState.IsValid)
             {
@@ -75,7 +75,7 @@ namespace PRNFE.MVC.Controllers
             try
             {
                 // Here you would typically save to database
-                var room = new RoomResponse
+                var room = new RoomResponses
                 {
                     RoomId = Guid.NewGuid(),
                     RoomNumber = request.RoomNumber,

@@ -1,6 +1,6 @@
 ﻿namespace PRNFE.MVC.Models.Response
 {
-    public class ServiceResponse
+    public class ServiceResponses
     {
 
         public int Id { get; set; }

@@ -6,7 +6,7 @@ using PRNFE.MVC.Models.Response;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using BillResponse = PRNFE.MVC.Models.Request.BillResponse;
+using BillResponse = PRNFE.MVC.Models.Request.BillResponses;
 
 namespace PRNFE.MVC.Controllers
 {
@@ -41,7 +41,7 @@ namespace PRNFE.MVC.Controllers
             return buildingId;
         }
 
-        public async Task<IActionResult> Index(BillFilterRequest filter)
+        public async Task<IActionResult> Index(BillFilterRequests filter)
         {
             if (!ModelState.IsValid)
             {
@@ -145,7 +145,7 @@ namespace PRNFE.MVC.Controllers
                 _logger.LogError(ex, "Lỗi khi tải danh sách hóa đơn");
                 ViewBag.Error = $"Error loading bills: {ex.Message}";
                 ViewBag.Bills = new List<BillResponse>();
-                ViewBag.Filter = filter ?? new BillFilterRequest();
+                ViewBag.Filter = filter ?? new BillFilterRequests();
                 ViewBag.TotalCount = 0;
                 ViewBag.TotalPages = 0;
                 ViewBag.CurrentPage = 1;
@@ -197,10 +197,10 @@ namespace PRNFE.MVC.Controllers
             try
             {
                 await LoadCreateFormData();
-                var billRequest = new BillCreateRequest
+                var billRequest = new BillCreateRequests
                 {
                     DueDate = DateTime.Now.AddDays(30),
-                    BillDetails = new List<BillDetailCreateRequest>()
+                    BillDetails = new List<BillDetailCreateRequests>()
                 };
                 return View(billRequest);
             }
@@ -214,7 +214,7 @@ namespace PRNFE.MVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(BillCreateRequest billRequest)
+        public async Task<IActionResult> Create(BillCreateRequests billRequest)
         {
             if (ModelState.IsValid)
             {
@@ -280,25 +280,25 @@ namespace PRNFE.MVC.Controllers
                     return NotFound();
                 }
 
-                var updateRequest = new BillUpdateRequest
+                var updateRequest = new BillUpdateRequests
                 {
                     Amount = bill.Amount,
                     DueDate = bill.DueDate,
                     Status = bill.Status,
-                    BillDetails = bill.BillDetails?.Select(bd => new BillDetailCreateRequest
+                    BillDetails = bill.BillDetails?.Select(bd => new BillDetailCreateRequests
                     {
                         ServiceId = bd.ServiceId,
                         Quantity = bd.Quantity,
                         UnitPrice = bd.UnitPrice
-                    }).ToList() ?? new List<BillDetailCreateRequest>()
+                    }).ToList() ?? new List<BillDetailCreateRequests>()
                 };
 
-                var services = new List<BillServiceResponse>();
+                var services = new List<BillServiceResponses>();
                 if (servicesResponse.IsSuccessStatusCode)
                 {
                     var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
-                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponse>>>(servicesJson, _jsonOptions);
-                    services = servicesApiResponse?.data ?? new List<BillServiceResponse>();
+                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponses>>>(servicesJson, _jsonOptions);
+                    services = servicesApiResponse?.data ?? new List<BillServiceResponses>();
                 }
 
                 ViewBag.Services = services;
@@ -317,7 +317,7 @@ namespace PRNFE.MVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, BillUpdateRequest updateRequest)
+        public async Task<IActionResult> Edit(string id, BillUpdateRequests updateRequest)
         {
             if (ModelState.IsValid)
             {
@@ -459,15 +459,15 @@ namespace PRNFE.MVC.Controllers
                 var roomsResponse = await _httpClient.SendAsync(roomsRequest);
                 var servicesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
 
-                var rooms = new List<BillRoomResponse>();
-                var services = new List<BillServiceResponse>();
+                var rooms = new List<BillRoomResponses>();
+                var services = new List<BillServiceResponses>();
 
                 if (roomsResponse.IsSuccessStatusCode)
                 {
                     var roomsJson = await roomsResponse.Content.ReadAsStringAsync();
                     _logger.LogInformation("Rooms API Response: {JsonResponse}", roomsJson);
-                    var roomsApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillRoomResponse>>>(roomsJson, _jsonOptions);
-                    rooms = roomsApiResponse?.data ?? new List<BillRoomResponse>();
+                    var roomsApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillRoomResponses>>>(roomsJson, _jsonOptions);
+                    rooms = roomsApiResponse?.data ?? new List<BillRoomResponses>();
                 }
                 else
                 {
@@ -480,8 +480,8 @@ namespace PRNFE.MVC.Controllers
                 {
                     var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
                     _logger.LogInformation("Services API Response: {JsonResponse}", servicesJson);
-                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponse>>>(servicesJson, _jsonOptions);
-                    services = servicesApiResponse?.data ?? new List<BillServiceResponse>();
+                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponses>>>(servicesJson, _jsonOptions);
+                    services = servicesApiResponse?.data ?? new List<BillServiceResponses>();
                 }
                 else
                 {
@@ -497,8 +497,8 @@ namespace PRNFE.MVC.Controllers
             {
                 _logger.LogError(ex, "Error loading create form data: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
                 TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải dữ liệu form. Vui lòng thử lại.";
-                ViewBag.Rooms = new List<BillRoomResponse>();
-                ViewBag.Services = new List<BillServiceResponse>();
+                ViewBag.Rooms = new List<BillRoomResponses>();
+                ViewBag.Services = new List<BillServiceResponses>();
             }
         }
 
@@ -513,8 +513,8 @@ namespace PRNFE.MVC.Controllers
                 var billResponse = await _httpClient.SendAsync(request);
                 var servicesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
 
-                var services = new List<BillServiceResponse>();
-                BillRoomResponse room = null;
+                var services = new List<BillServiceResponses>();
+                BillRoomResponses room = null;
 
                 if (billResponse.IsSuccessStatusCode)
                 {
@@ -526,8 +526,8 @@ namespace PRNFE.MVC.Controllers
                 if (servicesResponse.IsSuccessStatusCode)
                 {
                     var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
-                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponse>>>(servicesJson, _jsonOptions);
-                    services = servicesApiResponse?.data ?? new List<BillServiceResponse>();
+                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponses>>>(servicesJson, _jsonOptions);
+                    services = servicesApiResponse?.data ?? new List<BillServiceResponses>();
                 }
 
                 ViewBag.Services = services;
@@ -536,7 +536,7 @@ namespace PRNFE.MVC.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi tải dữ liệu cho form chỉnh sửa hóa đơn cho ID: {Id}", billId);
-                ViewBag.Services = new List<BillServiceResponse>();
+                ViewBag.Services = new List<BillServiceResponses>();
                 ViewBag.Room = null;
             }
         }

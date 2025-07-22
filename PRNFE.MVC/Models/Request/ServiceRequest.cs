@@ -2,7 +2,7 @@
 
 namespace PRNFE.MVC.Models.Request
 {
-    public class ServiceRequest
+    public class ServiceRequests
     {
         [Required(ErrorMessage = "Tên dịch vụ là bắt buộc")]
         [Display(Name = "Tên dịch vụ")]

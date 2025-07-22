@@ -1,9 +1,20 @@
 
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace PRNFE.MVC.Models.Response
 {
-    public class RoomResponse
+    public class RoomResponse {
+  public Guid RoomId { get; set; }
+        public string RoomNumber { get; set; }
+        public int Floor { get; set; }
+        public decimal Area { get; set; }
+        public string RoomType { get; set; }
+        public int MaxOccupants { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class RoomResponse{
+
     {
         public int Id { get; set; }
         public string TenantId { get; set; }
@@ -44,7 +55,7 @@ namespace PRNFE.MVC.Models.Response
     }
 
     // không được xóa 
-    public class RoomsResponse
+    public class RoomsResponses
     {
         public int RoomId { get; set; }
         public string RoomNumber { get; set; } = string.Empty;
@@ -53,5 +64,5 @@ namespace PRNFE.MVC.Models.Response
         public bool IsActive { get; set; }
     }
 
-  
+    }
 }

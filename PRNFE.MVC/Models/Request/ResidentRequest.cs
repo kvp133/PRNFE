@@ -2,7 +2,7 @@
 
 namespace PRNFE.MVC.Models.Request
 {
-    public class ResidentRequest
+    public class ResidentRequests
     {
         [Required(ErrorMessage = "User ID là bắt buộc")]
         [Display(Name = "User ID")]
@@ -34,14 +34,14 @@ namespace PRNFE.MVC.Models.Request
         [Display(Name = "Giới tính")]
         public bool Gender { get; set; } // true = Nam, false = Nữ
 
-        public List<VehicleCreateDto> Vehicles { get; set; } = new List<VehicleCreateDto>();
+        public List<VehicleCreateDtos> Vehicles { get; set; } = new List<VehicleCreateDtos>();
 
-        public TemporaryStayCreateDto? TemporaryStay { get; set; }
+        public TemporaryStayCreateDtos? TemporaryStay { get; set; }
 
-        public List<RoomCreateDto> Rooms { get; set; } = new List<RoomCreateDto>();
+        public List<RoomCreateDtos> Rooms { get; set; } = new List<RoomCreateDtos>();
     }
 
-    public class ResidentUpdateRequest
+    public class ResidentUpdateRequests
     {
         [Required(ErrorMessage = "Họ tên là bắt buộc")]
         [Display(Name = "Họ tên")]
@@ -69,15 +69,15 @@ namespace PRNFE.MVC.Models.Request
         [Display(Name = "Giới tính")]
         public bool Gender { get; set; }
 
-        public List<RoomCreateDto> Rooms { get; set; } = new List<RoomCreateDto>();
+        public List<RoomCreateDtos> Rooms { get; set; } = new List<RoomCreateDtos>();
 
-        public List<VehicleUpdateDto> Vehicles { get; set; } = new List<VehicleUpdateDto>();
+        public List<VehicleUpdateDtos> Vehicles { get; set; } = new List<VehicleUpdateDtos>();
 
-        public TemporaryStayUpdateDto? TemporaryStay { get; set; }
+        public TemporaryStayUpdateDtos? TemporaryStay { get; set; }
     }
 
 
-    public class TemporaryStayCreateDto
+    public class TemporaryStayCreateDtos
     {
         public int ResidentId { get; set; }
 
@@ -96,7 +96,7 @@ namespace PRNFE.MVC.Models.Request
 
     }
 
-    public class TemporaryStayUpdateDto
+    public class TemporaryStayUpdateDtos
     {
         [Required(ErrorMessage = "Ngày bắt đầu là bắt buộc")]
         [Display(Name = "Từ ngày")]
@@ -116,7 +116,7 @@ namespace PRNFE.MVC.Models.Request
         public int Status { get; set; } // 0 = Chờ duyệt, 1 = Đã duyệt, 2 = Từ chối
     }
 
-    public class RoomCreateDto
+    public class RoomCreateDtos
     {
         [Required(ErrorMessage = "Room ID là bắt buộc")]
         [Display(Name = "Room ID")]
@@ -124,7 +124,7 @@ namespace PRNFE.MVC.Models.Request
     }
 
     // Filter model for GET /api/Residents/filters
-public class ResidentFilterRequest
+public class ResidentFilterRequests
     {
         [Display(Name = "Room IDs")]
         [EnsureValidRoomIds(ErrorMessage = "Room IDs phải là các số nguyên dương")]
@@ -160,7 +160,7 @@ public class ResidentFilterRequest
         }
     }
 
-    public class ResidentDeleteRequest
+    public class ResidentDeleteRequests
     {
         [Required(ErrorMessage = "ID là bắt buộc")]
         public int Id { get; set; }

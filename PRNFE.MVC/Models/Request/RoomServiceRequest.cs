@@ -2,7 +2,7 @@
 
 namespace PRNFE.MVC.Models.Request
 {
-    public class RoomServiceRequest
+    public class RoomServiceRequests
     {
         [Required(ErrorMessage = "Phòng là bắt buộc")]
         [Display(Name = "Phòng")]

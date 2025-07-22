@@ -5,7 +5,7 @@ namespace PRNFE.MVC.Models.Request
    
     // ==================== RESPONSE MODELS ====================
     //  GET /api/Bills/{id}
-    public class BillResponse
+    public class BillResponses
     {
         public string Id { get; set; } = string.Empty;
         public int? RoomId { get; set; } // Nullable to handle absence in GET /api/Bills/filter, POST /api/Bills/Rooms, POST /api/Bills/Building
@@ -14,12 +14,12 @@ namespace PRNFE.MVC.Models.Request
         public DateTime CreateAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public int Status { get; set; }
-        public BillRoomResponse Room { get; set; } = new();
-        public List<BillDetailsResponse>? BillDetails { get; set; }// Chỉ có trong GET /api/Bills/{id}
+        public BillRoomResponses Room { get; set; } = new();
+        public List<BillDetailsResponses>? BillDetails { get; set; }// Chỉ có trong GET /api/Bills/{id}
     }
 
     /// Room Response Model - Embedded trong BillResponse
-    public class BillRoomResponse
+    public class BillRoomResponses
     {
         public int Id { get; set; }
         public string? TenantId { get; set; } // Có thể null
@@ -35,7 +35,7 @@ namespace PRNFE.MVC.Models.Request
 
     /// BillDetail Response Model - Embedded trong BillResponse
     /// Chỉ có trong GET /api/Bills/{id}
-    public class BillDetailsResponse
+    public class BillDetailsResponses
     {
         public string Id { get; set; } = string.Empty;
         public int ServiceId { get; set; }
@@ -43,11 +43,11 @@ namespace PRNFE.MVC.Models.Request
         public decimal UnitPrice { get; set; }
         public DateTime CreateAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public BillServiceResponse Service { get; set; } = new();
+        public BillServiceResponses Service { get; set; } = new();
     }
 
     /// Service Response Model - Embedded trong BillDetailResponse
-    public class BillServiceResponse
+    public class BillServiceResponses
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -62,7 +62,7 @@ namespace PRNFE.MVC.Models.Request
     // ==================== REQUEST MODELS ====================
     /// Bill Create Request Model
     /// Dùng cho: POST /api/Bills
-    public class BillCreateRequest
+    public class BillCreateRequests
     {
         [Required(ErrorMessage = "Vui lòng chọn phòng")]
         public int RoomId { get; set; }
@@ -75,11 +75,11 @@ namespace PRNFE.MVC.Models.Request
         public DateTime DueDate { get; set; }
 
         [Required(ErrorMessage = "Phải có ít nhất một dịch vụ")]
-        public List<BillDetailCreateRequest> BillDetails { get; set; } = new();
+        public List<BillDetailCreateRequests> BillDetails { get; set; } = new();
     }
   
     /// BillDetail Create Request Model - Embedded trong BillCreateRequest
-    public class BillDetailCreateRequest
+    public class BillDetailCreateRequests
     {
         [Required(ErrorMessage = "Vui lòng chọn dịch vụ")]
         public int ServiceId { get; set; }
@@ -95,7 +95,7 @@ namespace PRNFE.MVC.Models.Request
 
     /// Bill Update Request Model
     /// Dùng cho: PUT /api/Bills/{id}
-    public class BillUpdateRequest
+    public class BillUpdateRequests
     {
         [Required(ErrorMessage = "Vui lòng nhập số tiền")]
         [Range(0, double.MaxValue, ErrorMessage = "Số tiền phải lớn hơn hoặc bằng 0")]
@@ -108,12 +108,12 @@ namespace PRNFE.MVC.Models.Request
         public int Status { get; set; }
 
         [Required(ErrorMessage = "Phải có ít nhất một dịch vụ")]
-        public List<BillDetailCreateRequest> BillDetails { get; set; } = new();
+        public List<BillDetailCreateRequests> BillDetails { get; set; } = new();
     }
 
     /// Rooms Create Bills Request Model
     /// Dùng cho: POST /api/Bills/Rooms
-    public class RoomsBillsCreateRequest
+    public class RoomsBillsCreateRequests
     {
         [Required(ErrorMessage = "Phải có ít nhất một phòng")]
         public List<int> RoomIds { get; set; } = new();
@@ -123,7 +123,7 @@ namespace PRNFE.MVC.Models.Request
     /// Bill Filter Model
     /// Dùng cho: GET /api/Bills/filter
 
-    public class BillFilterRequest
+    public class BillFilterRequests
     {
         public List<int> RoomIds { get; set; } = new();
 

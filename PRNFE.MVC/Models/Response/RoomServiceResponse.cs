@@ -1,6 +1,6 @@
 ﻿namespace PRNFE.MVC.Models.Response
 {
-    public class RoomServiceResponse
+    public class RoomServiceResponses
     {
         public Guid RoomServiceId { get; set; }
         public Guid RoomId { get; set; }

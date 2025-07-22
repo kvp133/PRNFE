@@ -1,10 +1,10 @@
-﻿@model PRNFE.MVC.Models.Request.VehicleUpdateDto
+﻿@model PRNFE.MVC.Models.Request.VehicleUpdateDtos
 @using PRNFE.MVC.Models.Response
 @{
     ViewData["Title"] = "Chỉnh sửa phương tiện";
     var vehicleTypes = ViewBag.VehicleTypes as Dictionary<int, string> ?? new Dictionary<int, string>();
     var vehicleId = (int)(ViewBag.VehicleId ?? 0);
-    var resident = ViewBag.Resident as PRNFE.MVC.Models.Response.ResidentListResponse;
+    var resident = ViewBag.Resident as PRNFE.MVC.Models.Response.ResidentListResponses;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">

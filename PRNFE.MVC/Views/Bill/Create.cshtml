@@ -1,11 +1,11 @@
 ﻿
 
-@model PRNFE.MVC.Models.Request.BillCreateRequest
+@model PRNFE.MVC.Models.Request.BillCreateRequests
 @using PRNFE.MVC.Models.Request
 @{
     ViewData["Title"] = "Tạo hóa đơn mới";
-    var rooms = ViewBag.Rooms as List<PRNFE.MVC.Models.Request.BillRoomResponse> ?? new List<PRNFE.MVC.Models.Request.BillRoomResponse>();
-    var services = ViewBag.Services as List<PRNFE.MVC.Models.Request.BillServiceResponse> ?? new List<PRNFE.MVC.Models.Request.BillServiceResponse>();
+    var rooms = ViewBag.Rooms as List<PRNFE.MVC.Models.Request.BillRoomResponses> ?? new List<PRNFE.MVC.Models.Request.BillRoomResponses>();
+    var services = ViewBag.Services as List<PRNFE.MVC.Models.Request.BillServiceResponses> ?? new List<PRNFE.MVC.Models.Request.BillServiceResponses>();
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">

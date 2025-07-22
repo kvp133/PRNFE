@@ -36,7 +36,7 @@ namespace PRNFE.MVC.Controllers
             return buildingId;
         }
 
-        public async Task<IActionResult> Index(VehicleFilterRequest filter)
+        public async Task<IActionResult> Index(VehicleFilterRequests filter)
         {
             if (!ModelState.IsValid)
             {
@@ -92,7 +92,7 @@ namespace PRNFE.MVC.Controllers
                     var errorContent = await response.Content.ReadAsStringAsync();
                     _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
                     ViewBag.Error = $"API Error: {response.StatusCode} - {errorContent}";
-                    ViewBag.Vehicles = new List<VehicleResponse>();
+                    ViewBag.Vehicles = new List<VehicleResponses>();
                     ViewBag.Filter = filter;
                     ViewBag.TotalCount = 0;
                     ViewBag.TotalPages = 0;
@@ -106,7 +106,7 @@ namespace PRNFE.MVC.Controllers
                 if (string.IsNullOrWhiteSpace(json))
                 {
                     ViewBag.Error = "Empty JSON response from API.";
-                    ViewBag.Vehicles = new List<VehicleResponse>();
+                    ViewBag.Vehicles = new List<VehicleResponses>();
                     ViewBag.Filter = filter;
                     ViewBag.TotalCount = 0;
                     ViewBag.TotalPages = 0;
@@ -114,8 +114,8 @@ namespace PRNFE.MVC.Controllers
                     return View();
                 }
 
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<VehicleResponse>>>(json, _jsonOptions);
-                var vehicles = apiResponse?.data ?? new List<VehicleResponse>();
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<VehicleResponses>>>(json, _jsonOptions);
+                var vehicles = apiResponse?.data ?? new List<VehicleResponses>();
 
                 var totalCount = vehicles.Count;
                 var paginatedVehicles = vehicles
@@ -135,8 +135,8 @@ namespace PRNFE.MVC.Controllers
             {
                 _logger.LogError(ex, "Lỗi khi tải danh sách phương tiện");
                 ViewBag.Error = $"Error loading vehicles: {ex.Message}";
-                ViewBag.Vehicles = new List<VehicleResponse>();
-                ViewBag.Filter = filter ?? new VehicleFilterRequest();
+                ViewBag.Vehicles = new List<VehicleResponses>();
+                ViewBag.Filter = filter ?? new VehicleFilterRequests();
                 ViewBag.TotalCount = 0;
                 ViewBag.TotalPages = 0;
                 ViewBag.CurrentPage = 1;
@@ -165,7 +165,7 @@ namespace PRNFE.MVC.Controllers
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<DetailedVehicleResponse>>(json, _jsonOptions);
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<DetailedVehicleResponses>>(json, _jsonOptions);
                 var vehicle = apiResponse?.data;
 
                 if (vehicle == null)
@@ -188,7 +188,7 @@ namespace PRNFE.MVC.Controllers
             try
             {
                 await LoadCreateFormData();
-                var vehicleRequest = new VehicleCreateDto();
+                var vehicleRequest = new VehicleCreateDtos();
                 return View(vehicleRequest);
             }
             catch (Exception ex)
@@ -201,7 +201,7 @@ namespace PRNFE.MVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(VehicleCreateDto vehicleRequest)
+        public async Task<IActionResult> Create(VehicleCreateDtos vehicleRequest)
         {
             if (ModelState.IsValid)
             {
@@ -221,7 +221,7 @@ namespace PRNFE.MVC.Controllers
                     response.EnsureSuccessStatusCode();
 
                     var jsonResponse = await response.Content.ReadAsStringAsync();
-                    var apiResponse = JsonSerializer.Deserialize<ApiResponse<VehicleResponse>>(jsonResponse, _jsonOptions);
+                    var apiResponse = JsonSerializer.Deserialize<ApiResponse<VehicleResponses>>(jsonResponse, _jsonOptions);
 
                     TempData["SuccessMessage"] = "Phương tiện đã được tạo thành công.";
                     return RedirectToAction(nameof(Details), new { id = apiResponse?.data?.Id });
@@ -258,7 +258,7 @@ namespace PRNFE.MVC.Controllers
                 }
 
                 var vehicleJson = await vehicleResponse.Content.ReadAsStringAsync();
-                var vehicleApiResponse = JsonSerializer.Deserialize<ApiResponse<DetailedVehicleResponse>>(vehicleJson, _jsonOptions);
+                var vehicleApiResponse = JsonSerializer.Deserialize<ApiResponse<DetailedVehicleResponses>>(vehicleJson, _jsonOptions);
                 var vehicle = vehicleApiResponse?.data;
 
                 if (vehicle == null)
@@ -266,7 +266,7 @@ namespace PRNFE.MVC.Controllers
                     return NotFound();
                 }
 
-                var updateRequest = new VehicleUpdateDto
+                var updateRequest = new VehicleUpdateDtos
                 {
                     Type = vehicle.Type,
                     LicensePlate = vehicle.LicensePlate
@@ -288,7 +288,7 @@ namespace PRNFE.MVC.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, VehicleUpdateDto updateRequest)
+        public async Task<IActionResult> Edit(int id, VehicleUpdateDtos updateRequest)
         {
             if (ModelState.IsValid)
             {
@@ -363,14 +363,14 @@ namespace PRNFE.MVC.Controllers
                 residentsRequest.Headers.Add("Cookie", $"buildingId={buildingId}");
                 var residentsResponse = await _httpClient.SendAsync(residentsRequest);
 
-                var residents = new List<ResidentListResponse>();
+                var residents = new List<ResidentListResponses>();
 
                 if (residentsResponse.IsSuccessStatusCode)
                 {
                     var residentsJson = await residentsResponse.Content.ReadAsStringAsync();
                     _logger.LogInformation("Residents API Response: {JsonResponse}", residentsJson);
-                    var residentsApiResponse = JsonSerializer.Deserialize<ApiResponse<List<ResidentListResponse>>>(residentsJson, _jsonOptions);
-                    residents = residentsApiResponse?.data ?? new List<ResidentListResponse>();
+                    var residentsApiResponse = JsonSerializer.Deserialize<ApiResponse<List<ResidentListResponses>>>(residentsJson, _jsonOptions);
+                    residents = residentsApiResponse?.data ?? new List<ResidentListResponses>();
                 }
                 else
                 {
@@ -386,7 +386,7 @@ namespace PRNFE.MVC.Controllers
             {
                 _logger.LogError(ex, "Error loading create form data: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
                 TempData["ErrorMessage"] = "Có lỗi xảy ra khi tải dữ liệu form. Vui lòng thử lại.";
-                ViewBag.Residents = new List<ResidentListResponse>();
+                ViewBag.Residents = new List<ResidentListResponses>();
                 ViewBag.VehicleTypes = GetVehicleTypes();
             }
         }
