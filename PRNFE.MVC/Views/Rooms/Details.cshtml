@@ -1,0 +1,242 @@
+﻿@model PRNFE.MVC.Models.Response.DetailsRoomResponse
+
+@{
+    ViewData["Title"] = "Chi tiết phòng";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <style>
+        .btn-pink {
+            background-color: #e91e63 !important;
+            color: #fff !important;
+            border: none;
+        }
+
+            .btn-pink:hover, .btn-pink:focus {
+                background-color: #ad1457 !important;
+                color: #fff !important;
+            }
+
+        .btn-outline-pink {
+            color: #e91e63 !important;
+            border-color: #e91e63 !important;
+            background: #fff !important;
+        }
+
+            .btn-outline-pink:hover, .btn-outline-pink:focus {
+                color: #fff !important;
+                background-color: #e91e63 !important;
+                border-color: #e91e63 !important;
+            }
+
+        .badge-pink {
+            background: #e91e63 !important;
+            color: #fff !important;
+        }
+
+        .badge-pink-light {
+            background: rgba(233,30,99,0.08) !important;
+            color: #e91e63 !important;
+            border: 1px solid #e91e63 !important;
+        }
+
+        .text-pink {
+            color: #e91e63 !important;
+        }
+
+        .bg-pink-light {
+            background: rgba(233,30,99,0.08) !important;
+        }
+
+        .border-pink {
+            border-color: #e91e63 !important;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(233,30,99,0.09);
+        }
+
+        .table-responsive {
+            border-radius: 0.375rem;
+        }
+
+        .btn-secondary, .btn-secondary:focus, .btn-secondary:active {
+            background: #fce4ec !important;
+            border-color: #fce4ec !important;
+            color: #e91e63 !important;
+        }
+
+            .btn-secondary:hover {
+                background: #f06292 !important;
+                border-color: #f06292 !important;
+                color: #fff !important;
+            }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-4xl mx-auto mt-6 p-6 bg-white rounded-lg shadow-md">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Chi tiết phòng @Model.RoomNumber</h2>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-pink-light">
+                <h4 class="mb-0 text-pink">
+                    <i class="fas fa-info-circle me-2"></i>Thông tin phòng
+                </h4>
+            </div>
+            <div class="card-body">
+                <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700"><i class="fas fa-door-open me-2"></i>Mã phòng</dt>
+                        <dd class="mt-1 text-gray-900">@Model.RoomNumber</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700"><i class="fas fa-building me-2"></i>Tầng</dt>
+                        <dd class="mt-1 text-gray-900">@Model.Floor</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700"><i class="fas fa-expand-arrows-alt me-2"></i>Diện tích (m²)</dt>
+                        <dd class="mt-1 text-gray-900">@Model.Area</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700"><i class="fas fa-tag me-2"></i>Loại phòng</dt>
+                        <dd class="mt-1 text-gray-900">
+                            @{
+                                var roomTypeName = Enum.GetName(typeof(PRNFE.MVC.Models.Response.DetailsRoomResponse.RoomTypes), Model.RoomType);
+                            }
+                            <span class="badge badge-pink-light">@roomTypeName</span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700"><i class="fas fa-users me-2"></i>Số người tối đa</dt>
+                        <dd class="mt-1 text-gray-900">@Model.MaxOpt</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700"><i class="fas fa-flag me-2"></i>Trạng thái</dt>
+                        <dd class="mt-1 text-gray-900">
+                            @{
+                                var statusName = Enum.GetName(typeof(PRNFE.MVC.Models.Response.DetailsRoomResponse.RoomStatus), Model.Status);
+                            }
+                            <span class="badge badge-pink-light">@statusName</span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700"><i class="fas fa-calendar me-2"></i>Ngày tạo</dt>
+                        <dd class="mt-1 text-gray-900">@Model.CreateAt.ToString("dd/MM/yyyy")</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-700"><i class="fas fa-calendar-check me-2"></i>Cập nhật lần cuối</dt>
+                        <dd class="mt-1 text-gray-900">@Model.UpdatedAt?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật"</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-pink-light">
+                <h4 class="mb-0 text-pink">
+                    <i class="fas fa-user-friends me-2"></i>Danh sách cư dân trong phòng
+                </h4>
+            </div>
+            <div class="card-body">
+                @if (Model.Residents != null && Model.Residents.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mã cư dân</th>
+                                    <th>Tên cư dân</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var resident in Model.Residents)
+                                {
+                                    <tr class="@(resident.IsActive ? "" : "table-secondary")">
+                                        <td>@resident.ResidentId</td>
+                                        <td>@resident.Resident?.FullName ?? "Không có thông tin"</td>
+                                        <td>
+                                            <span class="badge @(resident.IsActive ? "badge-pink" : "badge-pink-light")">
+                                                @(resident.IsActive ? "Hoạt động" : "Không hoạt động")
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Không có cư dân nào trong phòng.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-pink-light">
+                <h4 class="mb-0 text-pink">
+                    <i class="fas fa-concierge-bell me-2"></i>Dịch vụ trong phòng
+                </h4>
+            </div>
+            <div class="card-body">
+                @if (Model.Services != null && Model.Services.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mã dịch vụ</th>
+                                    <th>Tên dịch vụ</th>
+                                    <th>Trạng thái</th>
+                                    <th>Giá tùy chỉnh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var service in Model.Services)
+                                {
+                                    <tr class="@(service.IsActive ? "" : "table-secondary")">
+                                        <td>@service.ServiceId</td>
+                                        <td>@service.Service?.Name ?? "Không có thông tin"</td>
+                                        <td>
+                                            <span class="badge @(service.IsActive ? "badge-pink" : "badge-pink-light")">
+                                                @(service.IsActive ? "Hoạt động" : "Không hoạt động")
+                                            </span>
+                                        </td>
+                                        <td>@(service.CustomPrice > 0 ? service.CustomPrice.ToString("C") : "-")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-concierge-bell fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Không có dịch vụ nào trong phòng.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+        </div>
+    </div>
+</body>
+</html>

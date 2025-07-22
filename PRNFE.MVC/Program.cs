@@ -1,4 +1,8 @@
+
+using Microsoft.AspNetCore.Http;
+using PRNFE.MVC.Middleware;
 ﻿using Microsoft.AspNetCore.Http;
+
 
 namespace PRNFE.MVC
 {
@@ -34,8 +38,30 @@ namespace PRNFE.MVC
 
             app.UseStaticFiles();
             app.UseRouting();
+
+            // Add custom authorization middleware
+            app.UseMiddleware<AuthorizationMiddleware>();
+
             app.UseAuthorization();
             app.MapRazorPages();
+
+            
+            // Add specific routes for different controllers
+            app.MapControllerRoute(
+                name: "admin",
+                pattern: "Admin/{action=UserManagement}/{id?}",
+                defaults: new { controller = "Admin" });
+
+            app.MapControllerRoute(
+                name: "landlord",
+                pattern: "Landlord/{action=DormitoryManagement}/{id?}",
+                defaults: new { controller = "Landlord" });
+
+            app.MapControllerRoute(
+                name: "tenant",
+                pattern: "Tenant/{action=InvoiceInfo}/{id?}",
+                defaults: new { controller = "Tenant" });
+
 
             app.MapControllerRoute(
                 name: "default",

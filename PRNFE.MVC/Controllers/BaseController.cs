@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PRNFE.MVC.Models.Response;
+using PRNFE.MVC.Models;
 using Newtonsoft.Json.Linq;
 
 namespace PRNFE.MVC.Controllers
@@ -13,13 +14,45 @@ namespace PRNFE.MVC.Controllers
     {
         protected readonly HttpClient _httpClient;
         protected readonly string _apiBaseUrl;
+        protected readonly string _apiQLPTUrl;
+        protected readonly IHttpClientFactory _httpClientFactory;
 
         protected BaseController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
+
             _httpClient = httpClientFactory.CreateClient();
             _apiBaseUrl = configuration["ApiSettings:BaseUrl"];
+            _apiQLPTUrl = configuration["ApiSettings:Url_qlpt"];
+            _httpClientFactory = httpClientFactory;
+
+        }
+        protected HttpClient CreateHttpClientWithCookies()
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.BaseAddress = new Uri(_apiQLPTUrl);
+
+            // Add all cookies from current request
+            if (Request.Cookies.Any())
+            {
+                var cookieHeader = string.Join("; ", Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
+                httpClient.DefaultRequestHeaders.Add("Cookie", cookieHeader);
+
+                // Debug logging
+                Console.WriteLine($"Sending cookies: {cookieHeader}");
+            }
+
+            return httpClient;
+        }
+        protected bool ValidateBuildingId()
+        {
+            var buildingId = Request.Cookies["buildingId"];
+            return !string.IsNullOrEmpty(buildingId);
         }
 
+        protected string GetBuildingId()
+        {
+            return Request.Cookies["buildingId"] ?? string.Empty;
+        }
         protected bool IsAuthenticated()
         {
             return Request.Cookies["AccessToken"] != null;
@@ -44,7 +77,7 @@ namespace PRNFE.MVC.Controllers
             try
             {
                 var refreshRequest = new { refreshToken = refreshToken };
-                var apiUrl = $"{_apiBaseUrl}/api/Auth/refresh";
+                var apiUrl = $"{_apiBaseUrl}/users/api/Auth/refresh";
                 var content = new StringContent(JsonConvert.SerializeObject(refreshRequest), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync(apiUrl, content);
                 var result = await response.Content.ReadAsStringAsync();
@@ -89,6 +122,11 @@ namespace PRNFE.MVC.Controllers
         {
             Response.Cookies.Delete("AccessToken");
             Response.Cookies.Delete("RefreshToken");
+        }
+
+        protected JwtTokenModel GetUserInfo()
+        {
+            return HttpContext.Items["UserInfo"] as JwtTokenModel;
         }
 
         protected (string userName, string email, string fullName) GetUserInfoFromToken()

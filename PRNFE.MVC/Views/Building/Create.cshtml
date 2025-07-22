@@ -1,0 +1,254 @@
+﻿@model PRNFE.MVC.Models.Request.CreateBuildingRequest
+@{
+    ViewData["Title"] = "Tạo mới tòa nhà";
+}
+
+<style>
+    .btn-pink {
+        background-color: #e91e63 !important;
+        color: #fff !important;
+        border: none;
+    }
+
+        .btn-pink:hover, .btn-pink:focus {
+            background-color: #ad1457 !important;
+            color: #fff !important;
+        }
+
+    .btn-outline-pink {
+        color: #e91e63 !important;
+        border-color: #e91e63 !important;
+        background: #fff !important;
+    }
+
+        .btn-outline-pink:hover, .btn-outline-pink:focus {
+            color: #fff !important;
+            background-color: #e91e63 !important;
+            border-color: #e91e63 !important;
+        }
+
+    .text-pink {
+        color: #e91e63 !important;
+    }
+
+    .bg-pink-light {
+        background: rgba(233,30,99,0.08) !important;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8 col-sm-10">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-pink-light">
+                    <h5 class="mb-0 text-pink">
+                        <i class="fas fa-plus-circle me-2"></i>@ViewData["Title"]
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (TempData["Message"] != null)
+                    {
+                        <div class="alert @(TempData["IsSuccess"]?.ToString() == "True" ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+                            <i class="fas @(TempData["IsSuccess"]?.ToString() == "True" ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
+                            @TempData["Message"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Create" method="post" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label fw-bold"></label>
+                            <input asp-for="Name" class="form-control" required />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Address" class="form-label fw-bold"></label>
+                            <input asp-for="Address" class="form-control" required />
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label fw-bold"></label>
+                            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="NumberOfFloors" class="form-label fw-bold"></label>
+                            <input asp-for="NumberOfFloors" type="number" min="1" class="form-control" required />
+                            <span asp-validation-for="NumberOfFloors" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="NumberOfApartments" class="form-label fw-bold"></label>
+                            <input asp-for="NumberOfApartments" type="number" min="1" class="form-control" required />
+                            <span asp-validation-for="NumberOfApartments" class="text-danger"></span>
+                        </div>
+
+                        <hr />
+
+                        <h5 class="mb-3 text-pink">Danh sách phòng</h5>
+                        <div id="rooms-list">
+                            @if (Model?.Rooms != null)
+                            {
+                                for (int i = 0; i < Model.Rooms.Count; i++)
+                                {
+                                    <div class="room-item mb-3 border p-3">
+                                        <label class="fw-bold">Phòng @(i + 1)</label>
+                                        <input asp-for="Rooms[i].RoomNumber" class="form-control mb-1" placeholder="Số phòng" required />
+                                        <span asp-validation-for="Rooms[i].RoomNumber" class="text-danger"></span>
+                                        <input asp-for="Rooms[i].Floor" type="number" min="1" class="form-control mb-1" placeholder="Tầng" required />
+                                        <span asp-validation-for="Rooms[i].Floor" class="text-danger"></span>
+                                        <input asp-for="Rooms[i].Area" type="number" step="0.01" min="0" class="form-control mb-1" placeholder="Diện tích (m²)" required />
+                                        <span asp-validation-for="Rooms[i].Area" class="text-danger"></span>
+                                        <input asp-for="Rooms[i].RoomType" type="number" min="1" class="form-control mb-1" placeholder="Loại phòng" required />
+                                        <span asp-validation-for="Rooms[i].RoomType" class="text-danger"></span>
+                                        <input asp-for="Rooms[i].MaxOpt" type="number" min="1" class="form-control mb-1" placeholder="Số người tối đa" required />
+                                        <span asp-validation-for="Rooms[i].MaxOpt" class="text-danger"></span>
+                                        <button type="button" class="btn btn-outline-danger btn-sm mt-2 remove-room-btn">Xóa</button>
+                                    </div>
+                                }
+                            }
+                        </div>
+                        <button type="button" class="btn btn-outline-pink mb-4" id="add-room-btn">Thêm phòng</button>
+
+                        <hr />
+
+                        <h5 class="mb-3 text-pink">Danh sách dịch vụ</h5>
+                        <div id="services-list">
+                            @if (Model?.Services != null)
+                            {
+                                for (int i = 0; i < Model.Services.Count; i++)
+                                {
+                                    <div class="service-item mb-3 border p-3">
+                                        <label class="fw-bold">Dịch vụ @(i + 1)</label>
+                                        <input asp-for="Services[i].Name" class="form-control mb-1" placeholder="Tên dịch vụ" required />
+                                        <span asp-validation-for="Services[i].Name" class="text-danger"></span>
+                                        <input asp-for="Services[i].Name" class="form-control mb-1" placeholder="Mô tả dịch vụ" />
+                                        <span asp-validation-for="Services[i].Name" class="text-danger"></span>
+                                        <div class="form-check mb-1">
+                                            <input asp-for="Services[i].IsMandatory" class="form-check-input" type="checkbox" value="true" />
+                                            <label asp-for="Services[i].IsMandatory" class="form-check-label fw-bold">Bắt buộc</label>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-danger btn-sm mt-2 remove-service-btn">Xóa</button>
+                                    </div>
+                                }
+                            }
+                        </div>
+                        <button type="button" class="btn btn-outline-pink mb-4" id="add-service-btn">Thêm dịch vụ</button>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-center gap-2">
+                            <button type="submit" class="btn btn-pink">Tạo mới</button>
+                            <a asp-action="Index" class="btn btn-outline-pink">Hủy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Enable client-side validation
+        (function () {
+            'use strict';
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+
+        // Add room dynamically
+        document.getElementById("add-room-btn").addEventListener("click", function () {
+            var roomsList = document.getElementById("rooms-list");
+            var index = roomsList.children.length;
+            var div = document.createElement("div");
+            div.classList.add("room-item", "mb-3", "border", "p-3");
+            div.innerHTML = `
+                <label class="fw-bold">Phòng ${index + 1}</label>
+                <input name="Rooms[${index}].RoomNumber" class="form-control mb-1" placeholder="Số phòng" required />
+                <span class="text-danger"></span>
+                <input name="Rooms[${index}].Floor" type="number" min="1" class="form-control mb-1" placeholder="Tầng" required />
+                <span class="text-danger"></span>
+                <input name="Rooms[${index}].Area" type="number" step="0.01" min="0" class="form-control mb-1" placeholder="Diện tích (m²)" required />
+                <span class="text-danger"></span>
+                <input name="Rooms[${index}].RoomType" type="number" min="1" class="form-control mb-1" placeholder="Loại phòng" required />
+                <span class="text-danger"></span>
+                <input name="Rooms[${index}].MaxOpt" type="number" min="1" class="form-control mb-1" placeholder="Số người tối đa" required />
+                <span class="text-danger"></span>
+                <button type="button" class="btn btn-outline-danger btn-sm mt-2 remove-room-btn">Xóa</button>
+            `;
+            roomsList.appendChild(div);
+            attachRemoveEventListeners();
+        });
+
+        // Add service dynamically
+        document.getElementById("add-service-btn").addEventListener("click", function () {
+            var servicesList = document.getElementById("services-list");
+            var index = servicesList.children.length;
+            var div = document.createElement("div");
+            div.classList.add("service-item", "mb-3", "border", "p-3");
+            div.innerHTML = `
+                <label class="fw-bold">Dịch vụ ${index + 1}</label>
+                <input name="Services[${index}].Name" class="form-control mb-1" placeholder="Tên dịch vụ" required />
+                <span class="text-danger"></span>
+                <input name="Services[${index}].Description" class="form-control mb-1" placeholder="Mô tả dịch vụ" />
+                <span class="text-danger"></span>
+                <div class="form-check mb-1">
+                    <input name="Services[${index}].IsMandatory" class="form-check-input" type="checkbox" value="true" />
+                    <label class="form-check-label fw-bold">Bắt buộc</label>
+                </div>
+                <button type="button" class="btn btn-outline-danger btn-sm mt-2 remove-service-btn">Xóa</button>
+            `;
+            servicesList.appendChild(div);
+            attachRemoveEventListeners();
+        });
+
+        // Attach event listeners for remove buttons
+        function attachRemoveEventListeners() {
+            document.querySelectorAll(".remove-room-btn, .remove-service-btn").forEach(button => {
+                button.addEventListener("click", function () {
+                    this.parentElement.remove();
+                    updateRoomLabels();
+                    updateServiceLabels();
+                });
+            });
+        }
+
+        // Update room labels after removal
+        function updateRoomLabels() {
+            var roomItems = document.querySelectorAll("#rooms-list .room-item");
+            roomItems.forEach((item, index) => {
+                item.querySelector("label").textContent = `Phòng ${index + 1}`;
+                item.querySelectorAll("input").forEach(input => {
+                    var name = input.name;
+                    var newIndex = index;
+                    input.name = name.replace(/Rooms\[\d+\]/, `Rooms[${newIndex}]`);
+                });
+            });
+        }
+
+        // Update service labels after removal
+        function updateServiceLabels() {
+            var serviceItems = document.querySelectorAll("#services-list .service-item");
+            serviceItems.forEach((item, index) => {
+                item.querySelector("label").textContent = `Dịch vụ ${index + 1}`;
+                item.querySelectorAll("input").forEach(input => {
+                    var name = input.name;
+                    var newIndex = index;
+                    input.name = name.replace(/Services\[\d+\]/, `Services[${newIndex}]`);
+                });
+            });
+        }
+
+        // Initialize remove button listeners
+        attachRemoveEventListeners();
+    </script>
+}

@@ -1,21 +1,7 @@
-
-using System.ComponentModel.DataAnnotations;
-
-namespace PRNFE.MVC.Models.Response
+﻿namespace PRNFE.MVC.Models.Response
 {
-    public class RoomResponses {
-        public Guid RoomId { get; set; }
-        public string RoomNumber { get; set; }
-        public int Floor { get; set; }
-        public decimal Area { get; set; }
-        public string RoomType { get; set; }
-        public int MaxOccupants { get; set; }
-        public DateTime CreatedAt { get; set; }
-    }
-
-    public class RoomResponse{
-
-    
+    public class DetailsRoomResponse
+    {
         public int Id { get; set; }
         public string TenantId { get; set; }
         public string RoomNumber { get; set; } = string.Empty;
@@ -24,9 +10,11 @@ namespace PRNFE.MVC.Models.Response
         public int RoomType { get; set; }
         public int MaxOpt { get; set; }
         public int Status { get; set; }
+
+        public ICollection<ResidentInRoomDto>? Residents { get; set; }
+        public ICollection<ServiceInRoomDto>? Services { get; set; }
         public DateTime CreateAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-
 
 
         public enum RoomStatus
@@ -52,17 +40,32 @@ namespace PRNFE.MVC.Models.Response
             Penthouse = 6,        // Phòng penthouse
             Other = 7           // Phòng khác
         }
-    }
+        public class ResidentInRoomDto
+        {
+            public int ResidentId { get; set; }
+            public bool IsActive { get; set; }
 
-    // không được xóa 
-    public class RoomsResponses
-    {
-        public int RoomId { get; set; }
-        public string RoomNumber { get; set; } = string.Empty;
-        public int Floor { get; set; }
-        public double? Area { get; set; }
-        public bool IsActive { get; set; }
-    }
+            public ResidentResponse Resident { get; set; }
+        }
 
-    }
+        public class UpdateResidentInRoomDto
+        {
+            public int ResidentId { get; set; }
+            public bool IsActive { get; set; }
+        }
+        public class ServiceInRoomDto
+        {
+            public int ServiceId { get; set; }
+            public bool IsActive { get; set; }
+            public double CustomPrice { get; set; }
+            public ServiceResponses? Service { get; set; }
+        }
 
+        public class UpdateServiceInRoomDto
+        {
+            public int ServiceId { get; set; }
+            public bool IsActive { get; set; }
+            public double CustomPrice { get; set; }
+        }
+    }
+}

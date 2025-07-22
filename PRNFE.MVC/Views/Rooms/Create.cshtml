@@ -1,0 +1,74 @@
+﻿@model PRNFE.MVC.Models.Request.CreateRoomRequest
+
+@{
+    ViewData["Title"] = "Tạo phòng mới";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-100">
+    <div class="max-w-lg mx-auto mt-6 p-6 bg-white rounded-lg shadow-md">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">@ViewData["Title"]</h2>
+
+        @if (TempData["Message"] != null)
+        {
+            <div class="p-3 mb-4 rounded-md @(TempData["IsSuccess"]?.ToString() == "True" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")">
+                @TempData["Message"]
+            </div>
+        }
+
+        <form asp-action="Create" method="post" class="space-y-4">
+            <div class="flex flex-col">
+                <label asp-for="RoomNumber" class="text-sm font-medium text-gray-700">Số phòng</label>
+                <input asp-for="RoomNumber" class="mt-1 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500" />
+                <span asp-validation-for="RoomNumber" class="text-red-500 text-sm mt-1"></span>
+            </div>
+
+            <div class="flex flex-col">
+                <label asp-for="Floor" class="text-sm font-medium text-gray-700">Tầng</label>
+                <input asp-for="Floor" class="mt-1 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500" type="number" min="1" />
+                <span asp-validation-for="Floor" class="text-red-500 text-sm mt-1"></span>
+            </div>
+
+            <div class="flex flex-col">
+                <label asp-for="Area" class="text-sm font-medium text-gray-700">Diện tích</label>
+                <input asp-for="Area" class="mt-1 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500" type="number" step="0.01" min="0" />
+                <span asp-validation-for="Area" class="text-red-500 text-sm mt-1"></span>
+            </div>
+
+            <div class="flex flex-col">
+                <label asp-for="RoomType" class="text-sm font-medium text-gray-700">Loại phòng</label>
+                <select asp-for="RoomType" class="mt-1 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500">
+                    <option value="">-- Chọn loại phòng --</option>
+                    @foreach (var type in Enum.GetValues(typeof(PRNFE.MVC.Models.Request.CreateRoomRequest.RoomTypes)))
+                    {
+                        <option value="@((int)type)">@type.ToString()</option>
+                    }
+                </select>
+                <span asp-validation-for="RoomType" class="text-red-500 text-sm mt-1"></span>
+            </div>
+
+            <div class="flex flex-col">
+                <label asp-for="MaxOpt" class="text-sm font-medium text-gray-700">Số người tối đa</label>
+                <input asp-for="MaxOpt" class="mt-1 p-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500" type="number" min="1" />
+                <span asp-validation-for="MaxOpt" class="text-red-500 text-sm mt-1"></span>
+            </div>
+
+            <div class="flex space-x-3">
+                <button type="submit" class="w-full py-2 px-4 bg-pink-500 text-white rounded-md hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-500">Tạo phòng</button>
+                <a asp-action="Index" class="w-full py-2 px-4 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 text-center">Hủy</a>
+            </div>
+        </form>
+    </div>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
+</body>
+</html>
