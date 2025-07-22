@@ -40,7 +40,7 @@ namespace PRNFE.MVC.Controllers
 
             try
             {
-                var apiUrl = $"{_apiBaseUrl}/api/Auth/login";
+                var apiUrl = $"{_apiBaseUrl}/users/api/Auth/login";
                 var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync(apiUrl, content);
                 var result = await response.Content.ReadAsStringAsync();
