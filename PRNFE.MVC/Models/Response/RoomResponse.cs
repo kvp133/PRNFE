@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PRNFE.MVC.Models.Response
 {
-    public class RoomResponse {
-  public Guid RoomId { get; set; }
+    public class RoomResponses {
+        public Guid RoomId { get; set; }
         public string RoomNumber { get; set; }
         public int Floor { get; set; }
         public decimal Area { get; set; }
@@ -15,7 +15,7 @@ namespace PRNFE.MVC.Models.Response
 
     public class RoomResponse{
 
-    {
+    
         public int Id { get; set; }
         public string TenantId { get; set; }
         public string RoomNumber { get; set; } = string.Empty;
@@ -65,4 +65,4 @@ namespace PRNFE.MVC.Models.Response
     }
 
     }
-}
+

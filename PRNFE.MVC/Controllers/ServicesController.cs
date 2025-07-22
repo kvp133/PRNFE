@@ -49,17 +49,17 @@ namespace PRNFE.MVC.Controllers
             {
                 TempData["Message"] = "Không thể lấy danh sách dịch vụ từ API.";
                 TempData["IsSuccess"] = false;
-                return View(new List<ServiceResponse>());
+                return View(new List<ServiceResponses>());
             }
 
             var json = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<ServiceResponse>>>(json);
+            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<ServiceResponses>>>(json);
 
             if (apiResponse == null || !apiResponse.success)
             {
                 TempData["Message"] = apiResponse?.message ?? "Lỗi khi lấy dữ liệu dịch vụ.";
                 TempData["IsSuccess"] = false;
-                return View(new List<ServiceResponse>());
+                return View(new List<ServiceResponses>());
             }
 
             var services = apiResponse.data;
@@ -102,7 +102,7 @@ namespace PRNFE.MVC.Controllers
             }
 
             var responseContent = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<ServiceResponse>>(responseContent);
+            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<ServiceResponses>>(responseContent);
 
             if (apiResponse == null || !apiResponse.success)
             {
@@ -272,17 +272,17 @@ namespace PRNFE.MVC.Controllers
             {
                 TempData["Message"] = "Không thể lấy danh sách dịch vụ theo bộ lọc từ API.";
                 TempData["IsSuccess"] = false;
-                return View("Index", new List<ServiceResponse>());
+                return View("Index", new List<ServiceResponses>());
             }
 
             var json = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<ServiceResponse>>>(json);
+            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<ServiceResponses>>>(json);
 
             if (apiResponse == null || !apiResponse.success)
             {
                 TempData["Message"] = apiResponse?.message ?? "Lỗi khi lấy dữ liệu dịch vụ.";
                 TempData["IsSuccess"] = false;
-                return View("Index", new List<ServiceResponse>());
+                return View("Index", new List<ServiceResponses>());
             }
 
             var services = apiResponse.data;
