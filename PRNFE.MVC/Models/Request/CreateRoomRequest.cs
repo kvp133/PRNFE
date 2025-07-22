@@ -2,7 +2,7 @@
 
 namespace PRNFE.MVC.Models.Request
 {
-    public class CreateRoomRequest
+    public class CreateRoomRequests
     {
         [Required(ErrorMessage = "RoomNumber is required")]
         [StringLength(10, ErrorMessage = "RoomNumber cannot exceed 10 characters.")]

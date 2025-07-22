@@ -1,4 +1,5 @@
-﻿﻿using System.ComponentModel.DataAnnotations;
+﻿using PRNFE.MVC.Models.Response;
+using System.ComponentModel.DataAnnotations;
 
 namespace PRNFE.MVC.Models.Request
 {

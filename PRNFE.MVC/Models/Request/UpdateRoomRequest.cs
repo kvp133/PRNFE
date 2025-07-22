@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PRNFE.MVC.Models.Request
 {
-        public class UpdateRoomRequest
+        public class UpdateRoomRequests
         {
             public string TenantId { get; set; } = string.Empty;
 

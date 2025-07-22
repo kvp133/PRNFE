@@ -108,7 +108,7 @@ namespace PRNFE.MVC.Controllers
             // Nếu muốn khởi tạo sẵn room/service trống để thêm từ View có thể thêm:
             var model = new CreateBuildingRequest
             {
-                Rooms = new List<CreateRoomRequest>(),
+                Rooms = new List<CreateRoomRequests>(),
                 Services = new List<CreateServiceRequest>()
             };
 

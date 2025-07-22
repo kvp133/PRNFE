@@ -2,7 +2,7 @@
 
 namespace PRNFE.MVC.Models.Request
 {
-    public class FilterRoomRequest
+    public class FilterRoomRequests
     {
         [StringLength(10, ErrorMessage = "RoomNumber cannot exceed 10 characters.")]
         public string? RoomNumber { get; set; } = string.Empty;
