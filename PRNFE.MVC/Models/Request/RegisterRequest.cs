@@ -11,5 +11,6 @@ namespace PRNFE.MVC.Models.Request
         public string districtCode { get; set; }
         public string wardId { get; set; }
         public string password { get; set; }
+        public string roleId { get; set; } = "1";
     }
 } 

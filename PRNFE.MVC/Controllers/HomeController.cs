@@ -29,7 +29,17 @@ namespace PRNFE.MVC.Controllers
             }
             else if (userInfo.IsLandlord)
             {
-                // Landlords go to dormitory management
+                // Landlords: kiểm tra đã chọn building chưa
+                var buildingId = Request.Cookies["BuildingId"];
+                var currentController = ControllerContext.RouteData.Values["controller"]?.ToString();
+                var currentAction = ControllerContext.RouteData.Values["action"]?.ToString();
+                if (string.IsNullOrEmpty(buildingId))
+                {
+                    // Nếu đã ở trang chọn building thì không redirect nữa
+                    if (currentController == "Auth" && currentAction == "SelectBuilding")
+                        return View();
+                    return RedirectToAction("SelectBuilding", "Auth");
+                }
                 return RedirectToAction("DormitoryManagement", "Landlord");
             }
             else if (userInfo.IsTenant)
