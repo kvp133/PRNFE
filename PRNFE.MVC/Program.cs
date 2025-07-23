@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using PRNFE.MVC.Helper;
 using PRNFE.MVC.Middleware;
 
 namespace PRNFE.MVC
@@ -12,7 +13,11 @@ namespace PRNFE.MVC
             // Add services to the container.
             builder.Services.AddRazorPages();
             builder.Services.AddControllersWithViews();
-            builder.Services.AddHttpClient();
+
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddTransient<AuthHeaderHandler>();
+            builder.Services.AddHttpClient("AuthorizedApiClient")
+                .AddHttpMessageHandler<AuthHeaderHandler>(); 
             builder.Services.ConfigureApplicationCookie(options =>
             {
                 options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Cho phép HTTP (qua gateway)

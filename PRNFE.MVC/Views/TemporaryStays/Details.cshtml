@@ -1,0 +1,143 @@
+﻿@using PRNFE.MVC.Helper
+@model PRNFE.MVC.Models.Response.DetailTemporaryStayResponse
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
+@{
+    ViewData["Title"] = "Chi Tiết Tạm Trú";
+    var cookieValue = HttpContextAccessor.HttpContext?.Request.Cookies["AccessToken"];
+
+    var statusName = Enum.GetName(typeof(TemporaryStayResponse.TemporaryStayStatus), Model.Status);
+    string statusColor = Model.Status switch
+    {
+        (int)TemporaryStayResponse.TemporaryStayStatus.Active => "#28a745", // xanh lá
+        (int)TemporaryStayResponse.TemporaryStayStatus.PendingApproval => "#ffc107",  // vàng
+        (int)TemporaryStayResponse.TemporaryStayStatus.Cancelled => "#dc3545", // đỏ
+        _ => "#6c757d" // xám
+    };
+}
+
+<style>
+    body {
+        background-color: #fff0f5;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .details-container {
+        background-color: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        max-width: 750px;
+        margin: 0 auto;
+    }
+
+    .details-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #d63384;
+        margin-bottom: 25px;
+    }
+
+    .details-label {
+        font-weight: 500;
+        color: #6c757d;
+    }
+
+    .details-value {
+        font-weight: 600;
+        margin-bottom: 16px;
+        font-size: 16px;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+        color: white;
+    }
+
+    .btn-back, .btn-edit {
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-weight: 500;
+        border: none;
+        transition: 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-back {
+        background-color: #f8f9fa;
+        color: #333;
+        border: 1px solid #ccc;
+    }
+
+    .btn-back:hover {
+        background-color: #e2e6ea;
+    }
+
+    .btn-edit {
+        background-color: #d63384;
+        color: white;
+        margin-right: 10px;
+    }
+
+    .btn-edit:hover {
+        background-color: #c2186b;
+    }
+</style>
+
+<div class="details-container">
+    <div class="details-title">Chi Tiết Đăng Ký Tạm Trú</div>
+
+    <div class="mb-3">
+        <div class="details-label">Mã đơn:</div>
+        <div class="details-value">@Model.Id</div>
+    </div>
+
+    <div class="mb-3">
+        <div class="details-label">Người đăng ký:</div>
+        <div class="details-value">@Model.Resident.FullName</div>
+    </div>
+
+    <div class="mb-3">
+        <div class="details-label">Từ ngày:</div>
+        <div class="details-value">@Model.FromDate.ToString("dd/MM/yyyy")</div>
+    </div>
+
+    <div class="mb-3">
+        <div class="details-label">Đến ngày:</div>
+        <div class="details-value">@Model.ToDate.ToString("dd/MM/yyyy")</div>
+    </div>
+
+    <div class="mb-3">
+        <div class="details-label">Ghi chú:</div>
+        <div class="details-value">@Model.Note</div>
+    </div>
+
+    <div class="mb-3">
+        <div class="details-label">Trạng thái:</div>
+        <div class="details-value">
+            <span class="status-badge" style="background-color: @statusColor">@statusName</span>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <div class="details-label">Ngày tạo:</div>
+        <div class="details-value">@Model.CreateAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+
+    <div class="mb-3">
+        <div class="details-label">Cập nhật gần nhất:</div>
+        <div class="details-value">@Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+
+    <div class="mt-4 text-end">
+        @if (JwtTokenHelper.IsLandlord(cookieValue))
+        {
+            @Html.ActionLink("Chỉnh sửa", "Edit", new { id = Model.Id }, new { @class = "btn-edit" })
+        }
+        <a asp-action="Index" class="btn-back">Quay lại danh sách</a>
+    </div>
+</div>

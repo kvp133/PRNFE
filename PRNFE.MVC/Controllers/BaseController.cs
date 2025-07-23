@@ -7,6 +7,8 @@ using Newtonsoft.Json;
 using PRNFE.MVC.Models.Response;
 using PRNFE.MVC.Models;
 using Newtonsoft.Json.Linq;
+using NuGet.Common;
+using System.Net.Http.Headers;
 
 namespace PRNFE.MVC.Controllers
 {
@@ -20,11 +22,11 @@ namespace PRNFE.MVC.Controllers
         protected BaseController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
 
-            _httpClient = httpClientFactory.CreateClient();
+            _httpClient = httpClientFactory.CreateClient("AuthorizedApiClient");
             _apiBaseUrl = configuration["ApiSettings:BaseUrl"];
             _apiQLPTUrl = configuration["ApiSettings:Url_qlpt"];
             _httpClientFactory = httpClientFactory;
-
+             
         }
         protected HttpClient CreateHttpClientWithCookies()
         {
