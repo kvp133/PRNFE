@@ -1,0 +1,280 @@
+﻿@model PRNFE.MVC.Models.Request.VehicleUpdateDtos
+@using PRNFE.MVC.Models.Response
+@{
+    ViewData["Title"] = "Chỉnh sửa phương tiện";
+    var vehicleTypes = ViewBag.VehicleTypes as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var vehicleId = (int)(ViewBag.VehicleId ?? 0);
+    var resident = ViewBag.Resident as PRNFE.MVC.Models.Response.ResidentListResponses;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Chỉnh sửa phương tiện</h1>
+        <p class="text-muted">Cập nhật thông tin phương tiện #@vehicleId</p>
+    </div>
+    <a asp-action="Details" asp-route-id="@vehicleId" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>
+        Quay lại
+    </a>
+</div>
+
+<form asp-action="Edit" asp-route-id="@vehicleId" method="post" id="vehicleEditForm">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Owner Information (Read-only) -->
+            @if (resident != null)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user me-2"></i>
+                            Thông tin chủ sở hữu
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <strong>Họ tên:</strong>
+                                    <span class="ms-2">@resident.FullName</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Số điện thoại:</strong>
+                                    <span class="ms-2">
+                                        <a href="tel:@resident.PhoneNumber" class="text-decoration-none">
+                                            @resident.PhoneNumber
+                                        </a>
+                                    </span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Email:</strong>
+                                    <span class="ms-2">
+                                        <a href="mailto:@resident.Email" class="text-decoration-none">
+                                            @resident.Email
+                                        </a>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <strong>User ID:</strong>
+                                    <span class="ms-2">
+                                        <code>@resident.UserId</code>
+                                    </span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Ngày sinh:</strong>
+                                    <span class="ms-2">@resident.DateOfBirth.ToString("dd/MM/yyyy")</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Giới tính:</strong>
+                                    <span class="ms-2">
+                                        @if (resident.Gender)
+                                        {
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-mars me-1"></i>Nam
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-pink">
+                                                <i class="fas fa-venus me-1"></i>Nữ
+                                            </span>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Vehicle Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-car me-2"></i>
+                        Thông tin phương tiện
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Type" class="form-label">
+                                    <i class="fas fa-car me-1"></i>
+                                    Loại phương tiện *
+                                </label>
+                                <select asp-for="Type" class="form-select" onchange="updateVehicleTypeIcon()">
+                                    <option value="">-- Chọn loại xe --</option>
+                                    @foreach (var type in vehicleTypes)
+                                    {
+                                        <option value="@type.Key" selected="@(type.Key == Model.Type)">@type.Value</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="Type" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="LicensePlate" class="form-label">
+                                    <i class="fas fa-id-card me-1"></i>
+                                    Biển số xe *
+                                </label>
+                                <input asp-for="LicensePlate"
+                                       type="text"
+                                       class="form-control"
+                                       placeholder="Nhập biển số xe..."
+                                       style="text-transform: uppercase;" />
+                                <span asp-validation-for="LicensePlate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Preview Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-eye me-2"></i>
+                        Xem trước
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i id="vehicleTypeIcon" class="fas fa-car fa-4x text-muted"></i>
+                    </div>
+                    <h6 id="vehicleTypeText" class="text-muted">@vehicleTypes.GetValueOrDefault(Model.Type, "Chọn loại xe")</h6>
+                    <div class="mt-3">
+                        <div class="border rounded p-3 bg-light">
+                            <h4 id="licensePlatePreview" class="mb-0 text-dark font-monospace fw-bold">
+                                @Model.LicensePlate
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-1"></i>
+                            Cập nhật phương tiện
+                        </button>
+                        <a asp-action="Details" asp-route-id="@vehicleId" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>
+                            Hủy
+                        </a>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Thông tin sẽ được cập nhật ngay lập tức.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        const vehicleTypeIcons = {
+            0: { icon: 'fas fa-motorcycle', text: 'Xe máy', color: 'text-primary' },
+            1: { icon: 'fas fa-car', text: 'Ô tô', color: 'text-success' },
+            2: { icon: 'fas fa-bicycle', text: 'Xe đạp', color: 'text-info' },
+            3: { icon: 'fas fa-truck', text: 'Xe tải', color: 'text-warning' },
+            4: { icon: 'fas fa-bus', text: 'Xe buýt', color: 'text-secondary' },
+            5: { icon: 'fas fa-question', text: 'Khác', color: 'text-dark' }
+        };
+
+        function updateVehicleTypeIcon() {
+            const typeSelect = document.querySelector('select[name="Type"]');
+            const selectedType = typeSelect.value;
+            const iconElement = document.getElementById('vehicleTypeIcon');
+            const textElement = document.getElementById('vehicleTypeText');
+
+            if (selectedType && vehicleTypeIcons[selectedType]) {
+                const typeInfo = vehicleTypeIcons[selectedType];
+                iconElement.className = `${typeInfo.icon} fa-4x ${typeInfo.color}`;
+                textElement.textContent = typeInfo.text;
+                textElement.className = typeInfo.color;
+            } else {
+                iconElement.className = 'fas fa-car fa-4x text-muted';
+                textElement.textContent = 'Chọn loại xe';
+                textElement.className = 'text-muted';
+            }
+        }
+
+        function updateLicensePlatePreview() {
+            const licensePlateInput = document.querySelector('input[name="LicensePlate"]');
+            const previewElement = document.getElementById('licensePlatePreview');
+
+            if (licensePlateInput.value.trim()) {
+                previewElement.textContent = licensePlateInput.value.toUpperCase();
+                previewElement.className = 'mb-0 text-dark font-monospace fw-bold';
+            } else {
+                previewElement.textContent = 'Biển số xe';
+                previewElement.className = 'mb-0 text-muted font-monospace';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto uppercase license plate input
+            const licensePlateInput = document.querySelector('input[name="LicensePlate"]');
+            licensePlateInput.addEventListener('input', function() {
+                this.value = this.value.toUpperCase();
+                updateLicensePlatePreview();
+            });
+
+            // Initialize tooltips
+            const tooltips = document.querySelectorAll('[title]');
+            tooltips.forEach(element => {
+                new bootstrap.Tooltip(element);
+            });
+
+            // Form validation
+            document.getElementById('vehicleEditForm').addEventListener('submit', function(e) {
+                const type = document.querySelector('select[name="Type"]').value;
+                const licensePlate = document.querySelector('input[name="LicensePlate"]').value.trim();
+
+                if (!type) {
+                    e.preventDefault();
+                    alert('Vui lòng chọn loại phương tiện.');
+                    document.querySelector('select[name="Type"]').focus();
+                    return false;
+                }
+
+                if (!licensePlate) {
+                    e.preventDefault();
+                    alert('Vui lòng nhập biển số xe.');
+                    document.querySelector('input[name="LicensePlate"]').focus();
+                    return false;
+                }
+            });
+
+            // Initialize preview
+            updateVehicleTypeIcon();
+            updateLicensePlatePreview();
+        });
+    </script>
+
+    <style>
+        .font-monospace {
+            font-family: 'Courier New', monospace;
+        }
+
+        .bg-pink {
+            background-color: #e91e63 !important;
+        }
+    </style>
+}

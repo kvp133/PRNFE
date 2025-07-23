@@ -1,0 +1,168 @@
+﻿@model RoomRequests
+@{
+    ViewData["Title"] = "Quản lý phòng";
+}
+
+<div class="auth-container bg-decoration">
+    <div class="auth-card">
+        <a href="/" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Về trang chủ
+        </a>
+
+        <div class="glass-card p-4">
+            <div class="text-center mb-4">
+                <div class="auth-logo">
+                    <i class="fas fa-home"></i>
+                </div>
+                <h2 class="auth-title">Quản lý phòng</h2>
+                <p class="auth-subtitle">Thêm phòng mới vào hệ thống quản lý trọ</p>
+            </div>
+
+            <form method="post" asp-action="Manager">
+                <div class="input-group-glass">
+                    <i class="fas fa-door-open input-icon"></i>
+                    <input type="text" class="form-control glass-input" asp-for="RoomNumber" placeholder="Số phòng (VD: 301, A203)" required>
+                    <span asp-validation-for="RoomNumber" class="text-danger small"></span>
+                </div>
+
+                <div class="input-group-glass">
+                    <i class="fas fa-layer-group input-icon"></i>
+                    <input type="number" class="form-control glass-input" asp-for="Floor" placeholder="Tầng" min="1" max="50" required>
+                    <span asp-validation-for="Floor" class="text-danger small"></span>
+                </div>
+
+                <div class="input-group-glass">
+                    <i class="fas fa-expand-arrows-alt input-icon"></i>
+                    <input type="number" class="form-control glass-input" asp-for="Area" placeholder="Diện tích (m²)" min="10" max="200" step="0.1" required>
+                    <span asp-validation-for="Area" class="text-danger small"></span>
+                </div>
+
+                <div class="input-group-glass">
+                    <i class="fas fa-building input-icon"></i>
+                    <select class="form-control glass-input" asp-for="RoomType" required>
+                        <option value="">Chọn loại phòng</option>
+                        <option value="Studio">Studio</option>
+                        <option value="Chung cư">Chung cư</option>
+                        <option value="Tập thể">Tập thể</option>
+                        <option value="Phòng đơn">Phòng đơn</option>
+                        <option value="Phòng đôi">Phòng đôi</option>
+                        <option value="Phòng gia đình">Phòng gia đình</option>
+                    </select>
+                    <span asp-validation-for="RoomType" class="text-danger small"></span>
+                </div>
+
+                <div class="input-group-glass">
+                    <i class="fas fa-users input-icon"></i>
+                    <input type="number" class="form-control glass-input" asp-for="MaxOccupants" placeholder="Số cư dân tối đa" min="1" max="10" required>
+                    <span asp-validation-for="MaxOccupants" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-gradient w-100 mb-3" id="createRoomBtn">
+                    <i class="fas fa-plus me-2"></i>
+                    Tạo phòng
+                </button>
+            </form>
+
+            @if (!string.IsNullOrEmpty(ViewBag.Message))
+            {
+                <div class="mt-3">
+                    <div class="alert @(ViewBag.IsSuccess ? "alert-success" : "alert-danger")">
+                        <i class="fas @(ViewBag.IsSuccess ? "fa-check-circle" : "fa-exclamation-triangle") me-2"></i>
+                        @ViewBag.Message
+                    </div>
+                </div>
+            }
+
+            <div class="divider">
+                <span>Hoặc</span>
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <a href="@Url.Action("Import", "Room")" class="btn social-btn w-100">
+                        <i class="fas fa-file-import me-2"></i>
+                        Import Excel
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="@Url.Action("List", "Room")" class="btn social-btn w-100">
+                        <i class="fas fa-list me-2"></i>
+                        Danh sách phòng
+                    </a>
+                </div>
+            </div>
+
+            <div class="text-center text-muted small">
+                <a href="@Url.Action("Dashboard", "Home")" class="text-decoration-none fw-medium" style="color: #ec4899;">
+                    <i class="fas fa-tachometer-alt me-1"></i>
+                    Về Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Client-side validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const roomNumber = document.querySelector('[name="RoomNumber"]').value.trim();
+            const floor = parseInt(document.querySelector('[name="Floor"]').value);
+            const area = parseFloat(document.querySelector('[name="Area"]').value);
+            const roomType = document.querySelector('[name="RoomType"]').value;
+            const maxOccupants = parseInt(document.querySelector('[name="MaxOccupants"]').value);
+
+            // Validate room number format
+            if (!/^[A-Za-z0-9]+$/.test(roomNumber)) {
+                e.preventDefault();
+                alert('Số phòng chỉ được chứa chữ cái và số!');
+                return false;
+            }
+
+            // Validate floor
+            if (floor < 1 || floor > 50) {
+                e.preventDefault();
+                alert('Tầng phải từ 1 đến 50!');
+                return false;
+            }
+
+            // Validate area
+            if (area < 10 || area > 200) {
+                e.preventDefault();
+                alert('Diện tích phải từ 10m² đến 200m²!');
+                return false;
+            }
+
+            // Validate room type
+            if (!roomType) {
+                e.preventDefault();
+                alert('Vui lòng chọn loại phòng!');
+                return false;
+            }
+
+            // Validate max occupants
+            if (maxOccupants < 1 || maxOccupants > 10) {
+                e.preventDefault();
+                alert('Số cư dân tối đa phải từ 1 đến 10!');
+                return false;
+            }
+
+            // Show loading state
+            const submitBtn = document.getElementById('createRoomBtn');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang tạo...';
+            submitBtn.disabled = true;
+        });
+
+        // Reset button state if validation fails
+        window.addEventListener('load', function() {
+            const submitBtn = document.getElementById('createRoomBtn');
+            submitBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Tạo phòng';
+            submitBtn.disabled = false;
+        });
+    </script>
+
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

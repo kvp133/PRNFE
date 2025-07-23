@@ -17,4 +17,5 @@ namespace PRNFE.MVC.Models.Request
         public string SortOrder { get; set; } = "asc";
         public int PageSize { get; set; } = 50;
     }
+
 }

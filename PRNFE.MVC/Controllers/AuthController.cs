@@ -12,7 +12,7 @@ namespace PRNFE.MVC.Controllers
     [Route("[controller]/[action]")]
     public class AuthController : BaseController
     {
-        public AuthController(IHttpClientFactory httpClientFactory, IConfiguration configuration) 
+        public AuthController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
             : base(httpClientFactory, configuration)
         {
         }
@@ -69,7 +69,7 @@ namespace PRNFE.MVC.Controllers
 
                         Response.Cookies.Append("AccessToken", apiResponse.data.accessToken, accessTokenOptions);
                         Response.Cookies.Append("RefreshToken", apiResponse.data.refreshToken, refreshTokenOptions);
-                        
+
                         // Parse JWT token to determine redirect based on role
                         try
                         {
@@ -81,7 +81,7 @@ namespace PRNFE.MVC.Controllers
                                 var bytes = System.Convert.FromBase64String(padded.Replace('-', '+').Replace('_', '/'));
                                 var json = System.Text.Encoding.UTF8.GetString(bytes);
                                 var tokenData = Newtonsoft.Json.JsonConvert.DeserializeObject<Models.JwtTokenModel>(json);
-                                
+
                                 // Redirect based on role
                                 if (tokenData.IsAdmin)
                                 {
@@ -101,7 +101,7 @@ namespace PRNFE.MVC.Controllers
                         {
                             // If token parsing fails, redirect to home
                         }
-                        
+
                         return RedirectToAction("Index", "Home");
                     }
                     else
@@ -137,4 +137,4 @@ namespace PRNFE.MVC.Controllers
             return RedirectToAction("Login");
         }
     }
-} 
+}

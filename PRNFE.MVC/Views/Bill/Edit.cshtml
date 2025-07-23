@@ -1,0 +1,437 @@
+﻿@model PRNFE.MVC.Models.Request.BillUpdateRequests
+@using PRNFE.MVC.Models.Response
+@{
+    ViewData["Title"] = "Chỉnh sửa hóa đơn";
+    var services = ViewBag.Services as List<PRNFE.MVC.Models.Request.BillServiceResponses> ?? new List<PRNFE.MVC.Models.Request.BillServiceResponses>();
+    var billId = ViewBag.BillId as string ?? "";
+    var room = ViewBag.Room as PRNFE.MVC.Models.Request.BillRoomResponses;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Chỉnh sửa hóa đơn</h1>
+        <p class="text-muted">Cập nhật thông tin hóa đơn #@billId.Substring(Math.Max(0, billId.Length - 8))</p>
+    </div>
+    <a asp-action="Details" asp-route-id="@billId" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>
+        Quay lại
+    </a>
+</div>
+
+<form asp-action="Edit" asp-route-id="@billId" method="post" id="billEditForm">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Room Information (Read-only) -->
+            @if (room != null)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-door-open me-2"></i>
+                            Thông tin phòng
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <strong>Số phòng:</strong>
+                                    <span class="badge bg-primary ms-2">@room.RoomNumber</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Tầng:</strong>
+                                    <span class="badge bg-secondary ms-2">Tầng @room.Floor</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Loại phòng:</strong>
+                                    <span class="ms-2">@GetRoomTypeName(room.RoomType)</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <strong>Mã thuê:</strong>
+                                    @if (!string.IsNullOrEmpty(room.TenantId))
+                                    {
+                                        <span class="badge bg-info ms-2">
+                                            <i class="fas fa-user me-1"></i>
+                                            @room.TenantId
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted ms-2">
+                                            <i class="fas fa-home me-1"></i>
+                                            Chưa có
+                                        </span>
+                                    }
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Diện tích:</strong>
+                                    <span class="ms-2">@room.Area m²</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Sức chứa:</strong>
+                                    <span class="ms-2">@room.MaxOpt người</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Bill Details -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Chi tiết dịch vụ
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addBillDetail()">
+                        <i class="fas fa-plus me-1"></i>
+                        Thêm dịch vụ
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="billDetailsContainer">
+                        @if (Model.BillDetails != null && Model.BillDetails.Any())
+                        {
+                            @for (int i = 0; i < Model.BillDetails.Count; i++)
+                            {
+                                <div class="bill-detail-item border rounded p-3 mb-3" data-index="@i">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label class="form-label">Dịch vụ *</label>
+                                                <select asp-for="BillDetails[i].ServiceId" class="form-select service-select" onchange="updateUnitPrice(this, @i)">
+                                                    <option value="">Chọn dịch vụ</option>
+                                                    @foreach (var service in services)
+                                                    {
+                                                        <option value="@service.Id"
+                                                                data-price="@service.PricePerUnit"
+                                                                data-unit="@service.Unit"
+                                                                selected="@(service.Id == Model.BillDetails[i].ServiceId)">
+                                                            @service.Name (@service.Unit)
+                                                            @if (service.IsMandatory)
+                                                            {
+                                                                <text> - Bắt buộc</text>
+                                                            }
+                                                        </option>
+                                                    }
+                                                </select>
+                                                <span asp-validation-for="BillDetails[i].ServiceId" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="mb-3">
+                                                <label class="form-label">Số lượng *</label>
+                                                <input asp-for="BillDetails[i].Quantity"
+                                                       type="number"
+                                                       class="form-control quantity-input"
+                                                       min="0.01"
+                                                       step="0.01"
+                                                       onchange="calculateTotal()" />
+                                                <span asp-validation-for="BillDetails[i].Quantity" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label class="form-label">Đơn giá *</label>
+                                                <input asp-for="BillDetails[i].UnitPrice"
+                                                       type="number"
+                                                       class="form-control unit-price-input"
+                                                       min="0"
+                                                       step="1000"
+                                                       onchange="calculateTotal()" />
+                                                <span asp-validation-for="BillDetails[i].UnitPrice" class="text-danger"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="mb-3">
+                                                <label class="form-label">Thành tiền</label>
+                                                <div class="form-control-plaintext fw-bold subtotal text-success">
+                                                    @((Model.BillDetails[i].Quantity * Model.BillDetails[i].UnitPrice).ToString("C0", new System.Globalization.CultureInfo("vi-VN")))
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-1">
+                                            <div class="mb-3">
+                                                <label class="form-label">&nbsp;</label>
+                                                <button type="button"
+                                                        class="btn btn-outline-danger btn-sm d-block"
+                                                        onclick="removeBillDetail(this)"
+                                                        title="Xóa dịch vụ">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                                <p>Chưa có dịch vụ nào. Nhấn "Thêm dịch vụ" để bắt đầu.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Bill Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        Thông tin hóa đơn
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="DueDate" class="form-label">
+                            <i class="fas fa-calendar me-1"></i>
+                            Ngày đến hạn *
+                        </label>
+                        <input asp-for="DueDate"
+                               type="date"
+                               class="form-control"
+                               value="@Model.DueDate.ToString("yyyy-MM-dd")" />
+                        <span asp-validation-for="DueDate" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Status" class="form-label">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Trạng thái
+                        </label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="0" selected="@(Model.Status == 0)">Chưa thanh toán</option>
+                            <option value="1" selected="@(Model.Status == 1)">Đã thanh toán</option>
+                            <option value="2" selected="@(Model.Status == 2)">Quá hạn</option>
+                            <option value="3" selected="@(Model.Status == 3)">Đã hủy</option>
+                            <option value="4" selected="@(Model.Status == 4)">Đang xử lý</option>
+                        </select>
+                        <span asp-validation-for="Status" class="text-danger"></span>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calculator me-1"></i>
+                            Tổng cộng:
+                        </h5>
+                        <h3 class="mb-0 text-success" id="totalAmount">
+                            @Model.Amount.ToString("C0", new System.Globalization.CultureInfo("vi-VN"))
+                        </h3>
+                    </div>
+                    <input asp-for="Amount" type="hidden" id="hiddenAmount" />
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <small>Tổng tiền sẽ được tự động tính toán khi bạn thay đổi dịch vụ.</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-1"></i>
+                            Cập nhật hóa đơn
+                        </button>
+                        <a asp-action="Details" asp-route-id="@billId" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>
+                            Hủy
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@functions {
+    private string GetRoomTypeName(int roomType)
+    {
+        return roomType switch
+        {
+            1 => "Phòng đơn",
+            2 => "Phòng đôi",
+            3 => "Phòng ba",
+            4 => "Phòng bốn",
+            5 => "Phòng năm",
+            _ => "Không xác định"
+        };
+    }
+}
+
+@section Scripts {
+    <script>
+        let billDetailIndex = @(Model.BillDetails?.Count ?? 0);
+        const services = @Html.Raw(Json.Serialize(services));
+
+        function addBillDetail() {
+            const container = document.getElementById('billDetailsContainer');
+
+            // Remove empty state message if exists
+            const emptyState = container.querySelector('.text-center.py-4');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const detailHtml = `
+                <div class="bill-detail-item border rounded p-3 mb-3" data-index="${billDetailIndex}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Dịch vụ *</label>
+                                <select name="BillDetails[${billDetailIndex}].ServiceId" class="form-select service-select" onchange="updateUnitPrice(this, ${billDetailIndex})">
+                                    <option value="">Chọn dịch vụ</option>
+                                    ${services.map(s => `<option value="${s.id}" data-price="${s.pricePerUnit}" data-unit="${s.unit}">${s.name} (${s.unit})${s.isMandatory ? ' - Bắt buộc' : ''}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">Số lượng *</label>
+                                <input name="BillDetails[${billDetailIndex}].Quantity" type="number" class="form-control quantity-input" min="0.01" step="0.01" value="1" onchange="calculateTotal()" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Đơn giá *</label>
+                                <input name="BillDetails[${billDetailIndex}].UnitPrice" type="number" class="form-control unit-price-input" min="0" step="1000" onchange="calculateTotal()" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">Thành tiền</label>
+                                <div class="form-control-plaintext fw-bold subtotal text-success">0 ₫</div>
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button" class="btn btn-outline-danger btn-sm d-block" onclick="removeBillDetail(this)" title="Xóa dịch vụ">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', detailHtml);
+            billDetailIndex++;
+        }
+
+        function removeBillDetail(button) {
+            const container = document.getElementById('billDetailsContainer');
+            const item = button.closest('.bill-detail-item');
+
+            if (container.children.length > 1) {
+                item.remove();
+                calculateTotal();
+            } else {
+                // Show empty state if no items left
+                if (confirm('Bạn có chắc chắn muốn xóa dịch vụ cuối cùng?')) {
+                    item.remove();
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                            <p>Chưa có dịch vụ nào. Nhấn "Thêm dịch vụ" để bắt đầu.</p>
+                        </div>
+                    `;
+                    calculateTotal();
+                }
+            }
+        }
+
+        function updateUnitPrice(select, index) {
+            const selectedOption = select.options[select.selectedIndex];
+            const price = selectedOption.getAttribute('data-price') || 0;
+            const unit = selectedOption.getAttribute('data-unit') || '';
+            const unitPriceInput = select.closest('.bill-detail-item').querySelector('.unit-price-input');
+
+            unitPriceInput.value = price;
+            calculateTotal();
+
+            // Update placeholder or help text if needed
+            const quantityInput = select.closest('.bill-detail-item').querySelector('.quantity-input');
+            quantityInput.setAttribute('title', `Đơn vị: ${unit}`);
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            const items = document.querySelectorAll('.bill-detail-item');
+
+            items.forEach(item => {
+                const quantity = parseFloat(item.querySelector('.quantity-input')?.value) || 0;
+                const unitPrice = parseFloat(item.querySelector('.unit-price-input')?.value) || 0;
+                const subtotal = quantity * unitPrice;
+
+                const subtotalElement = item.querySelector('.subtotal');
+                if (subtotalElement) {
+                    subtotalElement.textContent = formatCurrency(subtotal);
+                }
+                total += subtotal;
+            });
+
+            document.getElementById('totalAmount').textContent = formatCurrency(total);
+            document.getElementById('hiddenAmount').value = total;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateTotal();
+
+            // Add tooltips
+            const tooltips = document.querySelectorAll('[title]');
+            tooltips.forEach(element => {
+                new bootstrap.Tooltip(element);
+            });
+        });
+
+        // Form validation before submit
+        document.getElementById('billEditForm').addEventListener('submit', function(e) {
+            const billDetails = document.querySelectorAll('.bill-detail-item');
+            if (billDetails.length === 0) {
+                e.preventDefault();
+                alert('Vui lòng thêm ít nhất một dịch vụ.');
+                return false;
+            }
+
+            let hasValidDetail = false;
+            billDetails.forEach(item => {
+                const serviceId = item.querySelector('.service-select')?.value;
+                const quantity = parseFloat(item.querySelector('.quantity-input')?.value) || 0;
+                const unitPrice = parseFloat(item.querySelector('.unit-price-input')?.value) || 0;
+
+                if (serviceId && quantity > 0 && unitPrice >= 0) {
+                    hasValidDetail = true;
+                }
+            });
+
+            if (!hasValidDetail) {
+                e.preventDefault();
+                alert('Vui lòng điền đầy đủ thông tin cho ít nhất một dịch vụ.');
+                return false;
+            }
+        });
+    </script>
+}

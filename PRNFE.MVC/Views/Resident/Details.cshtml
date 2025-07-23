@@ -1,0 +1,386 @@
+﻿@model ResidentResponses
+
+@{
+    ViewData["Title"] = "Chi tiết cư dân";
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-gradient-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user me-2"></i>
+                            Chi tiết cư dân: @(Model?.FullName ?? "Không xác định")
+                        </h5>
+                        <div>
+                            @if (Model != null)
+                            {
+                                <a href="@Url.Action("Edit", "Resident", new { id = Model.Id })" class="btn btn-light btn-sm">
+                                    <i class="fas fa-edit me-1"></i>
+                                    Chỉnh sửa
+                                </a>
+                            }
+                            else
+                            {
+                                <button class="btn btn-light btn-sm" disabled title="Không thể chỉnh sửa vì thiếu thông tin cư dân">
+                                    <i class="fas fa-edit me-1"></i>
+                                    Chỉnh sửa
+                                </button>
+                            }
+                            <a href="@Url.Action("Index", "Resident")" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-arrow-left me-1"></i>
+                                Về danh sách
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger">
+                            @TempData["ErrorMessage"] <br />
+                            <small>Vui lòng kiểm tra ID cư dân (@ViewBag.ResidentId) hoặc đăng nhập lại để đảm bảo cookie buildingId hợp lệ.</small>
+                        </div>
+                    }
+
+                    @if (Model == null)
+                    {
+                        <p class="text-danger">Không tìm thấy thông tin cư dân với ID @ViewBag.ResidentId. Vui lòng kiểm tra ID hoặc liên hệ quản trị viên.</p>
+                    }
+                    else
+                    {
+                        <script>
+                            console.log('Resident Data:', @Json.Serialize(Model));
+                        </script>
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <div class="info-section">
+                                    <h6 class="section-title">
+                                        <i class="fas fa-user me-2"></i>
+                                        Thông tin cơ bản
+                                    </h6>
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>ID:</strong></td>
+                                            <td><span class="badge bg-primary">#@Model.Id</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>User ID:</strong></td>
+                                            <td>@(Model.UserId ?? "Không có")</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Họ tên:</strong></td>
+                                            <td>@(Model.FullName ?? "Không có")</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Số điện thoại:</strong></td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                                                {
+                                                    <a href="tel:@Model.PhoneNumber" class="text-decoration-none">
+                                                        <i class="fas fa-phone me-1"></i>
+                                                        @Model.PhoneNumber
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <span>Không có</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Email:</strong></td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(Model.Email))
+                                                {
+                                                    <a href="mailto:@Model.Email" class="text-decoration-none">
+                                                        @Model.Email
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <span>Không có</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Ngày sinh:</strong></td>
+                                            <td>@Model.DateOfBirth.ToString("dd/MM/yyyy")</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Giới tính:</strong></td>
+                                            <td>
+                                                <span class="badge @(Model.Gender ? "bg-primary" : "bg-pink")">
+                                                    @(Model.Gender ? "Nam" : "Nữ")
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Địa chỉ:</strong></td>
+                                            <td>@(Model.Address ?? "Không có")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Rooms Information -->
+                            <div class="col-md-6">
+                                <div class="info-section">
+                                    <h6 class="section-title">
+                                        <i class="fas fa-door-open me-2"></i>
+                                        Phòng ở (@(Model.Rooms?.Count ?? 0))
+                                    </h6>
+                                    @if (Model.Rooms != null && Model.Rooms.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Số phòng</th>
+                                                        <th>Tầng</th>
+                                                        <th>Diện tích</th>
+                                                        <th>Trạng thái</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var room in Model.Rooms)
+                                                    {
+                                                        <tr>
+                                                            <td><strong>@(room.RoomNumber ?? "Không có")</strong></td>
+                                                            <td>@room.Floor</td>
+                                                            <td>@(room.Area.HasValue ? $"{room.Area} m²" : "Không có")</td>
+                                                            <td>
+                                                                <span class="badge @(room.IsActive ? "bg-success" : "bg-secondary")">
+                                                                    @(room.IsActive ? "Hoạt động" : "Không hoạt động")
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">Chưa có phòng nào được gán.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <!-- Vehicles Information -->
+                            <div class="col-md-6">
+                                <div class="info-section">
+                                    <h6 class="section-title">
+                                        <i class="fas fa-car me-2"></i>
+                                        Phương tiện (@(Model.Vehicles?.Count ?? 0))
+                                    </h6>
+                                    @if (Model.Vehicles != null && Model.Vehicles.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Loại xe</th>
+                                                        <th>Biển số</th>
+                                                        <th>Ngày đăng ký</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var vehicle in Model.Vehicles)
+                                                    {
+                                                        <tr>
+                                                            <td>
+                                                                <span class="badge bg-info">
+                                                                    @(vehicle.Type switch
+                                                                    {
+                                                                        0 => "Xe máy",
+                                                                        1 => "Ô tô",
+                                                                        2 => "Xe đạp",
+                                                                        3 => "Xe tải",
+                                                                        _ => $"Loại {vehicle.Type}"
+                                                                    })
+                                                    </span>
+                                                </td>
+                                                <td><strong>@(vehicle.LicensePlate ?? "Không có")</strong></td>
+                                                <td>@vehicle.CreateAt.ToString("dd/MM/yyyy")</td>
+                                            </tr>
+                                                                                        }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted">Chưa có phương tiện nào được đăng ký.</p>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Temporary Stay Information -->
+                            <div class="col-md-6">
+                                <div class="info-section">
+                                    <h6 class="section-title">
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        Thông tin lưu trú tạm thời
+                                    </h6>
+                                    @if (Model.TemporaryStay != null)
+                                    {
+                                        <table class="table table-borderless table-sm">
+                                            <tr>
+                                                <td><strong>Từ ngày:</strong></td>
+                                                <td>@Model.TemporaryStay.FromDate.ToString("dd/MM/yyyy")</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Đến ngày:</strong></td>
+                                                <td>@Model.TemporaryStay.ToDate.ToString("dd/MM/yyyy")</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Ghi chú:</strong></td>
+                                                <td>@(Model.TemporaryStay.Note ?? "Không có")</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Trạng thái:</strong></td>
+                                                <td>
+                                                    <span class="badge @(Model.TemporaryStay.Status switch { 1 => "bg-success", 2 => "bg-danger", _ => "bg-warning" })">
+                                                        @(Model.TemporaryStay.Status switch
+                                                        {
+                                                            0 => "Chờ duyệt",
+                                                            1 => "Đã duyệt",
+                                                            2 => "Từ chối",
+                                                            _ => $"Trạng thái {Model.TemporaryStay.Status}"
+                                                        })
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                                                                }
+                                    else
+                                    {
+                                        <p class="text-muted">Không có thông tin lưu trú tạm thời.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Support Requests -->
+                        @if (Model.SupportRequests != null && Model.SupportRequests.Any())
+                        {
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="info-section">
+                                        <h6 class="section-title">
+                                            <i class="fas fa-headset me-2"></i>
+                                            Yêu cầu hỗ trợ (@Model.SupportRequests.Count)
+                                        </h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Loại yêu cầu</th>
+                                                        <th>Mô tả</th>
+                                                        <th>Trạng thái</th>
+                                                        <th>Ngày tạo</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var request in Model.SupportRequests)
+                                                    {
+                                                        <tr>
+                                                            <td>
+                                                                <span class="badge bg-primary">
+                                                                    @(request.RequestType switch
+                                                                    {
+                                                                        1 => "Bảo trì",
+                                                                        2 => "Khiếu nại",
+                                                                        5 => "Hỗ trợ kỹ thuật",
+                                                                        _ => $"Loại {request.RequestType}"
+                                                                    })
+                                                    </span>
+                                                </td>
+                                                <td>@(request.Description ?? "Không có")</td>
+                                                <td>
+                                                    <span class="badge @(request.Status switch { 1 => "bg-success", 2 => "bg-warning", _ => "bg-secondary" })">
+                                                                    @(request.Status switch
+                                                                    {
+                                                                        0 => "Chờ xử lý",
+                                                                        1 => "Hoàn thành",
+                                                                        2 => "Đang xử lý",
+                                                                        _ => $"Trạng thái {request.Status}"
+                                                                    })
+                                                    </span>
+                                                </td>
+                                                <td>@request.CreateAt.ToString("dd/MM/yyyy")</td>
+                                            </tr>
+                                                                                        }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Timestamps -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="info-section">
+                                    <h6 class="section-title">
+                                        <i class="fas fa-clock me-2"></i>
+                                        Thông tin thời gian
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Ngày tạo:</strong> @Model.CreateAt.ToString("dd/MM/yyyy HH:mm:ss")</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Cập nhật lần cuối:</strong> @Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm:ss")</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #ec4899, #8b5cf6) !important;
+    }
+
+    .bg-pink {
+        background-color: #ec4899 !important;
+    }
+
+    .info-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        height: 100%;
+    }
+
+    .section-title {
+        color: #ec4899;
+        border-bottom: 2px solid #ec4899;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+
+    .card {
+        border-radius: 15px;
+        border: none;
+    }
+
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+    }
+</style>
