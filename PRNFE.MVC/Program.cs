@@ -13,6 +13,12 @@ namespace PRNFE.MVC
             builder.Services.AddRazorPages();
             builder.Services.AddControllersWithViews();
             builder.Services.AddHttpClient();
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Cho phép HTTP (qua gateway)
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.HttpOnly = true;
+            });
 
             var app = builder.Build();
 
