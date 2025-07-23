@@ -119,7 +119,16 @@ namespace PRNFE.MVC.Controllers
                 }
                 else
                 {
-                    ViewBag.Message = "Có lỗi xảy ra, vui lòng thử lại sau!";
+                    // Đọc message từ response body nếu có
+                    try
+                    {
+                        var apiResponse = JsonConvert.DeserializeObject<ApiResponse<object>>(result);
+                        ViewBag.Message = apiResponse.message ?? "Có lỗi xảy ra, vui lòng thử lại sau!";
+                    }
+                    catch
+                    {
+                        ViewBag.Message = "Có lỗi xảy ra, vui lòng thử lại sau!";
+                    }
                     ViewBag.IsSuccess = false;
                 }
             }

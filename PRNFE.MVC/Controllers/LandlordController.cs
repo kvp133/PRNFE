@@ -19,19 +19,33 @@ namespace PRNFE.MVC.Controllers
             return View();
         }
 
+        // GET: Landlord/ServiceManagement
+        public IActionResult ServiceManagement()
+        {
+            var buildingId = Request.Cookies["BuildingId"];
+            if (string.IsNullOrEmpty(buildingId))
+                return RedirectToAction("SelectBuilding", "Auth");
+            ViewBag.BuildingId = buildingId;
+            return View();
+        }
+
         // GET: Landlord/RoomManagement
         public IActionResult RoomManagement()
         {
-            var userInfo = GetUserInfo();
-            ViewBag.UserInfo = userInfo;
+            var buildingId = Request.Cookies["BuildingId"];
+            if (string.IsNullOrEmpty(buildingId))
+                return RedirectToAction("SelectBuilding", "Auth");
+            ViewBag.BuildingId = buildingId;
             return View();
         }
 
         // GET: Landlord/TenantManagement
         public IActionResult TenantManagement()
         {
-            var userInfo = GetUserInfo();
-            ViewBag.UserInfo = userInfo;
+            var buildingId = Request.Cookies["BuildingId"];
+            if (string.IsNullOrEmpty(buildingId))
+                return RedirectToAction("SelectBuilding", "Auth");
+            ViewBag.BuildingId = buildingId;
             return View();
         }
 

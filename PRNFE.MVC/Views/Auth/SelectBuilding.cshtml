@@ -1,0 +1,23 @@
+@model List<PRNFE.MVC.Models.Response.BuildingResponse>
+@{
+    ViewData["Title"] = "Chọn trọ quản lý";
+}
+<div class="container mt-5">
+    <h2>Chọn trọ bạn muốn quản lý</h2>
+    <form asp-action="SelectBuilding" method="post">
+        <div class="list-group mt-4">
+            @foreach (var building in Model)
+            {
+                <label class="list-group-item">
+                    <input type="radio" name="buildingId" value="@building.Id" required />
+                    <strong>@building.Name</strong> - @building.Address
+                </label>
+            }
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Tiếp tục</button>
+    </form>
+</div>
+@if (TempData["Message"] != null && (Model == null || !Model.Any()))
+{
+    <div class="alert alert-danger mt-3">@TempData["Message"]</div>
+} 
