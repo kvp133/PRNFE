@@ -305,34 +305,26 @@ namespace PRNFE.MVC.Controllers
 
                     if (room != null)
                     {
-                        var updateRequest = new UpdateRoomRequest
+                        var updateRequest = new PRNFE.MVC.Models.Request.UpdateRoomRequests
                         {
-                            TenantId = room.TenantId,
+                            TenantId = room.TenantId ?? string.Empty,
                             RoomNumber = room.RoomNumber,
                             Floor = room.Floor,
                             Area = room.Area,
+                            RoomType = room.RoomType,
                             MaxOpt = room.MaxOpt,
                             Status = room.Status,
-                            Notes = string.Empty, // Set default value since Notes might not exist in DetailRoomResponse
-                            Residents = room.Residents?.Select(r => new UpdateResidentInRoomRequest
+                            Residents = room.Residents?.Select(r => new PRNFE.MVC.Models.Response.DetailsRoomResponse.UpdateResidentInRoomDto
                             {
                                 ResidentId = r.ResidentId,
-                                IsActive = r.IsActive,
-                                JoinDate = r.JoinDate,
-                                LeaveDate = r.LeaveDate,
-                                Notes = r.Notes ?? string.Empty,
-                                Resident = r.Resident
-                            }).ToList() ?? new List<UpdateResidentInRoomRequest>(),
-                            Services = room.Services?.Select(s => new UpdateServiceInRoomRequest
+                                IsActive = r.IsActive
+                            }).ToList() ?? new List<PRNFE.MVC.Models.Response.DetailsRoomResponse.UpdateResidentInRoomDto>(),
+                            Services = room.Services?.Select(s => new PRNFE.MVC.Models.Response.DetailsRoomResponse.UpdateServiceInRoomDto
                             {
                                 ServiceId = s.ServiceId,
-                                CustomPrice = s.CustomPrice,
                                 IsActive = s.IsActive,
-                                StartDate = s.StartDate,
-                                EndDate = s.EndDate,
-                                Notes = s.Notes ?? string.Empty,
-                                Service = s.Service
-                            }).ToList() ?? new List<UpdateServiceInRoomRequest>()
+                                CustomPrice = (double)s.CustomPrice
+                            }).ToList() ?? new List<PRNFE.MVC.Models.Response.DetailsRoomResponse.UpdateServiceInRoomDto>()
                         };
 
                         ViewBag.RoomId = id;

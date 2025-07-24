@@ -166,7 +166,17 @@ namespace PRNFE.MVC.Controllers
             TempData["Message"] = "Tạo tòa nhà thành công!";
             TempData["IsSuccess"] = true;
 
-            return RedirectToAction(nameof(Index));
+            // Set cookie BuildingId
+            var buildingIdOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false, // Để test local, nếu dùng HTTPS thì để true
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
+            Response.Cookies.Append("BuildingId", apiResponse.data.Id.ToString(), buildingIdOptions);
+
+            return RedirectToAction("DormitoryManagement", "Landlord");
         }
 
 

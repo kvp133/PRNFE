@@ -33,7 +33,7 @@ namespace PRNFE.MVC.Controllers
         {
             if (!ModelState.IsValid)
             {
-                TempData["Message"] = "Dữ liệu không hợp lệ!";
+                TempData["MessageLogin"] = "Dữ liệu không hợp lệ!";
                 TempData["IsSuccess"] = false;
                 return View(model);
             }
@@ -122,21 +122,61 @@ namespace PRNFE.MVC.Controllers
                                         }
                                         else
                                         {
-                                            TempData["Message"] = "Không tìm thấy trọ nào thuộc quyền quản lý của bạn.";
-                                            TempData["IsSuccess"] = false;
-                                            return View(model);
+                                            // Không có building nào thuộc quyền quản lý, chuyển sang trang tạo building
+                                            return RedirectToAction("Create", "Building");
                                         }
                                     }
                                     else
                                     {
-                                        TempData["Message"] = "Không thể lấy danh sách trọ. Vui lòng thử lại sau!";
+                                        TempData["MessageLogin"] = "Không thể lấy danh sách trọ. Vui lòng thử lại sau!";
                                         TempData["IsSuccess"] = false;
                                         return View(model);
                                     }
                                 }
                                 else if (tokenData.IsTenant)
                                 {
-                                    return RedirectToAction("InvoiceInfo", "Tenant");
+                                    // Lấy danh sách phòng của tenant
+                                    var roomsApiUrl = $"{_apiBaseUrl}/residents/api/Rooms/user";
+                                    var requestMessage = new HttpRequestMessage(HttpMethod.Get, roomsApiUrl);
+                                    requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiResponse.data.accessToken);
+                                    var roomsResponse = await _httpClient.SendAsync(requestMessage);
+                                    var roomsResult = await roomsResponse.Content.ReadAsStringAsync();
+                                    var roomsApiResponse = JsonConvert.DeserializeObject<PRNFE.MVC.Models.Response.ApiResponse<List<PRNFE.MVC.Models.Response.RoomResponse>>>(roomsResult);
+                                    if (roomsApiResponse.success && roomsApiResponse.data != null)
+                                    {
+                                        var tenantRooms = roomsApiResponse.data;
+                                        if (tenantRooms.Count == 1)
+                                        {
+                                            // Lưu buildingId và roomId vào cookie
+                                            var buildingIdOptions = new CookieOptions
+                                            {
+                                                HttpOnly = true,
+                                                Secure = false,
+                                                SameSite = SameSiteMode.Lax,
+                                                Expires = DateTime.UtcNow.AddDays(7)
+                                            };
+                                            Response.Cookies.Append("BuildingId", tenantRooms[0].BuildingId.ToString(), buildingIdOptions);
+                                            Response.Cookies.Append("RoomId", tenantRooms[0].Id.ToString(), buildingIdOptions);
+                                            return RedirectToAction("InvoiceInfo", "Tenant");
+                                        }
+                                        else if (tenantRooms.Count > 1)
+                                        {
+                                            TempData["TenantRooms"] = JsonConvert.SerializeObject(tenantRooms);
+                                            return RedirectToAction("SelectRoom", "Auth");
+                                        }
+                                        else
+                                        {
+                                            TempData["MessageLogin"] = "Không tìm thấy phòng nào cho tài khoản này.";
+                                            TempData["IsSuccess"] = false;
+                                            return View(model);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        TempData["MessageLogin"] = "Không thể lấy danh sách phòng. Vui lòng thử lại sau!";
+                                        TempData["IsSuccess"] = false;
+                                        return View(model);
+                                    }
                                 }
                             }
                         }
@@ -149,24 +189,41 @@ namespace PRNFE.MVC.Controllers
                     }
                     else
                     {
-                        TempData["Message"] = apiResponse.message ?? "Đăng nhập thất bại!";
+                        // Đọc message từ response body nếu có
+                        try
+                        {
+                            var apiErrorResponse = JsonConvert.DeserializeObject<ApiResponse<object>>(result);
+                            TempData["MessageLogin"] = apiErrorResponse.message ?? "Đăng nhập thất bại!";
+                        }
+                        catch
+                        {
+                            TempData["MessageLogin"] = "Đăng nhập thất bại!";
+                        }
                         TempData["IsSuccess"] = false;
                     }
                 }
                 else
                 {
-                    TempData["Message"] = $"Có lỗi xảy ra (HTTP {response.StatusCode}), vui lòng thử lại sau!";
+                     try
+                        {
+                            var apiErrorResponse = JsonConvert.DeserializeObject<ApiResponse<object>>(result);
+                            TempData["MessageLogin"] = apiErrorResponse.message ?? "Đăng nhập thất bại!";
+                        }
+                        catch
+                        {
+                            TempData["MessageLogin"] = "Đăng nhập thất bại!";
+                        }
                     TempData["IsSuccess"] = false;
                 }
             }
             catch (HttpRequestException)
             {
-                TempData["Message"] = "Không thể kết nối đến API server. Vui lòng kiểm tra kết nối!";
+                TempData["MessageLogin"] = "Không thể kết nối đến API server. Vui lòng kiểm tra kết nối!";
                 TempData["IsSuccess"] = false;
             }
             catch (Exception)
             {
-                TempData["Message"] = "Có lỗi xảy ra, vui lòng thử lại sau!";
+                TempData["MessageLogin"] = "Có lỗi xảy ra, vui lòng thử lại sau!";
                 TempData["IsSuccess"] = false;
             }
 
@@ -189,7 +246,7 @@ namespace PRNFE.MVC.Controllers
                 var accessToken = Request.Cookies["AccessToken"];
                 if (string.IsNullOrEmpty(accessToken))
                 {
-                    TempData["Message"] = "Vui lòng đăng nhập lại!";
+                    TempData["MessageLogin"] = "Vui lòng đăng nhập lại!";
                     return RedirectToAction("Login");
                 }
                 var apiUrl = $"{_apiBaseUrl}/residents/api/Buildings";
@@ -213,7 +270,7 @@ namespace PRNFE.MVC.Controllers
             }
             if (buildings == null || buildings.Count == 0)
             {
-                TempData["Message"] = "Không tìm thấy danh sách trọ.";
+                TempData["MessageLogin"] = "Không tìm thấy danh sách trọ.";
                 return RedirectToAction("Login");
             }
             return View(buildings);
@@ -231,6 +288,59 @@ namespace PRNFE.MVC.Controllers
             };
             Response.Cookies.Append("BuildingId", buildingId.ToString(), buildingIdOptions);
             return RedirectToAction("DormitoryManagement", "Landlord");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SelectRoom()
+        {
+            // Nếu có TempData thì dùng, không thì tự gọi lại API lấy danh sách phòng
+            List<PRNFE.MVC.Models.Response.RoomResponse> rooms = null;
+            if (TempData["TenantRooms"] != null)
+            {
+                var roomsJson = TempData["TenantRooms"] as string;
+                rooms = JsonConvert.DeserializeObject<List<PRNFE.MVC.Models.Response.RoomResponse>>(roomsJson);
+            }
+            else
+            {
+                // Lấy access token từ cookie
+                var accessToken = Request.Cookies["AccessToken"];
+                if (string.IsNullOrEmpty(accessToken))
+                {
+                    TempData["MessageLogin"] = "Vui lòng đăng nhập lại!";
+                    return RedirectToAction("Login");
+                }
+                var apiUrl = $"{_apiBaseUrl}/residents/api/Rooms/user";
+                var requestMessage = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                var response = await _httpClient.SendAsync(requestMessage);
+                var result = await response.Content.ReadAsStringAsync();
+                var apiResponse = JsonConvert.DeserializeObject<PRNFE.MVC.Models.Response.ApiResponse<List<PRNFE.MVC.Models.Response.RoomResponse>>>(result);
+                if (apiResponse.success && apiResponse.data != null)
+                {
+                    rooms = apiResponse.data;
+                }
+            }
+            if (rooms == null || rooms.Count == 0)
+            {
+                TempData["MessageLogin"] = "Không tìm thấy danh sách phòng.";
+                return RedirectToAction("Login");
+            }
+            return View(rooms);
+        }
+
+        [HttpPost]
+        public IActionResult SelectRoom(int roomId, int buildingId)
+        {
+            var options = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false, // Để test local, nếu dùng HTTPS thì để true
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
+            Response.Cookies.Append("RoomId", roomId.ToString(), options);
+            Response.Cookies.Append("BuildingId", buildingId.ToString(), options);
+            return RedirectToAction("InvoiceInfo", "Tenant");
         }
 
         [HttpPost]

@@ -71,11 +71,12 @@ namespace PRNFE.MVC.Models.Response
     public class RoomResponse
     {
         public int Id { get; set; }
-        public string TenantId { get; set; }
+        public string TenantId { get; set; } // Sửa thành string để map dữ liệu API
+        public int BuildingId { get; set; } // Thêm dòng này để map dữ liệu API
         public string RoomNumber { get; set; } = string.Empty;
         public int Floor { get; set; }
         public decimal Area { get; set; }
-        public int RoomType { get; set; }
+        public int RoomType { get; set; } // Đổi sang int để map dữ liệu API
         public int MaxOpt { get; set; }
         public int Status { get; set; }
         public int? BuildingId { get; set; }
@@ -95,17 +96,9 @@ namespace PRNFE.MVC.Models.Response
             TemporarilyLocked = 7   // Phòng tạm thời bị khóa
         }
 
-        public enum RoomTypes
-        {
-            Single = 0,          // Phòng đơn
-            Double = 1,          // Phòng đôi
-            Suite = 2,           // Phòng suite
-            Deluxe = 3,          // Phòng deluxe
-            Family = 4,          // Phòng gia đình
-            Studio = 5,          // Phòng studio
-            Penthouse = 6,        // Phòng penthouse
-            Other = 7           // Phòng khác
-        }
+        // Navigation properties for display
+        // public RoomTypeResponse? RoomType { get; set; } // Loại bỏ dòng này
+        public TenantResponse? Tenant { get; set; }
     }
 
     public class DetailRoomResponse : RoomResponse
