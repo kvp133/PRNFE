@@ -71,18 +71,19 @@ namespace PRNFE.MVC.Models.Response
     public class RoomResponse
     {
         public int Id { get; set; }
-        public int TenantId { get; set; }
+        public string TenantId { get; set; } // Sửa thành string để map dữ liệu API
+        public int BuildingId { get; set; } // Thêm dòng này để map dữ liệu API
         public string RoomNumber { get; set; } = string.Empty;
         public int Floor { get; set; }
         public decimal Area { get; set; }
-        public int RoomTypeId { get; set; }
+        public int RoomType { get; set; } // Đổi sang int để map dữ liệu API
         public int MaxOpt { get; set; }
         public int Status { get; set; }
         public DateTime CreateAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
         // Navigation properties for display
-        public RoomTypeResponse? RoomType { get; set; }
+        // public RoomTypeResponse? RoomType { get; set; } // Loại bỏ dòng này
         public TenantResponse? Tenant { get; set; }
     }
 

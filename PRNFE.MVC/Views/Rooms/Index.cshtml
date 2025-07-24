@@ -243,8 +243,8 @@
                                             <small class="text-muted">Loại phòng:</small>
                                             <span class="badge badge-pink-light">
                                                 @{
-                                                    var roomType = roomTypes.FirstOrDefault(rt => rt.Id == room.RoomTypeId);
-                                                    var roomTypeName = roomType?.Name ?? $"#{room.RoomTypeId}";
+                                                    var roomType = roomTypes.FirstOrDefault(rt => rt.Id == room.RoomType);
+                                                    var roomTypeName = roomType?.Name ?? $"#{room.RoomType}";
                                                 }
                                                 @roomTypeName
                                             </span>
