@@ -35,10 +35,10 @@ namespace PRNFE.MVC.Controllers
                 var currentAction = ControllerContext.RouteData.Values["action"]?.ToString();
                 if (string.IsNullOrEmpty(buildingId))
                 {
-                    // Nếu đã ở trang chọn building thì không redirect nữa
-                    if (currentController == "Auth" && currentAction == "SelectBuilding")
+                    // Nếu đã ở trang tạo building thì không redirect nữa
+                    if (currentController == "Building" && currentAction == "Create")
                         return View();
-                    return RedirectToAction("SelectBuilding", "Auth");
+                    return RedirectToAction("Create", "Building");
                 }
                 return RedirectToAction("DormitoryManagement", "Landlord");
             }

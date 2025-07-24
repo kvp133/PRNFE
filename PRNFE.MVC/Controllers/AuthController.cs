@@ -122,9 +122,8 @@ namespace PRNFE.MVC.Controllers
                                         }
                                         else
                                         {
-                                            TempData["Message"] = "Không tìm thấy trọ nào thuộc quyền quản lý của bạn.";
-                                            TempData["IsSuccess"] = false;
-                                            return View(model);
+                                            // Không có building nào thuộc quyền quản lý, chuyển sang trang tạo building
+                                            return RedirectToAction("Create", "Building");
                                         }
                                     }
                                     else
