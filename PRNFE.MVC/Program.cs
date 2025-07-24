@@ -17,7 +17,7 @@ namespace PRNFE.MVC
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddTransient<AuthHeaderHandler>();
             builder.Services.AddHttpClient("AuthorizedApiClient")
-                .AddHttpMessageHandler<AuthHeaderHandler>(); 
+                .AddHttpMessageHandler<AuthHeaderHandler>();
             builder.Services.ConfigureApplicationCookie(options =>
             {
                 options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Cho phép HTTP (qua gateway)

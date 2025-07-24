@@ -311,7 +311,6 @@ namespace PRNFE.MVC.Controllers
                             RoomNumber = room.RoomNumber,
                             Floor = room.Floor,
                             Area = room.Area,
-                            RoomTypeId = room.RoomTypeId,
                             MaxOpt = room.MaxOpt,
                             Status = room.Status,
                             Notes = string.Empty, // Set default value since Notes might not exist in DetailRoomResponse

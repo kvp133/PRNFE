@@ -272,10 +272,10 @@
                                         <tr>
                                             <td><strong><i class="fas fa-tag me-2"></i>Loại phòng:</strong></td>
                                             <td>
-                                                @{
-                                                    var roomType = roomTypes.FirstOrDefault(rt => rt.Id == Model.RoomTypeId);
-                                                }
-                                                <span class="badge badge-pink-light">@((roomType?.Name) ?? $"Loại #{Model.RoomTypeId}")</span>
+                                                @* @{ *@
+                                                @*     var roomType = roomTypes.FirstOrDefault(rt => rt.Id == Model.RoomTypeId); *@
+                                                @* } *@
+                                                @* <span class="badge badge-pink-light">@((roomType?.Name) ?? $"Loại #{Model.RoomTypeId}")</span> *@
                                             </td>
                                         </tr>
                                         <tr>
@@ -568,23 +568,23 @@
                     }
 
                     <!-- Room Type Info -->
-                    @{
-                        var currentRoomType = roomTypes.FirstOrDefault(rt => rt.Id == Model.RoomTypeId);
-                    }
-                    @if (currentRoomType != null)
-                    {
-                        <div class="card shadow-sm">
-                            <div class="card-header bg-pink-light">
-                                <h5 class="mb-0 text-pink center-black">
-                                    <i class="fas fa-tag me-2"></i>Thông tin loại phòng
-                                </h5>
-                            </div>
-                            <div class="card-body center-black">
-                                <h6>@currentRoomType.Name</h6>
-                                <p class="text-muted small">@currentRoomType.Description</p>
-                            </div>
-                        </div>
-                    }
+                    @* @{ *@
+                    @*     var currentRoomType = roomTypes.FirstOrDefault(rt => rt.Id == Model.RoomTypeId); *@
+                    @* } *@
+                    @* @if (currentRoomType != null) *@
+                    @* { *@
+                    @*     <div class="card shadow-sm"> *@
+                    @*         <div class="card-header bg-pink-light"> *@
+                    @*             <h5 class="mb-0 text-pink center-black"> *@
+                    @*                 <i class="fas fa-tag me-2"></i>Thông tin loại phòng *@
+                    @*             </h5> *@
+                    @*         </div> *@
+                    @*         <div class="card-body center-black"> *@
+                    @*             <h6>@currentRoomType.Name</h6> *@
+                    @*             <p class="text-muted small">@currentRoomType.Description</p> *@
+                    @*         </div> *@
+                    @*     </div> *@
+                    @* } *@
                 </div>
             </div>
         </div>
