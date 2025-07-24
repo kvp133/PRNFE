@@ -33,7 +33,7 @@ namespace PRNFE.MVC.Controllers
         {
             if (!ModelState.IsValid)
             {
-                TempData["Message"] = "Dữ liệu không hợp lệ!";
+                TempData["MessageLogin"] = "Dữ liệu không hợp lệ!";
                 TempData["IsSuccess"] = false;
                 return View(model);
             }
@@ -128,7 +128,7 @@ namespace PRNFE.MVC.Controllers
                                     }
                                     else
                                     {
-                                        TempData["Message"] = "Không thể lấy danh sách trọ. Vui lòng thử lại sau!";
+                                        TempData["MessageLogin"] = "Không thể lấy danh sách trọ. Vui lòng thử lại sau!";
                                         TempData["IsSuccess"] = false;
                                         return View(model);
                                     }
@@ -166,14 +166,14 @@ namespace PRNFE.MVC.Controllers
                                         }
                                         else
                                         {
-                                            TempData["Message"] = "Không tìm thấy phòng nào cho tài khoản này.";
+                                            TempData["MessageLogin"] = "Không tìm thấy phòng nào cho tài khoản này.";
                                             TempData["IsSuccess"] = false;
                                             return View(model);
                                         }
                                     }
                                     else
                                     {
-                                        TempData["Message"] = "Không thể lấy danh sách phòng. Vui lòng thử lại sau!";
+                                        TempData["MessageLogin"] = "Không thể lấy danh sách phòng. Vui lòng thử lại sau!";
                                         TempData["IsSuccess"] = false;
                                         return View(model);
                                     }
@@ -189,24 +189,41 @@ namespace PRNFE.MVC.Controllers
                     }
                     else
                     {
-                        TempData["Message"] = apiResponse.message ?? "Đăng nhập thất bại!";
+                        // Đọc message từ response body nếu có
+                        try
+                        {
+                            var apiErrorResponse = JsonConvert.DeserializeObject<ApiResponse<object>>(result);
+                            TempData["MessageLogin"] = apiErrorResponse.message ?? "Đăng nhập thất bại!";
+                        }
+                        catch
+                        {
+                            TempData["MessageLogin"] = "Đăng nhập thất bại!";
+                        }
                         TempData["IsSuccess"] = false;
                     }
                 }
                 else
                 {
-                    TempData["Message"] = $"Có lỗi xảy ra (HTTP {response.StatusCode}), vui lòng thử lại sau!";
+                     try
+                        {
+                            var apiErrorResponse = JsonConvert.DeserializeObject<ApiResponse<object>>(result);
+                            TempData["MessageLogin"] = apiErrorResponse.message ?? "Đăng nhập thất bại!";
+                        }
+                        catch
+                        {
+                            TempData["MessageLogin"] = "Đăng nhập thất bại!";
+                        }
                     TempData["IsSuccess"] = false;
                 }
             }
             catch (HttpRequestException)
             {
-                TempData["Message"] = "Không thể kết nối đến API server. Vui lòng kiểm tra kết nối!";
+                TempData["MessageLogin"] = "Không thể kết nối đến API server. Vui lòng kiểm tra kết nối!";
                 TempData["IsSuccess"] = false;
             }
             catch (Exception)
             {
-                TempData["Message"] = "Có lỗi xảy ra, vui lòng thử lại sau!";
+                TempData["MessageLogin"] = "Có lỗi xảy ra, vui lòng thử lại sau!";
                 TempData["IsSuccess"] = false;
             }
 
@@ -229,7 +246,7 @@ namespace PRNFE.MVC.Controllers
                 var accessToken = Request.Cookies["AccessToken"];
                 if (string.IsNullOrEmpty(accessToken))
                 {
-                    TempData["Message"] = "Vui lòng đăng nhập lại!";
+                    TempData["MessageLogin"] = "Vui lòng đăng nhập lại!";
                     return RedirectToAction("Login");
                 }
                 var apiUrl = $"{_apiBaseUrl}/residents/api/Buildings";
@@ -253,7 +270,7 @@ namespace PRNFE.MVC.Controllers
             }
             if (buildings == null || buildings.Count == 0)
             {
-                TempData["Message"] = "Không tìm thấy danh sách trọ.";
+                TempData["MessageLogin"] = "Không tìm thấy danh sách trọ.";
                 return RedirectToAction("Login");
             }
             return View(buildings);
@@ -289,7 +306,7 @@ namespace PRNFE.MVC.Controllers
                 var accessToken = Request.Cookies["AccessToken"];
                 if (string.IsNullOrEmpty(accessToken))
                 {
-                    TempData["Message"] = "Vui lòng đăng nhập lại!";
+                    TempData["MessageLogin"] = "Vui lòng đăng nhập lại!";
                     return RedirectToAction("Login");
                 }
                 var apiUrl = $"{_apiBaseUrl}/residents/api/Rooms/user";
@@ -305,7 +322,7 @@ namespace PRNFE.MVC.Controllers
             }
             if (rooms == null || rooms.Count == 0)
             {
-                TempData["Message"] = "Không tìm thấy danh sách phòng.";
+                TempData["MessageLogin"] = "Không tìm thấy danh sách phòng.";
                 return RedirectToAction("Login");
             }
             return View(rooms);
