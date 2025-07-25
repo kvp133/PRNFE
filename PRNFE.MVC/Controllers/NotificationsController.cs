@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Newtonsoft.Json;
@@ -42,43 +43,23 @@ namespace PRNFE.MVC.Controllers
 
 
         // GET: NotificationsController
-        public async Task<ActionResult> Index()
+        public async Task<ActionResult> Index(FilterNotificationRequest model, int page = 1)
         {
             // You can fetch notifications from an API or database here
             // For now, we will just return an empty view
             try
             {
-                var notifications = await _httpClient
-                .GetFromJsonAsync<ApiResponse<List<NotificationResponse>>>($"{_apiQLPTUrl}/api/notifications");
-                if (notifications != null && notifications.data.Count == 0 )
-                {
-                    notifications.data = new List<NotificationResponse>();
-                }
-                return View(notifications!.data);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error creating HttpClient: {ex.Message}");
-                TempData["Message"] = "Không thể tải thông báo. Vui lòng thử lại sau.";
-                return View(new List<NotificationResponse>());
-            }
-        }
-
-
-        
-        public async Task<ActionResult> Filter(FilterNotificationRequest model)
-        {
-            // You can fetch notifications from an API or database here
-            // For now, we will just return an empty view
-            try
-            {
-                ViewBag.FilterModel = model;
                 var apiUrl = $"{_apiQLPTUrl}/api/Notifications/filter";
                 var queryParams = new List<string>();
+                if (TempData.ContainsKey("FilterModel"))
+                {
+                    model = JsonConvert.DeserializeObject<FilterNotificationRequest>(TempData["FilterModel"]?.ToString() ?? "{}");
+                    TempData.Keep("FilterModel");
+                }
                 if (!string.IsNullOrEmpty(model.Title))
                 {
                     queryParams.Add($"Title={model.Title}");
-                }                
+                }
                 if (!string.IsNullOrEmpty(model.Content))
                 {
                     queryParams.Add($"Content={model.Content}");
@@ -86,15 +67,15 @@ namespace PRNFE.MVC.Controllers
                 if (model.TypeTarget.HasValue)
                 {
                     queryParams.Add($"TypeTarget={model.TypeTarget.Value}");
-                }                
+                }
                 if (model.PublishDate.HasValue)
                 {
                     queryParams.Add($"PublishDate={model.PublishDate.Value}");
-                }                
+                }
                 if (model.FromDate.HasValue)
                 {
                     queryParams.Add($"FromDate={model.FromDate.Value}");
-                }                
+                }
                 if (model.ToDate.HasValue)
                 {
                     queryParams.Add($"ToDate={model.ToDate.Value}");
@@ -106,25 +87,33 @@ namespace PRNFE.MVC.Controllers
                 if (queryParams.Count > 0)
                 {
                     apiUrl += "?" + string.Join("&", queryParams);
+                    TempData["FilterModel"] = JsonConvert.SerializeObject(model);
                 }
                 var response = await _httpClient
                     .GetFromJsonAsync<ApiResponse<List<NotificationResponse>>>(apiUrl);
-                if (response != null && !response.success) {
+                if (response != null && !response.success)
+                {
                     TempData["Message"] = response.message;
                     return View("Index", new List<NotificationResponse>());
                 }
-                return View("Index", response.data);
+                Pagination pagination = new Pagination
+                {
+                    PageNumber = page,
+                    NotificationResponses = response!.data
+                };
+                ViewBag.Total = pagination;
+                return View(pagination.GetPaginatedItems());
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error creating HttpClient: {ex.Message}");
                 TempData["Message"] = "Không thể tải thông báo. Vui lòng thử lại sau.";
-                return View("Index",new List<NotificationResponse>());
+                return View(new List<NotificationResponse>());
             }
         }
 
 
-
+        
         // GET: NotificationsController/Details/5
         [Route("Notifications/Details/{id:guid}")]
         public async Task<ActionResult> Details(Guid id)
@@ -317,6 +306,37 @@ namespace PRNFE.MVC.Controllers
             catch
             {
                 return View();
+            }
+        }
+        [HttpPost]
+        public IActionResult ClearFilterTempData()
+        {
+            TempData.Remove("FilterModel");
+            return Ok();
+        }
+
+        public class Pagination
+        {
+            public int PageNumber { get; set; } = 1;
+            public int PageSize { get; set; } = 10;
+            public List<NotificationResponse> NotificationResponses { get; set; } = new List<NotificationResponse>();
+            public int TotalCount => NotificationResponses.Count;
+            public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+
+            public List<NotificationResponse> GetPaginatedItems()
+            {
+                try
+                {
+                    return NotificationResponses
+                                        .Skip((PageNumber - 1) * PageSize)
+                                        .Take(PageSize)
+                                        .ToList();
+                }
+                catch
+                {
+                    return new List<NotificationResponse>();
+                }
+                
             }
         }
     }
