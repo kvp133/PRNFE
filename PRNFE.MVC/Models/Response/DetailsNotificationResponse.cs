@@ -10,41 +10,54 @@ namespace PRNFE.MVC.Models.Response
         [Range(1, int.MaxValue, ErrorMessage = "Building id must be a positive integer.")]
         public int? BuildingId { get; set; }
 
-        [Required(ErrorMessage = "Room id is required")]
-        [StringLength(200, ErrorMessage = "Title cant exceed over 200 characters")]
+        [Required(ErrorMessage = "Tiêu đề không được để trống")]
+        [StringLength(200, ErrorMessage = "Tiêu đề không quá 200 ký tự")]
+        [Display(Name = "Tiêu đề")]
         public string? Title { get; set; }
 
-        [Required(ErrorMessage = "Content is required")]
-        [StringLength(1000, ErrorMessage = "Content cannot exceed 1000 characters.")]
+        [Required(ErrorMessage = "Nội dung không được để trống")]
+        [Display(Name = "Nội dung")]
+        [StringLength(1000, ErrorMessage = "Nội dung không quá 1000 ký tự")]
         public string? Content { get; set; }
 
-        [Required(ErrorMessage = "TypeTarget is required")]
-        [Range(0, 3, ErrorMessage = "TypeTarget must be a valid NotificationTypeTarget value.")]
-        public int? TypeTarget { get; set; } = 0;
+        [Required(ErrorMessage = "Loại đối tượng thông báo là bắt buộc")]
+        [Display(Name = "Kiểu thông báo")]
+        [Range(0, 2, ErrorMessage = "Loại đối tượng không hợp lệ")]
+        public int? TypeTarget { get; set; }
 
-        [Required(ErrorMessage = "PublishDate is required")]
-        [DataType(DataType.Date, ErrorMessage = "PublishDate must follow the format yyyy-MM-dd.")]
+        [Required(ErrorMessage = "Ngày đăng là bắt buộc")]
+        [Display(Name = "Ngày thông báo")]
+        [DataType(DataType.Date)]
         public DateTime PublishDate { get; set; }
 
-        [Required(ErrorMessage = "Status is required")]
-        [Range(0, 2, ErrorMessage = "Status must be a valid NotificationStatus value.")]
+        [Required(ErrorMessage = "Trạng thái là bắt buộc")]
+        [Range(0, 2, ErrorMessage = "Trạng thái không đúng.")]
         public int? Status { get; set; }
 
+        [Display(Name = "Ngày tạo")]
         public DateTime CreateAt { get; set; }
+        [Display(Name = "Ngày cập nhật")]
         public DateTime? UpdatedAt { get; set; }
 
         public ICollection<NotificationTargetDto>? NotificationTargets { get; set; }
-        public enum NotificationStatus
-        {
-            Pending = 0,
-            Published = 1,
-            Archived = 2
-        }
+
         public enum NotificationTypeTarget
         {
+            [Display(Name = "Toàn bộ tòa nhà")]
             Building = 0,
+            [Display(Name = "Theo phòng")]
             Room = 1,
+            [Display(Name = "Theo cư dân")]
             Resident = 2
+        }
+        public enum NotificationStatus
+        {
+            [Display(Name = "Chờ duyệt")]
+            Pending = 0,
+            [Display(Name = "Đã duyệt")]
+            Published = 1,
+            [Display(Name = "Đã gửi")]
+            Archived = 2
         }
     }
 

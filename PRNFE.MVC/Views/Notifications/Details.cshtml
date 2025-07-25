@@ -2,71 +2,90 @@
 
 @{
     ViewData["Title"] = "Details";
+    var send = Model.NotificationTargets!.Count(f => f.Status == 1);
+    var total = Model.NotificationTargets!.Count();
+    var text = $"{send} / {total}";
 }
 
-<h1>Details</h1>
+<h1 class="mb-4">Details</h1>
 
-<div>
-    <h4>DetailsNotificationResponse</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Id)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Id)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.BuildingId)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.BuildingId)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Title)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Title)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Content)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Content)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TypeTarget)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TypeTarget)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PublishDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PublishDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CreateAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CreateAt)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UpdatedAt)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UpdatedAt)
-        </dd>
-    </dl>
+<div class="card shadow rounded-3 mb-4">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3 fw-bold">
+                @Html.DisplayNameFor(model => model.Id)
+            </dt>
+            <dd class="col-sm-9">
+                @Html.DisplayFor(model => model.Id)
+            </dd>
+
+            <dt class="col-sm-3 fw-bold">
+                @Html.DisplayNameFor(model => model.Title)
+            </dt>
+            <dd class="col-sm-9">
+                @Html.DisplayFor(model => model.Title)
+            </dd>
+
+            <dt class="col-sm-3 fw-bold">
+                @Html.DisplayNameFor(model => model.Content)
+            </dt>
+            <dd class="col-sm-9">
+                @Html.DisplayFor(model => model.Content)
+            </dd>
+
+            <dt class="col-sm-3 fw-bold">
+                @Html.DisplayNameFor(model => model.TypeTarget)
+            </dt>
+            <dd class="col-sm-9">
+                @Enum.GetName(typeof(NotificationResponse.NotificationTypeTarget), Model.TypeTarget)
+            </dd>
+
+            <dt class="col-sm-3 fw-bold">
+                @Html.DisplayNameFor(model => model.PublishDate)
+            </dt>
+            <dd class="col-sm-9">
+                @Html.DisplayFor(model => model.PublishDate)
+            </dd>
+
+            <dt class="col-sm-3 fw-bold">
+                @Html.DisplayNameFor(model => model.Status)
+            </dt>
+            <dd class="col-sm-9">
+                @Enum.GetName(typeof(NotificationResponse.NotificationStatus), Model.Status)
+            </dd>
+
+            <dt class="col-sm-3 fw-bold">
+                @Html.DisplayNameFor(model => model.CreateAt)
+            </dt>
+            <dd class="col-sm-9">
+                @Html.DisplayFor(model => model.CreateAt)
+            </dd>
+
+            <dt class="col-sm-3 fw-bold">
+                @Html.DisplayNameFor(model => model.UpdatedAt)
+            </dt>
+            <dd class="col-sm-9">
+                @Html.DisplayFor(model => model.UpdatedAt)
+            </dd>
+            @if(Model.NotificationTargets != null && Model.NotificationTargets.Any()){
+                <dt class="col-sm-3 fw-bold">
+                    Số lượng gửi
+                </dt>
+                <dd class="col-sm-9 text-primary fw-bold">
+                    @text
+                </dd>
+            }
+
+        </dl>
+    </div>
 </div>
-<div>
-    @Html.ActionLink("Edit", "Edit", new { /* id = Model.PrimaryKey */ }) |
-    <a asp-action="Index">Back to List</a>
+
+<!-- Action Buttons -->
+<div class="d-flex justify-content-center gap-3">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+        <i class="bi bi-pencil-square me-1"></i> Edit
+    </a>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to List
+    </a>
 </div>
