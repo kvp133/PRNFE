@@ -1,5 +1,6 @@
 ﻿using PRNFE.MVC.Models.Response;
 using System.ComponentModel.DataAnnotations;
+using static PRNFE.MVC.Models.Response.DetailsRoomResponse;
 
 namespace PRNFE.MVC.Models.Request
 {
@@ -45,9 +46,8 @@ public class CreateRoomRequest
         [Display(Name = "Diện tích (m²)")]
         public decimal Area { get; set; }
 
-        [Required(ErrorMessage = "Loại phòng là bắt buộc")]
-        [Display(Name = "Loại phòng")]
-        public int RoomTypeId { get; set; }
+        [Required(ErrorMessage = "RoomTypeId is required")]
+        public int? RoomType { get; set; }
 
         [Range(1, int.MaxValue, ErrorMessage = "Sức chứa tối đa phải là số dương")]
         [Display(Name = "Sức chứa tối đa")]
@@ -60,46 +60,71 @@ public class CreateRoomRequest
         // Initial residents and services
         public List<int> InitialResidentIds { get; set; } = new();
         public List<int> InitialServiceIds { get; set; } = new();
+        public enum RoomTypes
+        {
+            Single = 0,          // Phòng đơn
+            Double = 1,          // Phòng đôi
+            Suite = 2,           // Phòng suite
+            Deluxe = 3,          // Phòng deluxe
+            Family = 4,          // Phòng gia đình
+            Studio = 5,          // Phòng studio
+            Penthouse = 6,        // Phòng penthouse
+            Other = 7           // Phòng khác
+        }
     }
 
     public class UpdateRoomRequest
     {
-        [Display(Name = "Tenant ID")]
-        public string TenantId { get; set; }
+        public string TenantId { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Số phòng là bắt buộc")]
-        [StringLength(10, ErrorMessage = "Số phòng không được vượt quá 10 ký tự")]
-        [Display(Name = "Số phòng")]
+        [Required(ErrorMessage = "RoomNumber is required")]
+        [StringLength(10, ErrorMessage = "RoomNumber cannot exceed 10 characters.")]
         public string RoomNumber { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Tầng là bắt buộc")]
-        [Range(1, int.MaxValue, ErrorMessage = "Tầng phải là số dương")]
-        [Display(Name = "Tầng")]
+        [Required(ErrorMessage = "Floor is required")]
+        [Range(1, int.MaxValue)]
         public int Floor { get; set; }
 
-        [Required(ErrorMessage = "Diện tích là bắt buộc")]
-        [Range(1, double.MaxValue, ErrorMessage = "Diện tích phải là số dương")]
-        [Display(Name = "Diện tích (m²)")]
+        [Required(ErrorMessage = "Area is required")]
+        [Range(1, double.MaxValue)]
         public decimal Area { get; set; }
 
-        [Required(ErrorMessage = "Loại phòng là bắt buộc")]
-        [Display(Name = "Loại phòng")]
-        public int RoomTypeId { get; set; }
+        [Required(ErrorMessage = "RoomType is required")]
+        [Range(0, 7)]
+        public int RoomType { get; set; }
 
-        [Range(1, int.MaxValue, ErrorMessage = "Sức chứa tối đa phải là số dương")]
-        [Display(Name = "Sức chứa tối đa")]
+        [Range(1, int.MaxValue)]
         public int MaxOpt { get; set; }
 
-        [Range(0, 7, ErrorMessage = "Trạng thái không hợp lệ")]
-        [Display(Name = "Trạng thái")]
+        [Range(0, 7)]
         public int Status { get; set; }
 
-        [Display(Name = "Ghi chú")]
-        [StringLength(500, ErrorMessage = "Ghi chú không được vượt quá 500 ký tự")]
-        public string Notes { get; set; } = string.Empty;
+        public List<UpdateResidentInRoomDto> Residents { get; set; } = new();
+        public List<UpdateServiceInRoomDto> Services { get; set; } = new();
 
-        public List<UpdateResidentInRoomRequest> Residents { get; set; } = new();
-        public List<UpdateServiceInRoomRequest> Services { get; set; } = new();
+        public enum RoomStatus
+        {
+            Available = 0,          // Phòng chưa ai thuê
+            Occupied = 1,           // Phòng đã có người thuê
+            Reserved = 2,           // Phòng đã được đặt trước
+            UnderMaintenance = 3,   // Phòng đang bảo trì
+            Disabled = 4,           // Phòng không sử dụng được
+            PendingCleaning = 5,    // Phòng đang chờ dọn dẹp
+            ExpiringSoon = 6,       // Phòng sắp hết hạn hợp đồng
+            TemporarilyLocked = 7   // Phòng tạm thời bị khóa
+        }
+
+        public enum RoomTypes
+        {
+            Single = 0,          // Phòng đơn
+            Double = 1,          // Phòng đôi
+            Suite = 2,           // Phòng suite
+            Deluxe = 3,          // Phòng deluxe
+            Family = 4,          // Phòng gia đình
+            Studio = 5,          // Phòng studio
+            Penthouse = 6,        // Phòng penthouse
+            Other = 7           // Phòng khác
+        }
     }
 
     public class UpdateResidentInRoomRequest
@@ -156,7 +181,8 @@ public class CreateRoomRequest
         public int? Floor { get; set; }
 
         [Display(Name = "Loại phòng")]
-        public int? RoomTypeId { get; set; }
+        public int? RoomType { get; set; }
+        //public int? RoomTypeId { get; set; }
 
         [Range(0, 7, ErrorMessage = "Trạng thái không hợp lệ")]
         [Display(Name = "Trạng thái")]
@@ -201,6 +227,30 @@ public class CreateRoomRequest
 
         [Display(Name = "Thứ tự sắp xếp")]
         public string SortOrder { get; set; } = "asc";
+
+        public enum RoomTypes
+        {
+            Single = 0,          // Phòng đơn
+            Double = 1,          // Phòng đôi
+            Suite = 2,           // Phòng suite
+            Deluxe = 3,          // Phòng deluxe
+            Family = 4,          // Phòng gia đình
+            Studio = 5,          // Phòng studio
+            Penthouse = 6,        // Phòng penthouse
+            Other = 7           // Phòng khác
+        }
+
+        public enum RoomStatus
+        {
+            Available = 0,          // Phòng chưa ai thuê
+            Occupied = 1,           // Phòng đã có người thuê
+            Reserved = 2,           // Phòng đã được đặt trước
+            UnderMaintenance = 3,   // Phòng đang bảo trì
+            Disabled = 4,           // Phòng không sử dụng được
+            PendingCleaning = 5,    // Phòng đang chờ dọn dẹp
+            ExpiringSoon = 6,       // Phòng sắp hết hạn hợp đồng
+            TemporarilyLocked = 7   // Phòng tạm thời bị khóa
+        }
     }
 
     public class BulkUpdateRoomRequest

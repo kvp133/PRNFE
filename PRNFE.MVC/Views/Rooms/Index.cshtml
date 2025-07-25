@@ -1,360 +1,436 @@
+@using PRNFE.MVC.Models.Request
 @model List<PRNFE.MVC.Models.Response.RoomResponse>
-@using PRNFE.MVC.Controllers
+
 @{
     ViewData["Title"] = "Quản lý phòng";
-    var currentPage = ViewBag.CurrentPage as int? ?? 1;
-    var pageSize = ViewBag.PageSize as int? ?? 10;
-    var roomTypes = ViewBag.RoomTypes as List<PRNFE.MVC.Controllers.RoomTypeOption> ?? new List<PRNFE.MVC.Controllers.RoomTypeOption>();
-    var roomStatuses = ViewBag.RoomStatuses as List<PRNFE.MVC.Controllers.RoomStatusOption> ?? new List<PRNFE.MVC.Controllers.RoomStatusOption>();
-    var isFiltered = ViewBag.IsFiltered as bool? ?? false;
-    var filterCount = ViewBag.FilterCount as int? ?? 0;
-
-    // Get current filter values
-    var filterRoomTypeId = ViewBag.FilterRoomTypeId?.ToString() ?? "";
-    var filterStatus = ViewBag.FilterStatus?.ToString() ?? "";
 }
 
-<style>
-    .btn-pink {
-        background-color: #e91e63 !important;
-        color: #fff !important;
-        border: none;
-    }
-
-        .btn-pink:hover, .btn-pink:focus {
-            background-color: #ad1457 !important;
-            color: #fff !important;
-        }
-
-    .btn-outline-pink {
-        color: #e91e63 !important;
-        border-color: #e91e63 !important;
-        background: #fff !important;
-    }
-
-        .btn-outline-pink:hover, .btn-outline-pink:focus {
-            color: #fff !important;
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .btn-pink {
             background-color: #e91e63 !important;
+            color: #fff !important;
+            border: none;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+            .btn-pink:hover, .btn-pink:focus {
+                background-color: #ad1457 !important;
+                color: #fff !important;
+                transform: translateY(-2px);
+            }
+
+        .btn-outline-pink {
+            color: #e91e63 !important;
             border-color: #e91e63 !important;
+            background: #fff !important;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
         }
 
-    .badge-pink {
-        background: #e91e63 !important;
-        color: #fff !important;
-    }
+            .btn-outline-pink:hover, .btn-outline-pink:focus {
+                color: #fff !important;
+                background-color: #e91e63 !important;
+                border-color: #e91e63 !important;
+            }
 
-    .badge-pink-light {
-        background: rgba(233,30,99,0.08) !important;
-        color: #e91e63 !important;
-        border: 1px solid #e91e63 !important;
-    }
-
-    .text-pink {
-        color: #e91e63 !important;
-    }
-
-    .bg-pink-light {
-        background: rgba(233,30,99,0.08) !important;
-    }
-
-    .room-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border: 1px solid #e91e6322;
-    }
-
-        .room-card:hover {
-            box-shadow: 0 8px 25px rgba(233,30,99,0.15) !important;
+        .badge-pink {
+            background: #e91e63 !important;
+            color: #fff !important;
+            font-size: 0.75rem;
         }
 
-    .room-info {
-        font-size: 0.9rem;
-    }
+        .badge-pink-light {
+            background: rgba(233,30,99,0.08) !important;
+            color: #e91e63 !important;
+            border: 1px solid #e91e63 !important;
+            font-size: 0.75rem;
+        }
 
-    .badge {
-        font-size: 0.75rem;
-    }
+        .text-pink {
+            color: #e91e63 !important;
+        }
 
-    .filter-card {
-        border-left: 4px solid #e91e63;
-    }
-</style>
+        .bg-pink-light {
+            background: rgba(233,30,99,0.08) !important;
+        }
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <!-- Header -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h4 class="mb-0">
-                                <i class="fas fa-home me-2 text-pink"></i>@ViewData["Title"]
-                            </h4>
-                            <small class="text-muted">
-                                @if (isFiltered)
-                                {
-                                    <span>Tìm thấy: @filterCount phòng</span>
-                                }
-                                else
-                                {
-                                    <span>Tổng số: @Model.Count phòng</span>
-                                }
-                            </small>
-                        </div>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-outline-pink" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
-                                <i class="fas fa-filter me-1"></i>Lọc phòng
-                            </button>
-                            <a href="@Url.Action("Create", "Rooms")" class="btn btn-pink">
-                                <i class="fas fa-plus me-1"></i>Thêm phòng mới
-                            </a>
+        .bg-pink {
+            background: #e91e63 !important;
+            color: #fff !important;
+        }
+
+        .filter-card {
+            border-left: 4px solid #e91e63;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            background-color: #fff;
+            color: #2d2d2d;
+            line-height: 1.6;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: none;
+        }
+
+        .card-header {
+            border-radius: 10px 10px 0 0;
+            padding: 12px 20px;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(233,30,99,0.05);
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #e91e63;
+            box-shadow: 0 0 5px rgba(233,30,99,0.3);
+        }
+
+        .form-control, .form-select {
+            font-size: 0.9rem;
+            border-radius: 6px;
+        }
+
+        .form-label {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .d-flex {
+            gap: 10px;
+        }
+
+        .container-fluid {
+            padding: 15px 30px;
+        }
+
+        .table th, .table td {
+            padding: 10px;
+            vertical-align: middle;
+        }
+
+        {
+            .container-fluid
+
+        {
+            padding: 15px;
+        }
+
+        .btn {
+            font-size: 0.85rem;
+            padding: 8px;
+        }
+
+        .form-label {
+            font-size: 0.9rem;
+        }
+
+        .table-responsive {
+            font-size: 0.9rem;
+        }
+
+        }
+
+        {
+            .table th, .table td
+
+        {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 8px;
+        }
+
+        .table th {
+            border-bottom: none;
+        }
+
+        .table td {
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .d-flex {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <!-- Header -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="mb-0">
+                                    <i class="fas fa-home me-2 text-pink"></i>@ViewData["Title"]
+                                </h4>
+                                <small class="text-muted">Tổng số: @Model.Count() phòng</small>
+                            </div>
+                            <div class="d-flex">
+
+                                <a href="@Url.Action("Create", "Rooms")" class="btn btn-pink btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Thêm phòng
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Filter Form -->
-            <div class="collapse @(isFiltered ? "show" : "")" id="filterCollapse">
-                <div class="card shadow-sm mb-4 filter-card">
-                    <div class="card-header bg-pink-light">
-                        <h6 class="mb-0 text-pink">
-                            <i class="fas fa-search me-2"></i>Bộ lọc tìm kiếm
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <form method="get" action="@Url.Action("Index", "Rooms")">
-                            <input type="hidden" name="isFilter" value="true" />
-                            <div class="row g-3">
-                                <div class="col-md-3">
+                <!-- Filter Form -->
+                <div class="collapse show" id="filterCollapse">
+                    <div class="card shadow-sm mb-4 filter-card">
+                        <div class="card-header bg-pink-light">
+                            <h6 class="mb-0 text-pink">
+                                <i class="fas fa-search me-2"></i>Bộ lọc tìm kiếm
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <form method="get" asp-action="Index" id="filterForm" class="row g-3 mb-4">
+                                <div class="col-md-2">
                                     <label for="roomNumber" class="form-label">Số phòng</label>
-                                    <input type="text" class="form-control" id="roomNumber" name="roomNumber"
-                                           value="@ViewBag.FilterRoomNumber" placeholder="Nhập số phòng...">
+                                    <input name="RoomNumber" class="form-control" id="roomNumber" placeholder="Số phòng" value="@Context.Request.Query["RoomNumber"]" />
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <label for="floor" class="form-label">Tầng</label>
-                                    <input type="number" class="form-control" id="floor" name="floor"
-                                           value="@ViewBag.FilterFloor" placeholder="Nhập tầng..." min="1">
+                                    <input name="Floor" type="number" class="form-control" id="floor" placeholder="Tầng" value="@Context.Request.Query["Floor"]" min="1" />
                                 </div>
-                                <div class="col-md-3">
-                                    <label for="roomTypeId" class="form-label">Loại phòng</label>
-                                    <select class="form-select" id="roomTypeId" name="roomTypeId">
-                                        <option value="">-- Tất cả loại phòng --</option>
-                                        @foreach (var roomType in roomTypes)
+                                <div class="col-md-2">
+                                    <label for="roomType" class="form-label">Loại phòng</label>
+                                    <select name="RoomType" class="form-select" id="roomType">
+                                        <option value="">Loại phòng</option>
+                                        @{
+                                            var selectedRoomType = Context.Request.Query["RoomType"].ToString();
+                                        }
+                                        @foreach (var type in Enum.GetValues(typeof(FilterRoomRequest.RoomTypes)))
                                         {
-                                            var isSelected = filterRoomTypeId == roomType.Id.ToString();
-                                            <option value="@roomType.Id" selected="@isSelected">
-                                                @roomType.Name
-                                            </option>
+                                            var typeInt = (int)type;
+                                            var isSelected = selectedRoomType == typeInt.ToString() ? "selected" : "";
+                                            <option value="@typeInt" selected="@isSelected">@type</option>
                                         }
                                     </select>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <label for="status" class="form-label">Trạng thái</label>
-                                    <select class="form-select" id="status" name="status">
-                                        <option value="">-- Tất cả trạng thái --</option>
-                                        @foreach (var status in roomStatuses)
+                                    <select name="Status" class="form-select" id="status">
+                                        <option value="">Trạng thái</option>
+                                        @{
+                                            var selectedStatus = Context.Request.Query["Status"].ToString();
+                                        }
+                                        @foreach (var status in Enum.GetValues(typeof(FilterRoomRequest.RoomStatus)))
                                         {
-                                            var isSelected = filterStatus == status.Value.ToString();
-                                            <option value="@status.Value" selected="@isSelected">
-                                                @status.Text
-                                            </option>
+                                            var statusInt = (int)status;
+                                            var isSelected = selectedStatus == statusInt.ToString() ? "selected" : "";
+                                            <option value="@statusInt" selected="@isSelected">@status</option>
                                         }
                                     </select>
                                 </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="btn-group">
-                                        <button type="submit" class="btn btn-pink">
-                                            <i class="fas fa-search me-1"></i>Tìm kiếm
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <div class="d-flex w-100">
+                                        <button type="submit" class="btn btn-pink btn-sm">
+                                            <i class="fas fa-search me-1"></i>Lọc
                                         </button>
-                                        <a href="@Url.Action("Index", "Rooms")" class="btn btn-outline-pink">
+                                        <a href="@Url.Action("Index", "Rooms")" class="btn btn-outline-pink btn-sm">
                                             <i class="fas fa-times me-1"></i>Xóa bộ lọc
                                         </a>
                                     </div>
                                 </div>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            @if (!string.IsNullOrEmpty(TempData["Message"]?.ToString()))
-            {
-                <div class="alert @(TempData["IsSuccess"]?.ToString() == "True" ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
-                    <i class="fas @(TempData["IsSuccess"]?.ToString() == "True" ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
-                    @TempData["Message"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            }
 
-            <!-- Filter Results Info -->
-            @if (isFiltered)
-            {
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Kết quả lọc:</strong> Tìm thấy @filterCount phòng phù hợp với điều kiện tìm kiếm.
-                    <a href="@Url.Action("Index", "Rooms")" class="alert-link ms-2">Xem tất cả phòng</a>
-                </div>
-            }
 
-            <!-- Rooms Grid -->
-            @if (Model.Any())
-            {
-                <div class="row">
-                    @foreach (var room in Model)
-                    {
-                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                            <div class="card h-100 shadow-sm room-card" data-room-id="@room.Id">
-                                <div class="card-header bg-pink-light d-flex justify-content-between align-items-center border-pink">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-door-open text-pink me-2"></i>
-                                        <strong class="text-pink">@room.RoomNumber</strong>
-                                    </div>
-                                    <span class="badge badge-pink-light">
-                                        @RoomsController.GetRoomStatusText(room.Status)
-                                    </span>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row text-center mb-3">
-                                        <div class="col-4">
-                                            <div class="border-end">
-                                                <div class="h6 text-pink mb-1">@room.Floor</div>
-                                                <small class="text-muted">Tầng</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="border-end">
-                                                <div class="h6 text-pink mb-1">@room.Area.ToString("N1")</div>
-                                                <small class="text-muted">m²</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="h6 text-pink mb-1">@room.MaxOpt</div>
-                                            <small class="text-muted">người</small>
-                                        </div>
-                                    </div>
-                                    <div class="room-info">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <small class="text-muted">Tenant ID:</small>
-                                            <span class="badge badge-pink-light">@room.TenantId</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <small class="text-muted">Loại phòng:</small>
-                                            <span class="badge badge-pink-light">
-                                                @{
-                                                    var roomType = roomTypes.FirstOrDefault(rt => rt.Id == room.RoomType);
-                                                    var roomTypeName = roomType?.Name ?? $"#{room.RoomType}";
-                                                }
-                                                @roomTypeName
-                                            </span>
-                                        </div>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <small class="text-muted">Ngày tạo:</small>
-                                            <small>@room.CreateAt.ToString("dd/MM/yyyy")</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-footer bg-white">
-                                    <div class="btn-group w-100">
-                                        <a href="@Url.Action("Details", "Rooms", new { id = room.Id })"
-                                           class="btn btn-outline-pink btn-sm">
-                                            <i class="fas fa-eye"></i> Chi tiết
-                                        </a>
-                                        <a href="@Url.Action("Edit", "Rooms", new { id = room.Id })"
-                                           class="btn btn-outline-pink btn-sm">
-                                            <i class="fas fa-edit"></i> Sửa
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="card">
-                    <div class="card-body text-center py-5">
-                        <i class="fas fa-home fa-3x text-muted mb-3"></i>
-                        @if (isFiltered)
+                <!-- Rooms Table -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">Danh sách phòng</h6>
+                        <small class="text-muted">Tổng cộng: @Model.Count() phòng</small>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (Model.Any())
                         {
-                            <h5 class="text-muted">Không tìm thấy phòng nào</h5>
-                            <p class="text-muted">Không có phòng nào phù hợp với điều kiện lọc của bạn</p>
-                            <a href="@Url.Action("Index", "Rooms")" class="btn btn-outline-pink me-2">
-                                <i class="fas fa-list me-1"></i>Xem tất cả phòng
-                            </a>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="border-0">Mã phòng</th>
+                                            <th class="border-0">Số phòng</th>
+                                            <th class="border-0">Tầng</th>
+                                            <th class="border-0">Diện tích</th>
+                                            <th class="border-0">Loại phòng</th>
+                                            <th class="border-0">Sức chứa tối đa</th>
+                                            <th class="border-0">Trạng thái</th>
+                                            <th class="border-0">Ngày tạo</th>
+                                            <th class="border-0">Cập nhật lần cuối</th>
+                                            <th class="border-0 text-center">Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var room in Model)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <span class="badge badge-pink-light">@room.Id</span>
+                                                </td>
+                                                <td>
+                                                    <strong class="text-pink">@room.RoomNumber</strong>
+                                                </td>
+                                                <td>@room.Floor</td>
+                                                <td>@room.Area.ToString("N1") m²</td>
+                                                <td>
+                                                    <span class="badge badge-pink-light">@((PRNFE.MVC.Models.Response.RoomResponse.RoomTypes)room.RoomType)</span>
+                                                </td>
+                                                <td>@room.MaxOpt người</td>
+                                                <td>
+                                                    <span class="badge badge-pink-light">@((PRNFE.MVC.Models.Response.RoomResponse.RoomStatus)room.Status)</span>
+                                                </td>
+                                                <td>@room.CreateAt.ToString("dd/MM/yyyy")</td>
+                                                <td>@(room.UpdatedAt.HasValue? room.UpdatedAt.Value.ToString("dd/MM/yyyy") : "-")</td>
+                                                <td class="text-center">
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <a href="@Url.Action("Details", "Rooms", new { id = room.Id })" class="btn btn-outline-pink" title="Chi tiết">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="@Url.Action("Edit", "Rooms", new { id = room.Id })" class="btn btn-outline-pink" title="Chỉnh sửa">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
                         }
                         else
                         {
-                            <h5 class="text-muted">Chưa có phòng nào</h5>
-                            <p class="text-muted">Bắt đầu bằng cách thêm phòng đầu tiên cho tòa nhà</p>
+                            <div class="text-center py-5">
+                                <div class="mb-4">
+                                    <i class="fas fa-home fa-4x text-pink"></i>
+                                </div>
+                                <h5 class="text-muted mb-3">Chưa có phòng nào</h5>
+                                <p class="text-muted mb-4">Bắt đầu bằng cách thêm phòng đầu tiên cho tòa nhà</p>
+                                <a href="@Url.Action("Create", "Rooms")" class="btn btn-pink btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Thêm phòng mới
+                                </a>
+                            </div>
                         }
-                        <a href="@Url.Action("Create", "Rooms")" class="btn btn-pink">
-                            <i class="fas fa-plus me-1"></i>Thêm phòng mới
-                        </a>
                     </div>
                 </div>
-            }
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-pink text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Xác nhận xóa phòng
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-center mb-3">
-                    <i class="fas fa-home fa-3x text-pink"></i>
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-pink text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Xác nhận xóa phòng
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <p class="text-center">Bạn có chắc chắn muốn xóa phòng <strong id="roomNumberToDelete"></strong> không?</p>
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan đến phòng.
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-home fa-3x text-pink"></i>
+                    </div>
+                    <p class="text-center">Bạn có chắc chắn muốn xóa phòng <strong id="roomNumberToDelete"></strong> không?</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan đến phòng.
+                    </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-pink" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i> Hủy bỏ
-                </button>
-                <form id="deleteForm" method="post" style="display: inline;">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-pink">
-                        <i class="fas fa-trash me-1"></i> Xóa vĩnh viễn
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-pink btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Hủy bỏ
                     </button>
-                </form>
+                    <form id="deleteForm" method="post" asp-action="Delete">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-pink btn-sm">
+                            <i class="fas fa-trash me-1"></i> Xóa vĩnh viễn
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/additional-methods.min.js"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Client-side validation for filter form
+            $('#filterForm').validate({
+                rules: {
+                    RoomNumber: {
+                        maxlength: 50
+                    },
+                    Floor: {
+                        number: true,
+                        min: 1
+                    }
+                },
+                messages: {
+                    RoomNumber: {
+                        maxlength: "Số phòng không được vượt quá 50 ký tự"
+                    },
+                    Floor: {
+                        number: "Tầng phải là số hợp lệ",
+                        min: "Tầng phải lớn hơn hoặc bằng 1"
+                    }
+                },
+                errorPlacement: function (error, element) {
+                    error.appendTo(element.next('.text-danger'));
+                }
+            });
+
+            // Form submission
+            $('#filterForm').on('submit', function (e) {
+                if ($(this).valid()) {
+                    const submitBtn = $(this).find('button[type="submit"]');
+                    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang lọc...');
+                    setTimeout(function () {
+                        submitBtn.prop('disabled', false).html('<i class="fas fa-search me-1"></i>Lọc');
+                    }, 3000);
+                }
+            });
+        });
+
         function confirmDelete(roomId, roomNumber) {
             document.getElementById('roomNumberToDelete').textContent = roomNumber;
             document.getElementById('deleteForm').action = '@Url.Action("Delete", "Rooms")/' + roomId;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
-
-        // Add hover effects to room cards
-        document.addEventListener('DOMContentLoaded', function() {
-            const roomCards = document.querySelectorAll('.room-card');
-            roomCards.forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-5px)';
-                    this.style.transition = 'transform 0.3s ease';
-                });
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                });
-            });
-        });
     </script>
-}
+</body>
+</html>

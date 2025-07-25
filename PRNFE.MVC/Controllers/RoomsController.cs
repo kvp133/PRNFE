@@ -1,1011 +1,507 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
-using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Threading.Tasks;
+using static PRNFE.MVC.Models.Response.DetailsRoomResponse;
 
 namespace PRNFE.MVC.Controllers
 {
-    [Route("[controller]/[action]")]
     public class RoomsController : BaseController
     {
-
         public RoomsController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
             : base(httpClientFactory, configuration)
         {
         }
-        [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int size = 10, string? roomNumber = null,
-            int? floor = null, int? roomTypeId = null, int? status = null, bool isFilter = false)
+
+        public async Task<IActionResult> Index(FilterRoomRequest filter)
         {
+            if (!ValidateBuildingId())
+            {
+                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            if (!IsAuthenticated())
+            {
+                TempData["Message"] = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
+            {
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var buildingId = GetBuildingId();
+
+            using var httpClient = CreateHttpClientWithCookies();
+            httpClient.DefaultRequestHeaders.Remove("buildingId");
+            httpClient.DefaultRequestHeaders.Add("buildingId", buildingId);
+            if (!string.IsNullOrEmpty(token))
+            {
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            string url;
+            bool hasFilter = !string.IsNullOrEmpty(filter.RoomNumber)
+                             || filter.Floor.HasValue
+                             || filter.RoomType.HasValue
+                             || filter.Status.HasValue;
+
+            if (hasFilter)
+            {
+                var queryParams = new List<string>();
+                if (!string.IsNullOrEmpty(filter.RoomNumber))
+                    queryParams.Add($"RoomNumber={Uri.EscapeDataString(filter.RoomNumber)}");
+                if (filter.Floor.HasValue)
+                    queryParams.Add($"Floor={filter.Floor.Value}");
+                if (filter.RoomType.HasValue)
+                    queryParams.Add($"RoomType={filter.RoomType.Value}");
+                if (filter.Status.HasValue)
+                    queryParams.Add($"Status={filter.Status.Value}");
+
+                var query = string.Join("&", queryParams);
+                url = $"{_apiQLPTUrl}/api/Rooms/filter";
+                if (!string.IsNullOrEmpty(query))
+                    url += "?" + query;
+            }
+            else
+            {
+                url = $"{_apiQLPTUrl}/api/Rooms";
+            }
+
             try
             {
-                if (!ValidateBuildingId())
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        TempData["Message"] = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+                        TempData["IsSuccess"] = false;
+                        return RedirectToAction("Login", "Auth");
+                    }
+
+                    TempData["Message"] = $"Không thể lấy danh sách phòng từ API: {errorContent}";
                     TempData["IsSuccess"] = false;
-                    return RedirectToAction("Login", "Account");
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
+                    return View(new List<RoomResponse>());
                 }
 
-                using var httpClient = CreateHttpClientWithCookies();
-                var buildingId = GetBuildingId();
-                httpClient.DefaultRequestHeaders.Add("buildingId", buildingId);
+                var json = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"JSON Response: {json}");
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<RoomResponse>>>(json);
 
-                List<RoomResponse> rooms;
-
-                if (isFilter && (roomNumber != null || floor.HasValue || roomTypeId.HasValue || status.HasValue))
+                if (apiResponse == null || !apiResponse.success)
                 {
-                    // Use filter endpoint
-                    var filterDto = new
-                    {
-                        roomNumber = roomNumber ?? string.Empty,
-                        floor = floor,
-                        roomTypeId = roomTypeId,
-                        status = status
-                    };
-
-                    var json = JsonConvert.SerializeObject(filterDto);
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                    var response = await httpClient.PostAsync("api/Rooms/filter", content);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var responseJson = await response.Content.ReadAsStringAsync();
-                        rooms = JsonConvert.DeserializeObject<List<RoomResponse>>(responseJson) ?? new List<RoomResponse>();
-                        ViewBag.IsFiltered = true;
-                        ViewBag.FilterCount = rooms.Count;
-                    }
-                    else
-                    {
-                        var errorContent = await response.Content.ReadAsStringAsync();
-                        TempData["Message"] = $"Không thể lọc phòng: {errorContent}";
-                        TempData["IsSuccess"] = false;
-                        rooms = new List<RoomResponse>();
-                    }
-                }
-                else
-                {
-                    // Use regular endpoint with pagination
-                    var apiUrl = $"api/Rooms?$skip={((page - 1) * size)}&$top={size}";
-                    var response = await httpClient.GetAsync(apiUrl);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var responseJson = await response.Content.ReadAsStringAsync();
-                        rooms = JsonConvert.DeserializeObject<List<RoomResponse>>(responseJson) ?? new List<RoomResponse>();
-                    }
-                    else
-                    {
-                        var errorContent = await response.Content.ReadAsStringAsync();
-                        TempData["Message"] = $"Không thể tải danh sách phòng: {errorContent}";
-                        TempData["IsSuccess"] = false;
-                        rooms = new List<RoomResponse>();
-                    }
+                    TempData["Message"] = apiResponse?.message ?? "Lỗi khi lấy dữ liệu phòng";
+                    TempData["IsSuccess"] = false;
+                    return View(new List<RoomResponse>());
                 }
 
-                ViewBag.CurrentPage = page;
-                ViewBag.PageSize = size;
-                ViewBag.Rooms = rooms;
-
-                // Get data for filter dropdowns
-                ViewBag.RoomTypes = await GetRoomTypes();
-                ViewBag.RoomStatuses = GetRoomStatusOptions();
-
-                // Preserve filter values
-                ViewBag.FilterRoomNumber = roomNumber;
-                ViewBag.FilterFloor = floor;
-                ViewBag.FilterRoomTypeId = roomTypeId;
-                ViewBag.FilterStatus = status;
-
-                // Get room statistics
-                ViewBag.Statistics = await GetRoomStatistics();
-
+                var rooms = apiResponse.data ?? new List<RoomResponse>();
                 return View(rooms);
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                TempData["Message"] = "Có lỗi xảy ra khi tải danh sách phòng!";
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
                 TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return View(new List<RoomResponse>());
             }
-
-            ViewBag.RoomTypes = await GetRoomTypes();
-            ViewBag.RoomStatuses = GetRoomStatusOptions();
-            return View(new List<RoomResponse>());
-        }
-
-        // Add this helper method to get room status options
-        private List<RoomStatusOption> GetRoomStatusOptions()
-        {
-            return new List<RoomStatusOption>
-    {
-        new RoomStatusOption { Value = 0, Text = "Trống" },
-        new RoomStatusOption { Value = 1, Text = "Đã thuê" },
-        new RoomStatusOption { Value = 2, Text = "Đã đặt" },
-        new RoomStatusOption { Value = 3, Text = "Bảo trì" },
-        new RoomStatusOption { Value = 4, Text = "Không sử dụng" },
-        new RoomStatusOption { Value = 5, Text = "Chờ dọn dẹp" },
-        new RoomStatusOption { Value = 6, Text = "Sắp hết hạn" },
-        new RoomStatusOption { Value = 7, Text = "Tạm khóa" }
-    };
+            catch (JsonException ex)
+            {
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return View(new List<RoomResponse>());
+            }
         }
 
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
+            if (!ValidateBuildingId())
+            {
+                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            if (!IsAuthenticated())
+            {
+                TempData["Message"] = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
+            {
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            using var httpClient = CreateHttpClientWithCookies();
+            httpClient.DefaultRequestHeaders.Remove("buildingId");
+            httpClient.DefaultRequestHeaders.Add("buildingId", GetBuildingId());
+            if (!string.IsNullOrEmpty(token))
+            {
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
             try
             {
-                using var httpClient = CreateHttpClientWithCookies();
+                var url = $"{_apiQLPTUrl}/api/Rooms/{id}";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.GetAsync(url);
 
-                var response = await httpClient.GetAsync($"api/Rooms/{id}");
-
-                if (response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var room = JsonConvert.DeserializeObject<DetailRoomResponse>(json);
-
-                    if (room != null)
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                     {
-                        // Get additional data for display
-                        ViewBag.RoomTypes = await GetRoomTypes();
-                        ViewBag.AvailableResidents = await GetAvailableResidents();
-                        ViewBag.AvailableServices = await GetAvailableServices();
-
-                        return View(room);
+                        TempData["Message"] = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+                        TempData["IsSuccess"] = false;
+                        return RedirectToAction("Login", "Auth");
                     }
+
+                    TempData["Message"] = $"Không thể lấy thông tin phòng từ API: {errorContent}";
+                    TempData["IsSuccess"] = false;
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
+                    return RedirectToAction(nameof(Index));
                 }
 
-                TempData["Message"] = "Không tìm thấy phòng!";
-                TempData["IsSuccess"] = false;
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Có lỗi xảy ra khi tải thông tin phòng!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
+                var json = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"JSON Response: {json}");
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<DetailsRoomResponse>>(json);
 
-            return RedirectToAction(nameof(Index));
+                if (apiResponse == null || !apiResponse.success)
+                {
+                    TempData["Message"] = apiResponse?.message ?? "Lỗi khi xử lý dữ liệu phòng.";
+                    TempData["IsSuccess"] = false;
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var roomDetails = apiResponse.data;
+                return View(roomDetails);
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return RedirectToAction(nameof(Index));
+            }
+            catch (JsonException ex)
+            {
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [HttpGet]
-        public async Task<IActionResult> Create()
+        public IActionResult Create()
         {
-            if (!ValidateBuildingId())
+            if (!ValidateBuildingId() || !IsAuthenticated())
             {
-                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                TempData["Message"] = "Vui lòng đăng nhập và chọn tòa nhà trước khi tạo phòng!";
                 TempData["IsSuccess"] = false;
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Login", "Auth");
             }
 
-            var roomTypes = await GetRoomTypes(); // Ensure this is awaited
-            Console.WriteLine($"Create action: RoomTypes assigned to ViewBag, count: {roomTypes.Count}");
-
-            ViewBag.RoomTypes = roomTypes;
-            ViewBag.AvailableResidents = await GetAvailableResidents();
-            ViewBag.AvailableServices = await GetAvailableServices();
-            ViewBag.BuildingId = GetBuildingId();
-
-            return View(new CreateRoomRequest());
+            return View();
         }
-
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CreateRoomRequest request)
+        public async Task<IActionResult> Create(CreateRoomRequest model)
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.RoomTypes = await GetRoomTypes();
-                ViewBag.AvailableResidents = await GetAvailableResidents();
-                ViewBag.AvailableServices = await GetAvailableServices();
-                ViewBag.BuildingId = GetBuildingId();
-                return View(request);
+                return View(model);
             }
 
             if (!ValidateBuildingId())
             {
                 TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
                 TempData["IsSuccess"] = false;
-                ViewBag.RoomTypes = await GetRoomTypes();
-                return View(request);
+                return RedirectToAction("Login", "Auth");
             }
+
+            if (!IsAuthenticated())
+            {
+                TempData["Message"] = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
+            {
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var buildingId = GetBuildingId();
+
+            using var httpClient = CreateHttpClientWithCookies();
+            httpClient.DefaultRequestHeaders.Remove("buildingId");
+            httpClient.DefaultRequestHeaders.Add("buildingId", buildingId);
+            if (!string.IsNullOrEmpty(token))
+            {
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var jsonContent = JsonConvert.SerializeObject(model);
+            var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
             try
             {
-                using var httpClient = CreateHttpClientWithCookies();
+                var url = $"{_apiQLPTUrl}/api/Rooms?buildingId={buildingId}";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.PostAsync(url, httpContent);
 
-                // Thêm buildingId vào header
-                var buildingId = GetBuildingId();
-                httpClient.DefaultRequestHeaders.Add("buildingId", buildingId);
-
-                // Tạo một đối tượng mới bao gồm cả buildingId
-                var requestWithBuildingId = new
-                {
-                    buildingId = int.Parse(buildingId),
-                    roomNumber = request.RoomNumber,
-                    floor = request.Floor,
-                    area = request.Area,
-                    roomTypeId = request.RoomTypeId,
-                    maxOpt = request.MaxOpt,
-                    notes = request.Notes,
-                    initialResidentIds = request.InitialResidentIds ?? new List<int>(),
-                    initialServiceIds = request.InitialServiceIds ?? new List<int>()
-                };
-
-                var json = JsonConvert.SerializeObject(requestWithBuildingId);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                Console.WriteLine($"Creating room with buildingId: {buildingId}");
-                Console.WriteLine($"Request data: {json}");
-
-                var response = await httpClient.PostAsync("api/Rooms", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseJson = await response.Content.ReadAsStringAsync();
-                    var createdRoom = JsonConvert.DeserializeObject<RoomResponse>(responseJson);
-
-                    TempData["Message"] = "Tạo phòng thành công!";
-                    TempData["IsSuccess"] = true;
-
-                    // If there are initial residents or services, redirect to edit
-                    if (request.InitialResidentIds.Any() || request.InitialServiceIds.Any())
-                    {
-                        return RedirectToAction(nameof(Edit), new { id = createdRoom?.Id });
-                    }
-
-                    return RedirectToAction(nameof(Index));
-                }
-                else
+                if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["Message"] = $"Không thể tạo phòng: {errorContent}";
-                    TempData["IsSuccess"] = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Có lỗi xảy ra khi tạo phòng!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        TempData["Message"] = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+                        TempData["IsSuccess"] = false;
+                        return RedirectToAction("Login", "Auth");
+                    }
 
-            ViewBag.RoomTypes = await GetRoomTypes();
-            ViewBag.AvailableResidents = await GetAvailableResidents();
-            ViewBag.AvailableServices = await GetAvailableServices();
-            ViewBag.BuildingId = GetBuildingId();
-            return View(request);
+                    TempData["Message"] = $"Tạo phòng thất bại: {errorContent}";
+                    TempData["IsSuccess"] = false;
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
+                    return View(model);
+                }
+
+                var responseJson = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"JSON Response: {responseJson}");
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<RoomResponse>>(responseJson);
+
+                if (apiResponse == null || !apiResponse.success)
+                {
+                    TempData["Message"] = apiResponse?.message ?? "Lỗi khi tạo phòng.";
+                    TempData["IsSuccess"] = false;
+                    return View(model);
+                }
+
+                TempData["Message"] = "Tạo phòng thành công!";
+                TempData["IsSuccess"] = true;
+                return RedirectToAction(nameof(Index));
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return View(model);
+            }
+            catch (JsonException ex)
+            {
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return View(model);
+            }
         }
 
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
+            if (!ValidateBuildingId() || !IsAuthenticated())
+            {
+                TempData["Message"] = "Phiên đăng nhập đã hết hạn hoặc không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
+            {
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            using var httpClient = CreateHttpClientWithCookies();
+            httpClient.DefaultRequestHeaders.Remove("buildingId");
+            httpClient.DefaultRequestHeaders.Add("buildingId", GetBuildingId());
+            if (!string.IsNullOrEmpty(token))
+            {
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
             try
             {
-                if (!ValidateBuildingId())
+                var url = $"{_apiQLPTUrl}/api/Rooms/{id}";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        TempData["Message"] = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+                        TempData["IsSuccess"] = false;
+                        return RedirectToAction("Login", "Auth");
+                    }
+
+                    TempData["Message"] = $"Không thể lấy thông tin phòng: {errorContent}";
+                    TempData["IsSuccess"] = false;
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"JSON Response: {json}");
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<DetailsRoomResponse>>(json);
+
+                if (apiResponse == null || !apiResponse.success)
+                {
+                    TempData["Message"] = apiResponse?.message ?? "Lỗi khi xử lý dữ liệu.";
                     TempData["IsSuccess"] = false;
                     return RedirectToAction(nameof(Index));
                 }
 
-                using var httpClient = CreateHttpClientWithCookies();
+                var room = apiResponse.data;
 
-                // Thêm buildingId vào header
-                var buildingId = GetBuildingId();
-                httpClient.DefaultRequestHeaders.Add("buildingId", buildingId);
-
-                var response = await httpClient.GetAsync($"api/Rooms/{id}");
-
-                if (response.IsSuccessStatusCode)
+                var model = new UpdateRoomRequest
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var room = JsonConvert.DeserializeObject<DetailRoomResponse>(json);
-
-                    if (room != null)
+                    TenantId = room.TenantId,
+                    RoomNumber = room.RoomNumber,
+                    Floor = room.Floor,
+                    Area = room.Area,
+                    RoomType = room.RoomType,
+                    MaxOpt = room.MaxOpt,
+                    Status = room.Status,
+                    Residents = room.Residents?.Select(r => new UpdateResidentInRoomDto
                     {
-                        var updateRequest = new PRNFE.MVC.Models.Request.UpdateRoomRequests
-                        {
-                            TenantId = room.TenantId ?? string.Empty,
-                            RoomNumber = room.RoomNumber,
-                            Floor = room.Floor,
-                            Area = room.Area,
-                            RoomType = room.RoomType,
-                            MaxOpt = room.MaxOpt,
-                            Status = room.Status,
-                            Residents = room.Residents?.Select(r => new PRNFE.MVC.Models.Response.DetailsRoomResponse.UpdateResidentInRoomDto
-                            {
-                                ResidentId = r.ResidentId,
-                                IsActive = r.IsActive
-                            }).ToList() ?? new List<PRNFE.MVC.Models.Response.DetailsRoomResponse.UpdateResidentInRoomDto>(),
-                            Services = room.Services?.Select(s => new PRNFE.MVC.Models.Response.DetailsRoomResponse.UpdateServiceInRoomDto
-                            {
-                                ServiceId = s.ServiceId,
-                                IsActive = s.IsActive,
-                                CustomPrice = (double)s.CustomPrice
-                            }).ToList() ?? new List<PRNFE.MVC.Models.Response.DetailsRoomResponse.UpdateServiceInRoomDto>()
-                        };
-
-                        ViewBag.RoomId = id;
-                        ViewBag.RoomTypes = await GetRoomTypes();
-                        ViewBag.AvailableResidents = await GetAvailableResidents();
-                        ViewBag.AvailableServices = await GetAvailableServices();
-                        ViewBag.RoomHistory = room.History ?? new List<RoomHistoryResponse>();
-                        ViewBag.BuildingId = buildingId;
-
-                        return View(updateRequest);
-                    }
-                }
-
-                TempData["Message"] = "Không tìm thấy phòng!";
-                TempData["IsSuccess"] = false;
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Có lỗi xảy ra khi tải thông tin phòng!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, UpdateRoomRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                ViewBag.RoomId = id;
-                ViewBag.RoomTypes = await GetRoomTypes();
-                ViewBag.AvailableResidents = await GetAvailableResidents();
-                ViewBag.AvailableServices = await GetAvailableServices();
-                ViewBag.BuildingId = GetBuildingId();
-                return View(request);
-            }
-
-            if (!ValidateBuildingId())
-            {
-                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
-                TempData["IsSuccess"] = false;
-                ViewBag.RoomId = id;
-                ViewBag.RoomTypes = await GetRoomTypes();
-                ViewBag.AvailableResidents = await GetAvailableResidents();
-                ViewBag.AvailableServices = await GetAvailableServices();
-                ViewBag.BuildingId = GetBuildingId();
-                return View(request);
-            }
-
-            try
-            {
-                using var httpClient = CreateHttpClientWithCookies();
-
-                // Thêm buildingId vào header
-                var buildingId = GetBuildingId();
-                httpClient.DefaultRequestHeaders.Add("buildingId", buildingId);
-
-                // Tạo đối tượng request với buildingId
-                var requestWithBuildingId = new
-                {
-                    buildingId = int.Parse(buildingId),
-                    tenantId = request.TenantId,
-                    roomNumber = request.RoomNumber,
-                    floor = request.Floor,
-                    area = request.Area,
-                    roomTypeId = request.RoomTypeId,
-                    maxOpt = request.MaxOpt,
-                    status = request.Status,
-                    notes = request.Notes ?? string.Empty,
-                    residents = request.Residents?.Select(r => new
-                    {
-                        residentId = r.ResidentId,
-                        isActive = r.IsActive,
-                        joinDate = r.JoinDate.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                        leaveDate = r.LeaveDate?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                        notes = r.Notes ?? string.Empty
-                    }).ToList(),
-                    services = request.Services?.Select(s => new
-                    {
-                        serviceId = s.ServiceId,
-                        customPrice = s.CustomPrice,
-                        isActive = s.IsActive,
-                        startDate = s.StartDate.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                        endDate = s.EndDate?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                        notes = s.Notes ?? string.Empty
-                    }).ToList()
-                };
-
-                var json = JsonConvert.SerializeObject(requestWithBuildingId, new JsonSerializerSettings
-                {
-                    DateFormatHandling = DateFormatHandling.IsoDateFormat,
-                    DateTimeZoneHandling = DateTimeZoneHandling.Utc,
-                    NullValueHandling = NullValueHandling.Ignore
-                });
-
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                Console.WriteLine($"Updating room {id} with buildingId: {buildingId}");
-                Console.WriteLine($"Request data: {json}");
-
-                var response = await httpClient.PutAsync($"api/Rooms/{id}", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Message"] = "Cập nhật phòng thành công!";
-                    TempData["IsSuccess"] = true;
-                    return RedirectToAction(nameof(Details), new { id = id });
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["Message"] = $"Không thể cập nhật phòng: {errorContent}";
-                    TempData["IsSuccess"] = false;
-                    Console.WriteLine($"Error response: {errorContent}");
-                }
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Có lỗi xảy ra khi cập nhật phòng!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-
-            ViewBag.RoomId = id;
-            ViewBag.RoomTypes = await GetRoomTypes();
-            ViewBag.AvailableResidents = await GetAvailableResidents();
-            ViewBag.AvailableServices = await GetAvailableServices();
-            ViewBag.BuildingId = GetBuildingId();
-            return View(request);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
-        {
-            try
-            {
-                using var httpClient = CreateHttpClientWithCookies();
-
-                var response = await httpClient.DeleteAsync($"api/Rooms/{id}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Message"] = "Xóa phòng thành công!";
-                    TempData["IsSuccess"] = true;
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["Message"] = $"Không thể xóa phòng: {errorContent}";
-                    TempData["IsSuccess"] = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Có lỗi xảy ra khi xóa phòng!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> Filter()
-        {
-            ViewBag.RoomTypes = await GetRoomTypes();
-            return View(new FilterRoomRequest());
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Filter(FilterRoomRequest request)
-        {
-            try
-            {
-                if (!ValidateBuildingId())
-                {
-                    TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
-                    TempData["IsSuccess"] = false;
-                    ViewBag.RoomTypes = await GetRoomTypes();
-                    return View(request);
-                }
-
-                var filterDto = new
-                {
-                    roomNumber = request.RoomNumber ?? string.Empty,
-                    floor = request.Floor,
-                    roomTypeId = request.RoomTypeId,
-                    status = request.Status,
-                    minArea = request.MinArea,
-                    maxArea = request.MaxArea,
-                    minMaxOpt = request.MinMaxOpt,
-                    maxMaxOpt = request.MaxMaxOpt,
-                    hasResidents = request.HasResidents,
-                    hasServices = request.HasServices,
-                    createdFrom = request.CreatedFrom?.ToString("yyyy-MM-dd"),
-                    createdTo = request.CreatedTo?.ToString("yyyy-MM-dd"),
-                    sortBy = request.SortBy,
-                    sortOrder = request.SortOrder
-                };
-
-                using var httpClient = CreateHttpClientWithCookies();
-
-                var json = JsonConvert.SerializeObject(filterDto);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                Console.WriteLine($"Sending filter request: {json}");
-
-                var response = await httpClient.PostAsync("api/Rooms/filter", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseJson = await response.Content.ReadAsStringAsync();
-                    var rooms = JsonConvert.DeserializeObject<List<RoomResponse>>(responseJson);
-
-                    // Apply PageSize limit
-                    if (rooms != null && rooms.Count > request.PageSize)
-                    {
-                        rooms = rooms.Take(request.PageSize).ToList();
-                    }
-
-                    ViewBag.FilteredRooms = rooms ?? new List<RoomResponse>();
-                    ViewBag.FilterApplied = true;
-                    TempData["Message"] = $"Tìm thấy {rooms?.Count ?? 0} phòng phù hợp!";
-                    TempData["IsSuccess"] = true;
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    ViewBag.FilteredRooms = new List<RoomResponse>();
-                    ViewBag.FilterApplied = true;
-                    TempData["Message"] = $"Không thể lọc phòng: {errorContent}";
-                    TempData["IsSuccess"] = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                ViewBag.FilteredRooms = new List<RoomResponse>();
-                ViewBag.FilterApplied = true;
-                TempData["Message"] = "Có lỗi xảy ra khi lọc phòng!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-
-            ViewBag.RoomTypes = await GetRoomTypes();
-            return View(request);
-        }
-
-        // Bulk Operations
-        [HttpGet]
-        public async Task<IActionResult> BulkUpdate()
-        {
-            ViewBag.RoomTypes = await GetRoomTypes();
-            ViewBag.AllRooms = await GetAllRooms();
-            return View(new BulkUpdateRoomRequest());
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> BulkUpdate(BulkUpdateRoomRequest request)
-        {
-            if (!ModelState.IsValid || !request.RoomIds.Any())
-            {
-                ViewBag.RoomTypes = await GetRoomTypes();
-                ViewBag.AllRooms = await GetAllRooms();
-                TempData["Message"] = "Vui lòng chọn ít nhất một phòng và điền đầy đủ thông tin!";
-                TempData["IsSuccess"] = false;
-                return View(request);
-            }
-
-            try
-            {
-                using var httpClient = CreateHttpClientWithCookies();
-
-                var json = JsonConvert.SerializeObject(request);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await httpClient.PostAsync("api/Rooms/bulk-update", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Message"] = $"Cập nhật thành công {request.RoomIds.Count} phòng!";
-                    TempData["IsSuccess"] = true;
-                    return RedirectToAction(nameof(Index));
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["Message"] = $"Không thể cập nhật: {errorContent}";
-                    TempData["IsSuccess"] = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Có lỗi xảy ra khi cập nhật hàng loạt!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-
-            ViewBag.RoomTypes = await GetRoomTypes();
-            ViewBag.AllRooms = await GetAllRooms();
-            return View(request);
-        }
-
-        // Room Transfer
-        [HttpGet]
-        public async Task<IActionResult> Transfer()
-        {
-            ViewBag.AllRooms = await GetAllRooms();
-            return View(new RoomTransferRequest());
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Transfer(RoomTransferRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                ViewBag.AllRooms = await GetAllRooms();
-                return View(request);
-            }
-
-            try
-            {
-                using var httpClient = CreateHttpClientWithCookies();
-
-                var json = JsonConvert.SerializeObject(request);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await httpClient.PostAsync("api/Rooms/transfer", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Message"] = "Chuyển phòng thành công!";
-                    TempData["IsSuccess"] = true;
-                    return RedirectToAction(nameof(Details), new { id = request.ToRoomId });
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["Message"] = $"Không thể chuyển phòng: {errorContent}";
-                    TempData["IsSuccess"] = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Có lỗi xảy ra khi chuyển phòng!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-
-            ViewBag.AllRooms = await GetAllRooms();
-            return View(request);
-        }
-
-        // Maintenance
-        [HttpGet]
-        public async Task<IActionResult> Maintenance(int? roomId = null)
-        {
-            ViewBag.AllRooms = await GetAllRooms();
-            var request = new RoomMaintenanceRequest();
-            if (roomId.HasValue)
-            {
-                request.RoomId = roomId.Value;
-            }
-            return View(request);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Maintenance(RoomMaintenanceRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                ViewBag.AllRooms = await GetAllRooms();
-                return View(request);
-            }
-
-            try
-            {
-                using var httpClient = CreateHttpClientWithCookies();
-
-                var json = JsonConvert.SerializeObject(request);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await httpClient.PostAsync("api/Rooms/maintenance", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Message"] = "Tạo yêu cầu bảo trì thành công!";
-                    TempData["IsSuccess"] = true;
-                    return RedirectToAction(nameof(Details), new { id = request.RoomId });
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["Message"] = $"Không thể tạo yêu cầu bảo trì: {errorContent}";
-                    TempData["IsSuccess"] = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Có lỗi xảy ra khi tạo yêu cầu bảo trì!";
-                TempData["IsSuccess"] = false;
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-
-            ViewBag.AllRooms = await GetAllRooms();
-            return View(request);
-        }
-
-        // API Endpoints for AJAX
-        [HttpGet]
-        public async Task<IActionResult> GetRoomDetails(int roomId)
-        {
-            try
-            {
-                using var httpClient = CreateHttpClientWithCookies();
-                var response = await httpClient.GetAsync($"api/Rooms/{roomId}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var room = JsonConvert.DeserializeObject<DetailRoomResponse>(json);
-
-                    return Json(new { success = true, room = room });
-                }
-
-                return Json(new { success = false, message = "Không tìm thấy phòng" });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-                return Json(new { success = false, message = "Có lỗi xảy ra" });
-            }
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateRoomStatus(int roomId, int status)
-        {
-            try
-            {
-                using var httpClient = CreateHttpClientWithCookies();
-
-                var request = new { status = status };
-                var json = JsonConvert.SerializeObject(request);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await httpClient.PatchAsync($"api/Rooms/{roomId}/status", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    return Json(new { success = true });
-                }
-                else
-                {
-                    return Json(new { success = false });
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-                return Json(new { success = false });
-            }
-        }
-
-        // Helper methods
-        private Task<List<RoomTypeOption>> GetRoomTypes()
-        {
-            var roomTypes = Enum.GetValues(typeof(RoomType))
-                .Cast<RoomType>()
-                .Select(rt => new RoomTypeOption
-                {
-                    Id = (int)rt,
-                    Name = GetRoomTypeText((int)rt)
-                })
-                .ToList();
-
-            Console.WriteLine($"RoomTypes count: {roomTypes.Count}"); // Debug statement
-            return Task.FromResult(roomTypes);
-        }
-
-
-        private string GetRoomTypeText(int roomTypeId) => roomTypeId switch
-        {
-            0 => "Phòng đơn",
-            1 => "Phòng đôi",
-            2 => "Phòng suite",
-            3 => "Phòng deluxe",
-            4 => "Phòng gia đình",
-            5 => "Phòng studio",
-            6 => "Phòng penthouse",
-            7 => "Phòng khác",
-            _ => "Không xác định"
-        };
-
-        private async Task<List<ResidentOption>> GetAvailableResidents()
-        {
-            try
-            {
-                using var httpClient = CreateHttpClientWithCookies();
-                var response = await httpClient.GetAsync("api/Residents");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var residents = JsonConvert.DeserializeObject<List<ResidentResponse>>(json);
-
-                    return residents?.Where(r => r.IsActive).Select(r => new ResidentOption
-                    {
-                        Id = r.Id,
-                        FullName = r.FullName,
-                        Email = r.Email,
-                        Phone = r.Phone,
+                        ResidentId = r.ResidentId,
                         IsActive = r.IsActive
-                    }).ToList() ?? new List<ResidentOption>();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting residents: {ex.Message}");
-            }
-
-            return new List<ResidentOption>();
-        }
-
-        private async Task<List<ServiceOption>> GetAvailableServices()
-        {
-            try
-            {
-                using var httpClient = CreateHttpClientWithCookies();
-                var response = await httpClient.GetAsync("api/Services");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var services = JsonConvert.DeserializeObject<List<ServiceResponse>>(json);
-
-                    return services?.Where(s => s.IsActive).Select(s => new ServiceOption
+                    }).ToList() ?? new List<UpdateResidentInRoomDto>(),
+                    Services = room.Services?.Select(s => new UpdateServiceInRoomDto
                     {
-                        Id = s.Id,
-                        Name = s.Name,
-                        Unit = s.Unit,
-                        PricePerUnit = s.PricePerUnit,
-                        IsMandatory = s.IsMandatory
-                    }).ToList() ?? new List<ServiceOption>();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting services: {ex.Message}");
-            }
+                        ServiceId = s.ServiceId,
+                        IsActive = s.IsActive,
+                        CustomPrice = s.CustomPrice
+                    }).ToList() ?? new List<UpdateServiceInRoomDto>()
+                };
 
-            return new List<ServiceOption>();
+                return View(model);
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return RedirectToAction(nameof(Index));
+            }
+            catch (JsonException ex)
+            {
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return RedirectToAction(nameof(Index));
+            }
         }
 
-        private async Task<List<RoomResponse>> GetAllRooms()
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, UpdateRoomRequest model)
         {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            if (!ValidateBuildingId() || !IsAuthenticated())
+            {
+                TempData["Message"] = "Phiên đăng nhập đã hết hạn hoặc không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
+            {
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            using var httpClient = CreateHttpClientWithCookies();
+            httpClient.DefaultRequestHeaders.Remove("buildingId");
+            httpClient.DefaultRequestHeaders.Add("buildingId", GetBuildingId());
+            if (!string.IsNullOrEmpty(token))
+            {
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var jsonContent = JsonConvert.SerializeObject(model);
+            var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
             try
             {
-                using var httpClient = CreateHttpClientWithCookies();
+                var url = $"{_apiQLPTUrl}/api/Rooms/{id}";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.PutAsync(url, httpContent);
 
-                var buildingId = GetBuildingId();
-                httpClient.DefaultRequestHeaders.Add("buildingId", buildingId);
-
-                var response = await httpClient.GetAsync("api/Rooms");
-
-                if (response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject<List<RoomResponse>>(json) ?? new List<RoomResponse>();
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        TempData["Message"] = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+                        TempData["IsSuccess"] = false;
+                        return RedirectToAction("Login", "Auth");
+                    }
+
+                    TempData["Message"] = $"Cập nhật phòng thất bại: {errorContent}";
+                    TempData["IsSuccess"] = false;
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
+                    return View(model);
                 }
+
+                TempData["Message"] = "Cập nhật phòng thành công!";
+                TempData["IsSuccess"] = true;
+                return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                Console.WriteLine($"Error getting all rooms: {ex.Message}");
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return View(model);
             }
-
-            return new List<RoomResponse>();
-        }
-
-        private async Task<object> GetRoomStatistics()
-        {
-            try
+            catch (JsonException ex)
             {
-                using var httpClient = CreateHttpClientWithCookies();
-                var response = await httpClient.GetAsync("api/Rooms/statistics");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return JsonConvert.DeserializeObject(json);
-                }
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return View(model);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting room statistics: {ex.Message}");
-            }
-
-            return new { };
         }
-
-        // Helper method to get room status text
-        public static string GetRoomStatusText(int status) => status switch
-        {
-            0 => "Trống",
-            1 => "Đã thuê",
-            2 => "Đã đặt",
-            3 => "Bảo trì",
-            4 => "Không sử dụng",
-            5 => "Chờ dọn dẹp",
-            6 => "Sắp hết hạn",
-            7 => "Tạm khóa",
-            _ => "Không xác định"
-        };
-
-
-        public enum RoomType
-        {
-            Single = 0,          // Phòng đơn
-            Double = 1,          // Phòng đôi
-            Suite = 2,           // Phòng suite
-            Deluxe = 3,          // Phòng deluxe
-            Family = 4,          // Phòng gia đình
-            Studio = 5,          // Phòng studio
-            Penthouse = 6,        // Phòng penthouse
-            Other = 7           // Phòng khác
-        }
-
-        public static string GetRoomStatusColor(int status) => status switch
-        {
-            0 => "success",
-            1 => "primary",
-            2 => "info",
-            3 => "warning",
-            4 => "danger",
-            5 => "secondary",
-            6 => "warning",
-            7 => "dark",
-            _ => "secondary"
-        };
     }
-
-    // Helper classes
-    public class RoomTypeOption
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        //public string Description { get; set; } = string.Empty;
-    }
-
-    public class ResidentOption
-    {
-        public int Id { get; set; }
-        public string FullName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Phone { get; set; } = string.Empty;
-        public bool IsActive { get; set; }
-    }
-
-    public class ServiceOption
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Unit { get; set; } = string.Empty;
-        public decimal PricePerUnit { get; set; }
-        public bool IsMandatory { get; set; }
-    }
-    public class RoomStatusOption
-    {
-        public int Value { get; set; }
-        public string Text { get; set; } = string.Empty;
-    }
-
 }
