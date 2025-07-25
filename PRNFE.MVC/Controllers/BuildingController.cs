@@ -1,8 +1,12 @@
-﻿using System.Text;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace PRNFE.MVC.Controllers
 {
@@ -13,314 +17,464 @@ namespace PRNFE.MVC.Controllers
         {
         }
 
-        // GET: Building
-        public async Task<IActionResult> Index([FromQuery] FilterBuildingRequest filter)
+        // GET: Building/Index
+        public async Task<IActionResult> Index(FilterBuildingRequest filter)
         {
-            if (!ValidateOwnerId())
+            if (!IsAuthenticated())
             {
-                TempData["Message"] = "Không tìm thấy thông tin chủ sở hữu. Vui lòng đăng nhập lại!";
+                TempData["Message"] = "Vui lòng đăng nhập lại!";
                 TempData["IsSuccess"] = false;
                 return RedirectToAction("Login", "Auth");
             }
 
-            var ownerId = GetOwnerId();
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
+            {
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
 
             using var httpClient = CreateHttpClientWithCookies();
+            if (!string.IsNullOrEmpty(token))
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            httpClient.DefaultRequestHeaders.Remove("ownerId");
-            httpClient.DefaultRequestHeaders.Add("ownerId", ownerId);
-
-            // Build query string cho filter
-            var queryParams = new List<string>();
-            if (!string.IsNullOrEmpty(filter.Name))
-                queryParams.Add($"Name={Uri.EscapeDataString(filter.Name ?? "")}");
-
-            var query = string.Join("&", queryParams);
             var url = $"{_apiQLPTUrl}/api/Buildings/filter";
-            if (!string.IsNullOrEmpty(query))
-                url += "?" + query;
+            if (!string.IsNullOrEmpty(filter.Name))
+                url += $"?Name={Uri.EscapeDataString(filter.Name)}";
 
-            var response = await httpClient.GetAsync(url);
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                var content = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        TempData["Message"] = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+                        TempData["IsSuccess"] = false;
+                        return RedirectToAction("Login", "Auth");
+                    }
+
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    TempData["Message"] = $"Không thể lấy danh sách tòa nhà: {errorContent}";
+                    TempData["IsSuccess"] = false;
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
+                    return View(new List<BuildingResponse>());
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"JSON Response: {json}");
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<BuildingResponse>>>(json);
+
+                if (apiResponse == null || !apiResponse.success)
+                {
+                    TempData["Message"] = apiResponse?.message ?? "Lỗi khi lấy dữ liệu tòa nhà.";
+                    TempData["IsSuccess"] = false;
+                    return View(new List<BuildingResponse>());
+                }
+
+                return View(apiResponse.data ?? new List<BuildingResponse>());
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
                 TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 return View(new List<BuildingResponse>());
             }
-
-            if (!response.IsSuccessStatusCode)
+            catch (JsonException ex)
             {
-                TempData["Message"] = "Không thể lấy danh sách tòa nhà từ API.";
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
                 TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 return View(new List<BuildingResponse>());
             }
-
-            var json = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<BuildingResponse>>>(json);
-
-            if (apiResponse == null || !apiResponse.success)
-            {
-                TempData["Message"] = apiResponse?.message ?? "Lỗi khi lấy dữ liệu tòa nhà.";
-                TempData["IsSuccess"] = false;
-                return View(new List<BuildingResponse>());
-            }
-
-            return View(apiResponse.data);
         }
 
         // GET: Building/Details/5
         public async Task<IActionResult> Details(int id)
         {
-            if (!ValidateOwnerId())
+            if (!IsAuthenticated())
             {
-                TempData["Message"] = "Không tìm thấy thông tin chủ sở hữu. Vui lòng đăng nhập lại!";
+                TempData["Message"] = "Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
+            {
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
                 TempData["IsSuccess"] = false;
                 return RedirectToAction("Login", "Auth");
             }
 
             using var httpClient = CreateHttpClientWithCookies();
+            if (!string.IsNullOrEmpty(token))
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await httpClient.GetAsync($"{_apiQLPTUrl}/api/Buildings/{id}");
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                TempData["Message"] = "Không thể lấy thông tin tòa nhà từ API.";
+                var url = $"{_apiQLPTUrl}/api/Buildings/{id}";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        TempData["Message"] = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+                        TempData["IsSuccess"] = false;
+                        return RedirectToAction("Login", "Auth");
+                    }
+
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    TempData["Message"] = $"Không thể lấy thông tin tòa nhà: {errorContent}";
+                    TempData["IsSuccess"] = false;
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"JSON Response: {json}");
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<BuildingResponse>>(json);
+
+                if (apiResponse == null || !apiResponse.success)
+                {
+                    TempData["Message"] = apiResponse?.message ?? "Lỗi khi xử lý dữ liệu tòa nhà.";
+                    TempData["IsSuccess"] = false;
+                    return RedirectToAction(nameof(Index));
+                }
+
+                return View(apiResponse.data);
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
                 TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 return RedirectToAction(nameof(Index));
             }
-
-            var json = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<BuildingResponse>>(json);
-
-            if (apiResponse == null || !apiResponse.success)
+            catch (JsonException ex)
             {
-                TempData["Message"] = apiResponse?.message ?? "Lỗi khi xử lý dữ liệu tòa nhà.";
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
                 TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 return RedirectToAction(nameof(Index));
             }
-
-            return View(apiResponse.data);
         }
 
         // GET: Building/Create
         [HttpGet]
         public IActionResult Create()
         {
-            // Nếu muốn khởi tạo sẵn room/service trống để thêm từ View có thể thêm:
-            var model = new CreateBuildingRequest
+            if (!IsAuthenticated())
             {
-                Rooms = new List<CreateRoomRequests>(),
-                Services = new List<CreateServiceRequest>()
-            };
+                TempData["Message"] = "Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
 
-            return View(model);
+            return View(new CreateBuildingRequest
+            {
+                Rooms = new List<CreateRoomRequest>(),
+                Services = new List<CreateServiceRequest>()
+            });
         }
 
+        // POST: Building/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateBuildingRequest model)
         {
             if (!ModelState.IsValid)
-            {
-                TempData["Message"] = "Dữ liệu nhập chưa hợp lệ.";
-                TempData["IsSuccess"] = false;
                 return View(model);
-            }
 
-            if (!ValidateOwnerId())
+            if (!IsAuthenticated())
             {
-                TempData["Message"] = "Không tìm thấy thông tin chủ sở hữu. Vui lòng đăng nhập lại!";
+                TempData["Message"] = "Vui lòng đăng nhập lại!";
                 TempData["IsSuccess"] = false;
                 return RedirectToAction("Login", "Auth");
             }
 
-            var ownerId = GetOwnerId();
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
+            {
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
 
             using var httpClient = CreateHttpClientWithCookies();
+            if (!string.IsNullOrEmpty(token))
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var jsonContent = JsonConvert.SerializeObject(model);
             var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-            httpClient.DefaultRequestHeaders.Remove("ownerId");
-            httpClient.DefaultRequestHeaders.Add("ownerId", ownerId);
-
-            var response = await httpClient.PostAsync($"{_apiQLPTUrl}/api/Buildings", httpContent);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                var error = await response.Content.ReadAsStringAsync();
-                TempData["Message"] = $"Tạo tòa nhà thất bại: {error}";
+                var url = $"{_apiQLPTUrl}/api/Buildings";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.PostAsync(url, httpContent);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        TempData["Message"] = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+                        TempData["IsSuccess"] = false;
+                        return RedirectToAction("Login", "Auth");
+                    }
+
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    TempData["Message"] = $"Tạo tòa nhà thất bại: {errorContent}";
+                    TempData["IsSuccess"] = false;
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
+                    return View(model);
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"JSON Response: {json}");
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<BuildingResponse>>(json);
+
+                if (apiResponse == null || !apiResponse.success)
+                {
+                    TempData["Message"] = apiResponse?.message ?? "Lỗi khi tạo tòa nhà.";
+                    TempData["IsSuccess"] = false;
+                    return View(model);
+                }
+
+                TempData["Message"] = "Tạo tòa nhà thành công!";
+                TempData["IsSuccess"] = true;
+                return RedirectToAction(nameof(Index));
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
                 TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 return View(model);
             }
-
-            var json = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<BuildingResponse>>(json);
-
-            if (apiResponse == null || !apiResponse.success)
+            catch (JsonException ex)
             {
-                TempData["Message"] = apiResponse?.message ?? "Lỗi khi tạo tòa nhà.";
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
                 TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 return View(model);
             }
-
-            TempData["Message"] = "Tạo tòa nhà thành công!";
-            TempData["IsSuccess"] = true;
-
-            // Set cookie BuildingId
-            var buildingIdOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = false, // Để test local, nếu dùng HTTPS thì để true
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTime.UtcNow.AddDays(7)
-            };
-            Response.Cookies.Append("BuildingId", apiResponse.data.Id.ToString(), buildingIdOptions);
-
-            return RedirectToAction("DormitoryManagement", "Landlord");
         }
 
-
-        // GET: Building/Edit/5
-        public async Task<IActionResult> Edit()
+        // GET: Building/Edit
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id) // Thêm tham số id
         {
-            if (!ValidateOwnerId())
+            if (!IsAuthenticated())
             {
-                TempData["Message"] = "Không tìm thấy thông tin chủ sở hữu. Vui lòng đăng nhập lại!";
+                TempData["Message"] = "Vui lòng đăng nhập lại!";
                 TempData["IsSuccess"] = false;
                 return RedirectToAction("Login", "Auth");
             }
 
-            var buildingIdString = Request.Cookies["buildingId"];
-            if (!int.TryParse(buildingIdString, out var buildingId))
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
             {
-                TempData["Message"] = "Không lấy được thông tin Tòa nhà từ cookie.";
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
                 TempData["IsSuccess"] = false;
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Login", "Auth");
             }
 
             using var httpClient = CreateHttpClientWithCookies();
+            if (!string.IsNullOrEmpty(token))
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await httpClient.GetAsync($"{_apiQLPTUrl}/api/Buildings/{buildingId}");
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                TempData["Message"] = "Không thể lấy thông tin tòa nhà từ API.";
+                var url = $"{_apiQLPTUrl}/api/Buildings/{id}";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        TempData["Message"] = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+                        TempData["IsSuccess"] = false;
+                        return RedirectToAction("Login", "Auth");
+                    }
+
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    TempData["Message"] = $"Không thể lấy thông tin tòa nhà: {errorContent}";
+                    TempData["IsSuccess"] = false;
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"JSON Response: {json}");
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<BuildingResponse>>(json);
+
+                if (apiResponse == null || !apiResponse.success)
+                {
+                    TempData["Message"] = apiResponse?.message ?? "Lỗi khi lấy dữ liệu tòa nhà.";
+                    TempData["IsSuccess"] = false;
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var model = new UpdateBuildingRequest
+                {
+                    Name = apiResponse.data.Name,
+                    Address = apiResponse.data.Address,
+                    Description = apiResponse.data.Description,
+                    NumberOfFloors = apiResponse.data.NumberOfFloors,
+                    NumberOfApartments = apiResponse.data.NumberOfApartments,
+                    IsActive = apiResponse.data.IsActive
+                };
+
+                return View(model);
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
                 TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 return RedirectToAction(nameof(Index));
             }
-
-            var json = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<BuildingResponse>>(json);
-
-            if (apiResponse == null || !apiResponse.success)
+            catch (JsonException ex)
             {
-                TempData["Message"] = apiResponse?.message ?? "Lỗi khi lấy dữ liệu tòa nhà.";
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
                 TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 return RedirectToAction(nameof(Index));
             }
-
-            var model = new UpdateBuildingRequest
-            {
-                Name = apiResponse.data.Name,
-                Address = apiResponse.data.Address,
-                Description = apiResponse.data.Description,
-                NumberOfFloors = apiResponse.data.NumberOfFloors,
-                NumberOfApartments = apiResponse.data.NumberOfApartments,
-                IsActive = apiResponse.data.IsActive
-                // Bạn có thể map thêm Rooms, Services nếu cần
-            };
-
-            return View(model);
         }
 
-
+        // POST: Building/Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(UpdateBuildingRequest model)
+        public async Task<IActionResult> Edit(int id, UpdateBuildingRequest model) // Thêm tham số id
         {
             if (!ModelState.IsValid)
-            {
                 return View(model);
-            }
 
-            if (!ValidateOwnerId())
+            if (!IsAuthenticated())
             {
-                TempData["Message"] = "Không tìm thấy thông tin chủ sở hữu. Vui lòng đăng nhập lại!";
+                TempData["Message"] = "Vui lòng đăng nhập lại!";
                 TempData["IsSuccess"] = false;
                 return RedirectToAction("Login", "Auth");
             }
 
-            // Lấy buildingId từ cookie
-            var buildingIdString = Request.Cookies["buildingId"];
-            if (!int.TryParse(buildingIdString, out var buildingId))
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
             {
-                TempData["Message"] = "Không lấy được thông tin Tòa nhà từ cookie.";
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
                 TempData["IsSuccess"] = false;
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Login", "Auth");
             }
 
             using var httpClient = CreateHttpClientWithCookies();
+            if (!string.IsNullOrEmpty(token))
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var jsonContent = JsonConvert.SerializeObject(model);
             var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-            var response = await httpClient.PutAsync($"{_apiQLPTUrl}/api/Buildings/{buildingId}", httpContent);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                TempData["Message"] = !string.IsNullOrEmpty(errorContent)
-                    ? $"Cập nhật tòa nhà thất bại: {errorContent}"
-                    : "Cập nhật tòa nhà thất bại, vui lòng thử lại.";
+                var url = $"{_apiQLPTUrl}/api/Buildings/{id}";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.PutAsync(url, httpContent);
 
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        TempData["Message"] = "Không có quyền truy cập. Vui lòng đăng nhập lại!";
+                        TempData["IsSuccess"] = false;
+                        return RedirectToAction("Login", "Auth");
+                    }
+
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    TempData["Message"] = $"Cập nhật tòa nhà thất bại: {errorContent}";
+                    TempData["IsSuccess"] = false;
+                    System.Diagnostics.Debug.WriteLine($"API Error: {response.StatusCode} - {errorContent}");
+                    return View(model);
+                }
+
+                TempData["Message"] = "Cập nhật tòa nhà thành công!";
+                TempData["IsSuccess"] = true;
+                return RedirectToAction(nameof(Index));
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
                 TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
                 return View(model);
             }
-
-            TempData["Message"] = "Cập nhật tòa nhà thành công!";
-            TempData["IsSuccess"] = true;
-
-            return RedirectToAction(nameof(Index));
+            catch (JsonException ex)
+            {
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+                return View(model);
+            }
         }
-
 
         // GET: Building/Delete/5
         public async Task<IActionResult> Delete(int id)
         {
-            if (!ValidateOwnerId())
+            if (!IsAuthenticated())
             {
-                TempData["Message"] = "Không tìm thấy thông tin chủ sở hữu. Vui lòng đăng nhập lại!";
+                TempData["Message"] = "Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
+            {
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
                 TempData["IsSuccess"] = false;
                 return RedirectToAction("Login", "Auth");
             }
 
             using var httpClient = CreateHttpClientWithCookies();
+            if (!string.IsNullOrEmpty(token))
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await httpClient.DeleteAsync($"{_apiQLPTUrl}/api/Buildings/{id}");
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                TempData["Message"] = "Xóa tòa nhà thất bại, vui lòng thử lại.";
+                var url = $"{_apiQLPTUrl}/api/Buildings/{id}";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.DeleteAsync(url);
+
+                TempData["Message"] = response.IsSuccessStatusCode
+                    ? "Xóa tòa nhà thành công!"
+                    : response.StatusCode == System.Net.HttpStatusCode.Unauthorized
+                        ? "Không có quyền truy cập. Vui lòng đăng nhập lại!"
+                        : $"Xóa tòa nhà thất bại: {await response.Content.ReadAsStringAsync()}";
+                TempData["IsSuccess"] = response.IsSuccessStatusCode;
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    return RedirectToAction("Login", "Auth");
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
                 TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
             }
-            else
+            catch (JsonException ex)
             {
-                TempData["Message"] = "Xóa tòa nhà thành công!";
-                TempData["IsSuccess"] = true;
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
             }
+
             return RedirectToAction(nameof(Index));
-        }
-
-        // Helper methods giả định trong BaseController hoặc bạn có thể implement
-        private bool ValidateOwnerId()
-        {
-            // Kiểm tra cookie hoặc session chứa OwnerId
-            var ownerId = GetOwnerId();
-            return !string.IsNullOrEmpty(ownerId);
-        }
-
-        private string GetOwnerId()
-        {
-            // Lấy OwnerId từ cookie hoặc session (cách bạn lưu)
-            return HttpContext.Request.Cookies["ownerId"] ?? "";
         }
     }
 }
