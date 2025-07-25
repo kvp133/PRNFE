@@ -11,15 +11,12 @@ using Microsoft.Extensions.Configuration;
 namespace PRNFE.MVC.Controllers
 {
     [Route("[controller]/[action]")]
-    public class UserController : Controller
+    public class UserController : BaseController
     {
-        private readonly HttpClient _httpClient;
-        private readonly string _apiBaseUrl;
         
         public UserController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+            : base(httpClientFactory, configuration)
         {
-            _httpClient = httpClientFactory.CreateClient();
-            _apiBaseUrl = configuration["ApiSettings:BaseUrl"];
         }
 
         [HttpGet]
@@ -336,6 +333,83 @@ namespace PRNFE.MVC.Controllers
             var response = await _httpClient.PostAsync($"{_apiBaseUrl}/users/api/User/reset-password", content);
             var result = await response.Content.ReadAsStringAsync();
             return Content(result, "application/json");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> UpdateProfile()
+        {
+            // Gọi API lấy thông tin user hiện tại
+            var apiUrl = $"{_apiBaseUrl}/users/api/User/current";
+            var response = await _httpClient.GetAsync(apiUrl);
+            var result = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                TempData["Message"] = "Không thể lấy thông tin người dùng.";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Index", "Home");
+            }
+            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<dynamic>>(result);
+            if (apiResponse == null || !apiResponse.success)
+            {
+                TempData["Message"] = apiResponse?.message ?? "Không thể lấy thông tin người dùng.";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Index", "Home");
+            }
+            // Map sang model UpdateProfileRequest nếu cần
+            var model = JsonConvert.DeserializeObject<PRNFE.MVC.Models.Request.UpdateProfileRequest>(JsonConvert.SerializeObject(apiResponse.data));
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateProfile(PRNFE.MVC.Models.Request.UpdateProfileRequest model)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["MessageUpdateProfile"] = "Dữ liệu không hợp lệ!";
+                TempData["IsSuccessUpdateProfile"] = false;
+                return View(model);
+            }
+            (string userName, _, _) = this.GetUserInfoFromToken();
+            if (string.IsNullOrEmpty(userName))
+            {
+                TempData["MessageUpdateProfile"] = "Không tìm thấy thông tin người dùng.";
+                TempData["IsSuccessUpdateProfile"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+            var apiUrl = $"{_apiBaseUrl}/users/api/User/update?userName={userName}";
+            var content = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
+            var request = new HttpRequestMessage(HttpMethod.Put, apiUrl) { Content = content };
+            var response = await _httpClient.SendAsync(request);
+            var result = await response.Content.ReadAsStringAsync();
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<object>>(result);
+                if (apiResponse.success)
+                {
+                    TempData["MessageUpdateProfile"] = "Cập nhật thông tin thành công!";
+                    TempData["IsSuccessUpdateProfile"] = true;
+                    return RedirectToAction("UpdateProfile");
+                }
+                else
+                {
+                    TempData["MessageUpdateProfile"] = apiResponse.message ?? "Cập nhật thất bại!";
+                    TempData["IsSuccessUpdateProfile"] = false;
+                }
+            }
+            else
+            {
+                try
+                {
+                    var apiErrorResponse = JsonConvert.DeserializeObject<ApiResponse<object>>(result);
+                    TempData["Message"] = apiErrorResponse.message ?? "Cập nhật thất bại!";
+                }
+                catch
+                {
+                    TempData["Message"] = "Cập nhật thất bại!";
+                }
+                TempData["IsSuccess"] = false;
+            }
+            return View(model);
         }
     }
 } 

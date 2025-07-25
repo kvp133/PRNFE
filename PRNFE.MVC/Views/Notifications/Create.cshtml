@@ -1,48 +1,48 @@
 ﻿@model PRNFE.MVC.Models.Request.CreateNotificationRequest
+
 @{
-    ViewData["Title"] = "Tạo thông báo mới";
+    ViewData["Title"] = "Create";
 }
 
-<h2>@ViewData["Title"]</h2>
+<h1>Create</h1>
 
-<form asp-action="Create" method="post">
-    <div class="form-group">
-        <label asp-for="Title"></label>
-        <input asp-for="Title" class="form-control" />
-        <span asp-validation-for="Title" class="text-danger"></span>
+<h4>CreateNotificationRequest</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="Title" class="control-label"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Content" class="control-label"></label>
+                <input asp-for="Content" class="form-control" />
+                <span asp-validation-for="Content" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="TypeTarget" class="control-label"></label>
+                <input asp-for="TypeTarget" class="form-control" />
+                <span asp-validation-for="TypeTarget" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="PublishDate" class="control-label"></label>
+                <input asp-for="PublishDate" class="form-control" />
+                <span asp-validation-for="PublishDate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
     </div>
+</div>
 
-    <div class="form-group">
-        <label asp-for="Content"></label>
-        <textarea asp-for="Content" class="form-control"></textarea>
-        <span asp-validation-for="Content" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="TypeTarget"></label>
-        <select asp-for="TypeTarget" class="form-control">
-            <option value="">-- Chọn loại mục tiêu --</option>
-            <option value="0">Tòa nhà</option>
-            <option value="1">Phòng</option>
-            <option value="2">Cư dân</option>
-        </select>
-        <span asp-validation-for="TypeTarget" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="PublishDate"></label>
-        <input asp-for="PublishDate" type="date" class="form-control" />
-        <span asp-validation-for="PublishDate" class="text-danger"></span>
-    </div>
-
-    @* Nếu cần RoomIds / ResidentIds, thêm dynamic js nếu TypeTarget == 1/2 *@
-
-    <button type="submit" class="btn btn-primary">Tạo</button>
-    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
-</form>
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 }

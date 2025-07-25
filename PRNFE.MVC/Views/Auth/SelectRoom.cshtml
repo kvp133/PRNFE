@@ -1,0 +1,34 @@
+@model List<PRNFE.MVC.Models.Response.RoomResponse>
+@{
+    ViewData["Title"] = "Chọn phòng trọ";
+}
+<div class="container mt-5">
+    <h2>Chọn phòng bạn muốn quản lý</h2>
+    <form asp-action="SelectRoom" method="post">
+        <div class="list-group mt-4">
+            @foreach (var room in Model)
+            {
+                <label class="list-group-item">
+                    <input type="radio" name="roomId" value="@room.Id" data-building-id="@room.BuildingId" required />
+                    <strong>Phòng: @room.RoomNumber</strong> - Tầng: @room.Floor - Diện tích: @room.Area m² - Toà: @room.BuildingId
+                </label>
+            }
+        </div>
+        <input type="hidden" id="buildingIdInput" name="buildingId" value="" />
+        <button type="submit" class="btn btn-primary mt-3">Tiếp tục</button>
+    </form>
+</div>
+@section Scripts {
+    <script>
+        // Khi chọn phòng, tự động set buildingId tương ứng vào input hidden
+        document.querySelectorAll('input[name="roomId"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                document.getElementById('buildingIdInput').value = this.getAttribute('data-building-id');
+            });
+        });
+    </script>
+}
+@if (TempData["Message"] != null && (Model == null || !Model.Any()))
+{
+    <div class="alert alert-danger mt-3">@TempData["Message"]</div>
+} 

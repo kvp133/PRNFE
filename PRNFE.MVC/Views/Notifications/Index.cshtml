@@ -1,79 +1,82 @@
-﻿@model List<NotificationResponse>
+﻿@model IEnumerable<PRNFE.MVC.Models.Response.NotificationResponse>
+
 @{
-    var filter = ViewBag.Filter as FilterNotificationRequest ?? new FilterNotificationRequest();
+    ViewData["Title"] = "Index";
 }
 
-<h2>Danh sách Thông báo</h2>
+<h1>Index</h1>
 
-<a asp-action="Create" class="btn btn-success mb-3">Tạo thông báo mới</a>
+@Html.Partial("_Filter", new FilterNotificationRequest())
 
-<form method="get" asp-action="Index" class="mb-3">
-    <div class="form-row">
-        <input type="text" name="Title" value="@filter.Title" placeholder="Tiêu đề" class="form-control mr-2" />
-        <input type="text" name="Content" value="@filter.Content" placeholder="Nội dung" class="form-control mr-2" />
-        <select name="TypeTarget" class="form-control mr-2">
-            <option value="">-- Loại mục tiêu --</option>
-            <option value="0" selected="@(filter.TypeTarget == 0 ? "selected" : null)">Tòa nhà</option>
-            <option value="1" selected="@(filter.TypeTarget == 1 ? "selected" : null)">Phòng</option>
-            <option value="2" selected="@(filter.TypeTarget == 2 ? "selected" : null)">Cư dân</option>
-        </select>
-        <input type="date" name="FromDate" value="@(filter.FromDate?.ToString("yyyy-MM-dd") ?? "")" class="form-control mr-2" />
-        <input type="date" name="ToDate" value="@(filter.ToDate?.ToString("yyyy-MM-dd") ?? "")" class="form-control mr-2" />
-        <select name="Status" class="form-control mr-2">
-            <option value="">-- Trạng thái --</option>
-            <option value="0" selected="@(filter.Status == 0 ? "selected" : null)">Chờ xử lý</option>
-            <option value="1" selected="@(filter.Status == 1 ? "selected" : null)">Đã đăng</option>
-            <option value="2" selected="@(filter.Status == 2 ? "selected" : null)">Đã lưu trữ</option>
-        </select>
-
-        <button type="submit" class="btn btn-primary">Lọc</button>
-        <a href="@Url.Action("Index")" class="btn btn-secondary ml-2">Xóa bộ lọc</a>
-    </div>
-</form>
-
-<table class="table table-bordered table-striped">
+<table class="table">
     <thead>
         <tr>
-            <th>Tiêu đề</th>
-            <th>Nội dung</th>
-            <th>Loại mục tiêu</th>
-            <th>Ngày đăng</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
+            <th>
+                @Html.DisplayNameFor(model => model.Id)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.BuildingId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Title)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Content)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TypeTarget)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PublishDate)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Status)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CreateAt)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UpdatedAt)
+            </th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@item.Title</td>
-                <td>@item.Content</td>
-                <td>
-                    @(item.TypeTarget switch
-                    {
-                        0 => "Tòa nhà",
-                        1 => "Phòng",
-                        2 => "Cư dân",
-                        _ => "Không xác định"
-                    })
-                </td>
-                <td>@item.PublishDate.ToString("dd/MM/yyyy")</td>
-                <td>
-                    @(item.Status switch
-                    {
-                        0 => "Chờ xử lý",
-                        1 => "Đã đăng",
-                        2 => "Đã lưu trữ",
-                        _ => "Không xác định"
-                    })
-                </td>
-                <td>
-                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">Chi tiết</a>
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning btn-sm">Sửa</a>
-                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger btn-sm" onclick="return confirm('Bạn có chắc chắn muốn xóa?');">Xóa</a>
-                    <a asp-action="Send" asp-route-id="@item.Id" class="btn btn-secondary btn-sm">Gửi</a>
-                </td>
-            </tr>
-        }
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.BuildingId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Title)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Content)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TypeTarget)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PublishDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Status)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CreateAt)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.UpdatedAt)
+            </td>
+            <td>
+                @Html.ActionLink("Edit", "Edit", new { /* id=item.PrimaryKey */ }) |
+                @Html.ActionLink("Details", "Details", new { /* id=item.PrimaryKey */ }) |
+                @Html.ActionLink("Delete", "Delete", new { /* id=item.PrimaryKey */ })
+            </td>
+        </tr>
+}
     </tbody>
 </table>

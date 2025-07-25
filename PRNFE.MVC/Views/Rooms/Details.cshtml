@@ -273,9 +273,9 @@
                                             <td><strong><i class="fas fa-tag me-2"></i>Loại phòng:</strong></td>
                                             <td>
                                                 @{
-                                                    var roomType = roomTypes.FirstOrDefault(rt => rt.Id == Model.RoomTypeId);
+                                                    var roomType = roomTypes.FirstOrDefault(rt => rt.Id == Model.RoomType);
                                                 }
-                                                <span class="badge badge-pink-light">@((roomType?.Name) ?? $"Loại #{Model.RoomTypeId}")</span>
+                                                <span class="badge badge-pink-light">@((roomType?.Name) ?? $"Loại #{Model.RoomType}")</span>
                                             </td>
                                         </tr>
                                         <tr>
@@ -569,7 +569,7 @@
 
                     <!-- Room Type Info -->
                     @{
-                        var currentRoomType = roomTypes.FirstOrDefault(rt => rt.Id == Model.RoomTypeId);
+                        var currentRoomType = roomTypes.FirstOrDefault(rt => rt.Id == Model.RoomType);
                     }
                     @if (currentRoomType != null)
                     {

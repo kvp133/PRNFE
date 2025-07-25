@@ -24,7 +24,21 @@ namespace PRNFE.MVC.Models.Request
         [Range(0, 2, ErrorMessage = "Trạng thái không hợp lệ")]
         public int? Status { get; set; }
 
-        public List<int>? RoomIds { get; set; }
-        public List<int>? ResidentIds { get; set; }
+        // Optional when turn other target type to Building
+        public List<int>? RoomIds { get; set; } // Used for Room TargetType
+        public List<int>? ResidentIds { get; set; }  // Used for Resident TargetType
+
+        public enum NotificationStatus
+        {
+            Pending = 0,
+            Published = 1,
+            Archived = 2
+        }
+        public enum NotificationTypeTarget
+        {
+            Building = 0,
+            Room = 1,
+            Resident = 2
+        }
     }
 }
