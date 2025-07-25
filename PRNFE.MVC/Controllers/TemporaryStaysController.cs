@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Newtonsoft.Json;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
@@ -20,10 +21,49 @@ namespace PRNFE.MVC.Controllers
         public async Task<ActionResult> Index()
         {
             var apiUrl = $"{_apiQLPTUrl}/api/TemporaryStays";          
-
+            await SetFilterData();
             var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<TemporaryStayResponse>>>(apiUrl);
+            
 
             return View(response.data);
+        }
+
+        public async Task<ActionResult> Filter(FilterTemporaryStayDto model)
+        {
+            string message = string.Empty;
+            try
+            {
+                ViewBag.FilterModel = model;
+                await SetFilterData();
+                var apiUrl = $"{_apiQLPTUrl}/api/TemporaryStays/filters";
+                var queryParams = new List<string>();
+                if (model.ResidentIds != null && model.ResidentIds.Count > 0)
+                {
+                    queryParams.Add($"residentIds={string.Join(",", model.ResidentIds)}");
+                }
+                if (model.RoomIds != null && model.RoomIds.Count > 0)
+                {
+                    queryParams.Add($"roomIds={string.Join(",", model.RoomIds)}");
+                }
+                if (model.Status.HasValue)
+                {
+                    queryParams.Add($"status={model.Status.Value}");
+                }
+                if (queryParams.Count > 0)
+                {
+                    apiUrl += "?" + string.Join("&", queryParams);
+                }
+                var response = await _httpClient
+                    .GetFromJsonAsync<ApiResponse<List<TemporaryStayResponse>>>(apiUrl);
+                message = response.message;
+                return View("Index",response.data);
+            }
+            catch
+            {
+                Console.WriteLine("Fail to run login in Filter(FilterTemporaryStayDto model)");
+                Console.WriteLine(message);
+                return View("Index");
+            }
         }
 
         // GET: TemporaryStaysController/Details/5
@@ -35,26 +75,6 @@ namespace PRNFE.MVC.Controllers
             return View(response.data);
         }
 
-        //// GET: TemporaryStaysController/Create
-        //public ActionResult Create()
-        //{
-        //    return View();
-        //}
-
-        //// POST: TemporaryStaysController/Create
-        //[HttpPost]
-        //[ValidateAntiForgeryToken]
-        //public ActionResult Create(IFormCollection collection)
-        //{
-        //    try
-        //    {
-        //        return RedirectToAction(nameof(Index));
-        //    }
-        //    catch
-        //    {
-        //        return View();
-        //    }
-        //}
 
         // GET: TemporaryStaysController/Edit/5
         public async Task<ActionResult> Edit(int id)
@@ -120,6 +140,27 @@ namespace PRNFE.MVC.Controllers
                 ModelState.AddModelError(string.Empty, $"Error deleting temporary stay: {errorMessage}");
             }
             return View();
+        }
+
+        private async Task SetFilterData()
+        {
+            // get room
+            var roomApiUrl = $"{_apiQLPTUrl}/api/Rooms";
+            var roomResponse = await _httpClient.GetFromJsonAsync<ApiResponse<List<RoomResponse>>>(roomApiUrl);
+            // get resident
+            var residentApiUrl = $"{_apiQLPTUrl}/api/Residents";
+            var residentResponse = await _httpClient.GetFromJsonAsync<ApiResponse<List<ResidentResponse>>>(residentApiUrl);
+            // Prepare the view model
+            ViewBag.Rooms = roomResponse.data.Select(r => new SelectListItem
+            {
+                Value = r.Id.ToString(),
+                Text = r.RoomNumber
+            }).ToList();
+            ViewBag.Residents = residentResponse.data.Select(r => new SelectListItem
+            {
+                Value = r.Id.ToString(),
+                Text = r.FullName
+            }).ToList();
         }
     }
 }

@@ -65,7 +65,7 @@ public class CreateRoomRequest
     public class UpdateRoomRequest
     {
         [Display(Name = "Tenant ID")]
-        public int TenantId { get; set; }
+        public string TenantId { get; set; }
 
         [Required(ErrorMessage = "Số phòng là bắt buộc")]
         [StringLength(10, ErrorMessage = "Số phòng không được vượt quá 10 ký tự")]
@@ -214,7 +214,7 @@ public class CreateRoomRequest
         public int? NewRoomTypeId { get; set; }
 
         [Display(Name = "Tenant ID mới")]
-        public int? NewTenantId { get; set; }
+        public string? NewTenantId { get; set; }
 
         [Display(Name = "Lý do thay đổi")]
         [StringLength(500, ErrorMessage = "Lý do không được vượt quá 500 ký tự")]
