@@ -193,11 +193,19 @@
                                             </label>
                                             <select asp-for="RoomTypeId" class="form-select">
                                                 <option value="">-- Chọn loại phòng --</option>
-                                                @foreach (var roomType in roomTypes)
+                                                @if (roomTypes.Any())
                                                 {
-                                                    <option value="@roomType.Id">@roomType.Name - @roomType.Description</option>
+                                                    foreach (var roomType in roomTypes)
+                                                    {
+                                                        <option value="@roomType.Id">@roomType.Name</option>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <option value="" disabled>Không có loại phòng</option>
                                                 }
                                             </select>
+
                                             <span asp-validation-for="RoomTypeId" class="text-danger"></span>
                                         </div>
                                     </div>

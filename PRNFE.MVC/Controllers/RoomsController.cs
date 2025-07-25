@@ -12,6 +12,7 @@ namespace PRNFE.MVC.Controllers
     [Route("[controller]/[action]")]
     public class RoomsController : BaseController
     {
+
         public RoomsController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
             : base(httpClientFactory, configuration)
         {
@@ -181,13 +182,17 @@ namespace PRNFE.MVC.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewBag.RoomTypes = await GetRoomTypes();
+            var roomTypes = await GetRoomTypes(); // Ensure this is awaited
+            Console.WriteLine($"Create action: RoomTypes assigned to ViewBag, count: {roomTypes.Count}");
+
+            ViewBag.RoomTypes = roomTypes;
             ViewBag.AvailableResidents = await GetAvailableResidents();
             ViewBag.AvailableServices = await GetAvailableServices();
             ViewBag.BuildingId = GetBuildingId();
 
             return View(new CreateRoomRequest());
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -228,8 +233,8 @@ namespace PRNFE.MVC.Controllers
                     roomTypeId = request.RoomTypeId,
                     maxOpt = request.MaxOpt,
                     notes = request.Notes,
-                    initialResidentIds = request.InitialResidentIds,
-                    initialServiceIds = request.InitialServiceIds
+                    initialResidentIds = request.InitialResidentIds ?? new List<int>(),
+                    initialServiceIds = request.InitialServiceIds ?? new List<int>()
                 };
 
                 var json = JsonConvert.SerializeObject(requestWithBuildingId);
@@ -277,7 +282,6 @@ namespace PRNFE.MVC.Controllers
             return View(request);
         }
 
-        [HttpGet]
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
@@ -806,33 +810,34 @@ namespace PRNFE.MVC.Controllers
         }
 
         // Helper methods
-        private async Task<List<RoomTypeOption>> GetRoomTypes()
+        private Task<List<RoomTypeOption>> GetRoomTypes()
         {
-            try
-            {
-                using var httpClient = CreateHttpClientWithCookies();
-                var response = await httpClient.GetAsync("api/RoomTypes");
-
-                if (response.IsSuccessStatusCode)
+            var roomTypes = Enum.GetValues(typeof(RoomType))
+                .Cast<RoomType>()
+                .Select(rt => new RoomTypeOption
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var roomTypes = JsonConvert.DeserializeObject<List<RoomTypeResponse>>(json);
+                    Id = (int)rt,
+                    Name = GetRoomTypeText((int)rt)
+                })
+                .ToList();
 
-                    return roomTypes?.Select(rt => new RoomTypeOption
-                    {
-                        Id = rt.Id,
-                        Name = rt.Name,
-                        Description = rt.Description
-                    }).ToList() ?? new List<RoomTypeOption>();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error getting room types: {ex.Message}");
-            }
-
-            return new List<RoomTypeOption>();
+            Console.WriteLine($"RoomTypes count: {roomTypes.Count}"); // Debug statement
+            return Task.FromResult(roomTypes);
         }
+
+
+        private string GetRoomTypeText(int roomTypeId) => roomTypeId switch
+        {
+            0 => "Phòng đơn",
+            1 => "Phòng đôi",
+            2 => "Phòng suite",
+            3 => "Phòng deluxe",
+            4 => "Phòng gia đình",
+            5 => "Phòng studio",
+            6 => "Phòng penthouse",
+            7 => "Phòng khác",
+            _ => "Không xác định"
+        };
 
         private async Task<List<ResidentOption>> GetAvailableResidents()
         {
@@ -954,6 +959,19 @@ namespace PRNFE.MVC.Controllers
             _ => "Không xác định"
         };
 
+
+        public enum RoomType
+        {
+            Single = 0,          // Phòng đơn
+            Double = 1,          // Phòng đôi
+            Suite = 2,           // Phòng suite
+            Deluxe = 3,          // Phòng deluxe
+            Family = 4,          // Phòng gia đình
+            Studio = 5,          // Phòng studio
+            Penthouse = 6,        // Phòng penthouse
+            Other = 7           // Phòng khác
+        }
+
         public static string GetRoomStatusColor(int status) => status switch
         {
             0 => "success",
@@ -973,7 +991,7 @@ namespace PRNFE.MVC.Controllers
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
+        //public string Description { get; set; } = string.Empty;
     }
 
     public class ResidentOption

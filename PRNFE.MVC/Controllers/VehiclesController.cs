@@ -1,46 +1,39 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
-using System.Text;
-using System.Text.Json;
 
 namespace PRNFE.MVC.Controllers
 {
-    public class VehicleController : Controller
+    public class VehicleController : BaseController
     {
-        private readonly HttpClient _httpClient;
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<VehicleController> _logger;
         private readonly string _apiBaseUrl;
-        private readonly JsonSerializerOptions _jsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+        private readonly ILogger<VehicleController> _logger;
 
-        public VehicleController(HttpClient httpClient, IConfiguration configuration, ILogger<VehicleController> logger)
+        public VehicleController(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<VehicleController> logger)
+            : base(httpClientFactory, configuration)
         {
-            _httpClient = httpClient;
-            _configuration = configuration;
+            _apiBaseUrl = configuration["ApiSettings:Url_qlpt"] ?? throw new InvalidOperationException("API BaseUrl is not configured.");
             _logger = logger;
-            _apiBaseUrl = configuration.GetSection("ApiSettings:BaseUrl").Value ?? throw new InvalidOperationException("API BaseUrl is not configured.");
         }
 
-        private string GetBuildingIdFromCookie()
-        {
-            var buildingId = Request.Cookies["buildingId"];
-            if (string.IsNullOrEmpty(buildingId))
-            {
-                throw new InvalidOperationException("buildingId cookie không tồn tại hoặc rỗng.");
-            }
-            return buildingId;
-        }
-
+        // INDEX
         public async Task<IActionResult> Index(VehicleFilterRequests filter)
         {
             if (!ModelState.IsValid)
             {
                 ViewBag.Error = "Invalid filter parameters.";
+                return View();
+            }
+
+            if (!ValidateBuildingId())
+            {
+                ViewBag.Error = "Missing buildingId in cookies.";
                 return View();
             }
 
@@ -81,11 +74,19 @@ namespace PRNFE.MVC.Controllers
                 var fullUrl = $"{_apiBaseUrl}/api/Vehicles/filters{queryString}";
                 _logger.LogInformation("Gọi API: {Url}", fullUrl);
 
-                var request = new HttpRequestMessage(HttpMethod.Get, fullUrl);
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    ViewBag.Error = "Missing or invalid access token.";
+                    return View();
+                }
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await httpClient.GetAsync(fullUrl);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -114,7 +115,7 @@ namespace PRNFE.MVC.Controllers
                     return View();
                 }
 
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<VehicleResponses>>>(json, _jsonOptions);
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<VehicleResponses>>>(json);
                 var vehicles = apiResponse?.data ?? new List<VehicleResponses>();
 
                 var totalCount = vehicles.Count;
@@ -144,6 +145,7 @@ namespace PRNFE.MVC.Controllers
             }
         }
 
+        // DETAILS
         public async Task<IActionResult> Details(int id)
         {
             if (id <= 0)
@@ -151,21 +153,37 @@ namespace PRNFE.MVC.Controllers
                 return NotFound();
             }
 
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Vehicles/{id}");
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Missing or invalid access token.";
+                    return RedirectToAction(nameof(Index));
+                }
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await httpClient.GetAsync($"{_apiBaseUrl}/api/Vehicles/{id}");
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
                     return NotFound();
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<DetailedVehicleResponses>>(json, _jsonOptions);
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<DetailedVehicleResponses>>(json);
                 var vehicle = apiResponse?.data;
 
                 if (vehicle == null)
@@ -183,8 +201,15 @@ namespace PRNFE.MVC.Controllers
             }
         }
 
+        // CREATE - GET
         public async Task<IActionResult> Create()
         {
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
                 await LoadCreateFormData();
@@ -199,44 +224,69 @@ namespace PRNFE.MVC.Controllers
             }
         }
 
+        // CREATE - POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(VehicleCreateDtos vehicleRequest)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    var buildingId = GetBuildingIdFromCookie();
-                    var json = JsonSerializer.Serialize(vehicleRequest, _jsonOptions);
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                    var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/Vehicles")
-                    {
-                        Content = content
-                    };
-                    request.Headers.Add("Cookie", $"buildingId={buildingId}");
-
-                    var response = await _httpClient.SendAsync(request);
-                    response.EnsureSuccessStatusCode();
-
-                    var jsonResponse = await response.Content.ReadAsStringAsync();
-                    var apiResponse = JsonSerializer.Deserialize<ApiResponse<VehicleResponses>>(jsonResponse, _jsonOptions);
-
-                    TempData["SuccessMessage"] = "Phương tiện đã được tạo thành công.";
-                    return RedirectToAction(nameof(Details), new { id = apiResponse?.data?.Id });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Lỗi khi tạo phương tiện");
-                    ModelState.AddModelError("", "Có lỗi xảy ra khi tạo phương tiện. Vui lòng thử lại.");
-                }
+                await LoadCreateFormData();
+                return View(vehicleRequest);
             }
 
-            await LoadCreateFormData();
-            return View(vehicleRequest);
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                await LoadCreateFormData();
+                return View(vehicleRequest);
+            }
+
+            try
+            {
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    ModelState.AddModelError("", "Missing or invalid access token.");
+                    await LoadCreateFormData();
+                    return View(vehicleRequest);
+                }
+
+                var json = JsonConvert.SerializeObject(vehicleRequest);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await httpClient.PostAsync($"{_apiBaseUrl}/api/Vehicles", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    ModelState.AddModelError("", $"Có lỗi xảy ra khi tạo phương tiện: {errorContent}");
+                    await LoadCreateFormData();
+                    return View(vehicleRequest);
+                }
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<VehicleResponses>>(jsonResponse);
+
+                TempData["SuccessMessage"] = "Phương tiện đã được tạo thành công.";
+                return RedirectToAction(nameof(Details), new { id = apiResponse?.data?.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo phương tiện");
+                ModelState.AddModelError("", $"Có lỗi xảy ra khi tạo phương tiện: {ex.Message}");
+                await LoadCreateFormData();
+                return View(vehicleRequest);
+            }
         }
 
+        // EDIT - GET
         public async Task<IActionResult> Edit(int id)
         {
             if (id <= 0)
@@ -244,22 +294,38 @@ namespace PRNFE.MVC.Controllers
                 return NotFound();
             }
 
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Vehicles/{id}");
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
-
-                var vehicleResponse = await _httpClient.SendAsync(request);
-
-                if (!vehicleResponse.IsSuccessStatusCode)
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
                 {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Missing or invalid access token.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var response = await httpClient.GetAsync($"{_apiBaseUrl}/api/Vehicles/{id}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
                     return NotFound();
                 }
 
-                var vehicleJson = await vehicleResponse.Content.ReadAsStringAsync();
-                var vehicleApiResponse = JsonSerializer.Deserialize<ApiResponse<DetailedVehicleResponses>>(vehicleJson, _jsonOptions);
-                var vehicle = vehicleApiResponse?.data;
+                var json = await response.Content.ReadAsStringAsync();
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<DetailedVehicleResponses>>(json);
+                var vehicle = apiResponse?.data;
 
                 if (vehicle == null)
                 {
@@ -286,67 +352,111 @@ namespace PRNFE.MVC.Controllers
             }
         }
 
+        // EDIT - POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, VehicleUpdateDtos updateRequest)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    var buildingId = GetBuildingIdFromCookie();
-                    var json = JsonSerializer.Serialize(updateRequest, _jsonOptions);
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                    var request = new HttpRequestMessage(HttpMethod.Put, $"{_apiBaseUrl}/api/Vehicles/{id}")
-                    {
-                        Content = content
-                    };
-                    request.Headers.Add("Cookie", $"buildingId={buildingId}");
-
-                    var response = await _httpClient.SendAsync(request);
-                    response.EnsureSuccessStatusCode();
-
-                    TempData["SuccessMessage"] = "Phương tiện đã được cập nhật thành công.";
-                    return RedirectToAction(nameof(Details), new { id = id });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Lỗi khi cập nhật phương tiện cho ID: {Id}", id);
-                    ModelState.AddModelError("", "Có lỗi xảy ra khi cập nhật phương tiện. Vui lòng thử lại.");
-                }
+                await LoadEditFormData();
+                ViewBag.VehicleId = id;
+                return View(updateRequest);
             }
 
-            await LoadEditFormData();
-            ViewBag.VehicleId = id;
-            return View(updateRequest);
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                await LoadEditFormData();
+                ViewBag.VehicleId = id;
+                return View(updateRequest);
+            }
+
+            try
+            {
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    ModelState.AddModelError("", "Missing or invalid access token.");
+                    await LoadEditFormData();
+                    ViewBag.VehicleId = id;
+                    return View(updateRequest);
+                }
+
+                var json = JsonConvert.SerializeObject(updateRequest);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await httpClient.PutAsync($"{_apiBaseUrl}/api/Vehicles/{id}", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    ModelState.AddModelError("", $"Có lỗi xảy ra khi cập nhật phương tiện: {errorContent}");
+                    await LoadEditFormData();
+                    ViewBag.VehicleId = id;
+                    return View(updateRequest);
+                }
+
+                TempData["SuccessMessage"] = "Phương tiện đã được cập nhật thành công.";
+                return RedirectToAction(nameof(Details), new { id = id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi cập nhật phương tiện cho ID: {Id}", id);
+                ModelState.AddModelError("", $"Có lỗi xảy ra khi cập nhật phương tiện: {ex.Message}");
+                await LoadEditFormData();
+                ViewBag.VehicleId = id;
+                return View(updateRequest);
+            }
         }
 
+        // DELETE
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Delete, $"{_apiBaseUrl}/api/Vehicles/{id}");
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
-
-                var response = await _httpClient.SendAsync(request);
-
-                if (response.IsSuccessStatusCode)
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
                 {
-                    TempData["SuccessMessage"] = "Phương tiện đã được xóa thành công.";
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Missing or invalid access token.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var response = await httpClient.DeleteAsync($"{_apiBaseUrl}/api/Vehicles/{id}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    TempData["ErrorMessage"] = $"Không thể xóa phương tiện: {errorContent}";
                 }
                 else
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["ErrorMessage"] = $"Không thể xóa phương tiện: {errorContent}";
+                    TempData["SuccessMessage"] = "Phương tiện đã được xóa thành công.";
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi xóa phương tiện cho ID: {Id}", id);
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi xóa phương tiện.";
+                TempData["ErrorMessage"] = $"Có lỗi xảy ra khi xóa phương tiện: {ex.Message}";
             }
 
             return RedirectToAction(nameof(Index));
@@ -356,26 +466,36 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var buildingId = GetBuildingIdFromCookie();
+                if (!ValidateBuildingId())
+                {
+                    throw new InvalidOperationException("Missing buildingId in cookies.");
+                }
 
-                // Load residents for dropdown
-                var residentsRequest = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Residents");
-                residentsRequest.Headers.Add("Cookie", $"buildingId={buildingId}");
-                var residentsResponse = await _httpClient.SendAsync(residentsRequest);
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    throw new InvalidOperationException("Missing or invalid access token.");
+                }
+
+                var response = await httpClient.GetAsync($"{_apiBaseUrl}/api/Residents");
 
                 var residents = new List<ResidentListResponses>();
-
-                if (residentsResponse.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
                 {
-                    var residentsJson = await residentsResponse.Content.ReadAsStringAsync();
-                    _logger.LogInformation("Residents API Response: {JsonResponse}", residentsJson);
-                    var residentsApiResponse = JsonSerializer.Deserialize<ApiResponse<List<ResidentListResponses>>>(residentsJson, _jsonOptions);
+                    var json = await response.Content.ReadAsStringAsync();
+                    _logger.LogInformation("Residents API Response: {JsonResponse}", json);
+                    var residentsApiResponse = JsonConvert.DeserializeObject<ApiResponse<List<ResidentListResponses>>>(json);
                     residents = residentsApiResponse?.data ?? new List<ResidentListResponses>();
                 }
                 else
                 {
-                    var errorContent = await residentsResponse.Content.ReadAsStringAsync();
-                    _logger.LogError("Residents API Error: StatusCode={StatusCode}, Content={ErrorContent}", residentsResponse.StatusCode, errorContent);
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Residents API Error: StatusCode={StatusCode}, Content={ErrorContent}", response.StatusCode, errorContent);
                     TempData["ErrorMessage"] = "Không thể tải danh sách cư dân. Vui lòng thử lại.";
                 }
 

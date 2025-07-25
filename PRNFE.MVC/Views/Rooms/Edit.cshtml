@@ -173,7 +173,7 @@
                                                 <option value="">-- Chọn loại phòng --</option>
                                                 @foreach (var roomType in roomTypes)
                                                 {
-                                                    <option value="@roomType.Id">@roomType.Name - @roomType.Description</option>
+                                                    <option value="@roomType.Id">@roomType.Name </option>
                                                 }
                                             </select>
                                             <span asp-validation-for="RoomTypeId" class="text-danger"></span>

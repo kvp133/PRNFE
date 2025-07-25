@@ -59,7 +59,7 @@
                                 <div class="card-header">
                                     <h5>Danh sách trọ</h5>
                                     <div class="card-tools">
-                                        <button class="btn btn-primary btn-sm" onclick="showAddDormitoryModal()">
+                                        <button class="btn btn-primary btn-sm" onclick="location.href='/Rooms/Create'">
                                             <i class="fas fa-plus"></i> Thêm trọ mới
                                         </button>
                                     </div>
@@ -98,15 +98,15 @@
     <h2>Dashboard quản lý trọ</h2>
     <div class="row mt-4">
         <div class="col-md-4">
-            <a href="/Landlord/ServiceManagement" class="card text-center shadow-sm p-4" style="text-decoration:none;">
+            <a href="/Services/Index" class="card text-center shadow-sm p-4" style="text-decoration:none;">
                 <div class="card-body">
                     <i class="fas fa-bolt fa-3x mb-2"></i>
-                    <h4>Quản lý điện nước</h4>
+                    <h4>Quản lý dịch vụ</h4>
                 </div>
             </a>
         </div>
         <div class="col-md-4">
-            <a href="/Landlord/RoomManagement" class="card text-center shadow-sm p-4" style="text-decoration:none;">
+            <a href="/Rooms/Index" class="card text-center shadow-sm p-4" style="text-decoration:none;">
                 <div class="card-body">
                     <i class="fas fa-door-open fa-3x mb-2"></i>
                     <h4>Quản lý phòng trọ</h4>
@@ -114,7 +114,7 @@
             </a>
         </div>
         <div class="col-md-4">
-            <a href="/Landlord/TenantManagement" class="card text-center shadow-sm p-4" style="text-decoration:none;">
+            <a href="/Resident/Index" class="card text-center shadow-sm p-4" style="text-decoration:none;">
                 <div class="card-body">
                     <i class="fas fa-users fa-3x mb-2"></i>
                     <h4>Quản lý dân cư</h4>
