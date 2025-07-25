@@ -1,0 +1,56 @@
+@model PRNFE.MVC.Models.Request.UpdateProfileRequest
+@{
+    ViewData["Title"] = "Cập nhật thông tin cá nhân";
+}
+<div class="container mt-5">
+    <h2>@ViewData["Title"]</h2>
+    @if (TempData["MessageUpdateProfile"] != null)
+    {
+        <div class="alert @(TempData["IsSuccessUpdateProfile"]?.ToString() == "True" ? "alert-success" : "alert-danger")">
+            @TempData["MessageUpdateProfile"]
+        </div>
+    }
+    <form asp-action="UpdateProfile" method="post" class="mt-4">
+        <div class="mb-3">
+            <label asp-for="FullName" class="form-label">Họ tên</label>
+            <input asp-for="FullName" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Phone" class="form-label">Số điện thoại</label>
+            <input asp-for="Phone" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Dob" class="form-label">Ngày sinh</label>
+            <input asp-for="Dob" type="date" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="WardId" class="form-label">Mã phường</label>
+            <input asp-for="WardId" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Address" class="form-label">Địa chỉ</label>
+            <input asp-for="Address" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="GovIDCard" class="form-label">CMND/CCCD</label>
+            <input asp-for="GovIDCard" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Sex" class="form-label">Giới tính</label>
+            <input asp-for="Sex" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Ethnic" class="form-label">Dân tộc</label>
+            <input asp-for="Ethnic" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Religion" class="form-label">Tôn giáo</label>
+            <input asp-for="Religion" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Mst" class="form-label">Mã số thuế</label>
+            <input asp-for="Mst" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Cập nhật</button>
+    </form>
+</div> 
