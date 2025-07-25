@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace PRNFE.MVC.Models.Request
 {
@@ -54,7 +55,9 @@ namespace PRNFE.MVC.Models.Request
 
     public class FilterTemporaryStayDto
     {
+        [DisplayName("Residents")]
         public List<int>? ResidentIds { get; set; }
+        [DisplayName("Rooms")]
         public List<int>? RoomIds { get; set; }
         [Range(0, 4, ErrorMessage = "Status must be between 0 and 4.")]
         public int? Status { get; set; }
