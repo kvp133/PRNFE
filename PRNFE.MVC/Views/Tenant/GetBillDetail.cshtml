@@ -1,0 +1,109 @@
+﻿@model PRNFE.MVC.Models.Response.dat.BillResponseDat
+@using PRNFE.MVC.Models.EnumClass
+
+@{
+    ViewData["Title"] = "Chi tiết hóa đơn";
+
+    // Chuyển từ string hoặc int status sang enum
+    var statusEnum = Enum.TryParse<BillStatusDat>(Model.Status.ToString(), true, out var statusParsed)
+        ? statusParsed
+        : BillStatusDat.Created;
+
+    string statusLabel = statusEnum switch
+    {
+        BillStatusDat.Created => "Đã tạo",
+        BillStatusDat.WaitPay => "Chờ thanh toán",
+        BillStatusDat.Paid => "Đã thanh toán",
+        BillStatusDat.Overdue => "Quá hạn",
+        BillStatusDat.Cancelled => "Đã hủy",
+        _ => "Không xác định"
+    };
+
+    bool isUnpaid = statusEnum == BillStatusDat.WaitPay;
+
+    decimal totalAmount = Model.BillDetails?.Sum(d =>
+        Convert.ToDecimal(d.UnitPrice) * Convert.ToDecimal(d.Quantity)) ?? 0;
+}
+
+<div class="container mt-4">
+    <h3 class="mb-4 text-center">🧾 Chi tiết hóa đơn</h3>
+
+    <div class="card shadow border rounded">
+        <div class="card-body">
+            <h5 class="card-title">Thông tin hóa đơn</h5>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>Mã hóa đơn:</strong> @Model.Id</li>
+                <li class="list-group-item"><strong>Phòng:</strong> @Model.Room?.RoomNumber</li>
+                <li class="list-group-item"><strong>Tòa nhà:</strong> @Model.Room?.BuildingId</li>
+                <li class="list-group-item"><strong>Ngày tạo:</strong> @Model.CreateAt.ToString("dd/MM/yyyy")</li>
+                <li class="list-group-item"><strong>Hạn thanh toán:</strong> @Model.DueDate.ToString("dd/MM/yyyy")</li>
+                <li class="list-group-item"><strong>Số tiền:</strong> @String.Format("{0:N0} VND", totalAmount)</li>
+                <li class="list-group-item"><strong>Trạng thái:</strong> @statusLabel</li>
+            </ul>
+
+            <h5 class="mt-4">Chi tiết dịch vụ</h5>
+            @if (Model.BillDetails != null && Model.BillDetails.Any())
+            {
+                <table class="table table-bordered mt-2">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tên dịch vụ</th>
+                            <th>Số lượng</th>
+                            <th>Đơn giá</th>
+                            <th>Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var detail in Model.BillDetails)
+                        {
+                            decimal quantity = Convert.ToDecimal(detail.Quantity);
+                            decimal unitPrice = Convert.ToDecimal(detail.UnitPrice);
+                            decimal thanhTien = quantity * unitPrice;
+
+                            <tr>
+                                <td>@detail.Service?.Name</td>
+                                <td>@quantity.ToString("0.##")</td>
+                                <td>@String.Format("{0:N0} VND", unitPrice)</td>
+                                <td>@String.Format("{0:N0} VND", thanhTien)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold">
+                            <td colspan="3" class="text-end">Tổng cộng:</td>
+                            <td>@String.Format("{0:N0} VND", totalAmount)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted">Không có dịch vụ nào được ghi nhận.</p>
+            }
+
+            @if (isUnpaid)
+            {
+                <form asp-action="PayInvoice" method="post" class="mt-4 text-center">
+                    <input type="hidden" name="invoiceId" value="@ViewBag.InvoiceId" />
+                    <input type="hidden" name="amount" value="@totalAmount" />
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-credit-card"></i> Thanh toán ngay
+                    </button>
+                </form>
+            }
+
+
+            <a asp-action="ManagePayment" class="btn btn-secondary mt-3">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+</div>
+
+@section ToastMessage {
+    @await Html.PartialAsync("_ToastMessage", new {
+    message = TempData["ToastMessage"]?.ToString(),
+        type = TempData["ToastType"]?.ToString() ?? "success"
+    })
+}
+

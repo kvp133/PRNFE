@@ -142,7 +142,7 @@ public class CreateRoomRequest
         public string Notes { get; set; } = string.Empty;
 
         // For display purposes
-        public ServiceResponse? Service { get; set; }
+        public ServiceResponses? Service { get; set; }
     }
 
     public class FilterRoomRequest

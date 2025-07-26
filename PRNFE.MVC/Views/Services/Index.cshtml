@@ -1,4 +1,4 @@
-@model List<PRNFE.MVC.Models.Response.ServiceResponse>
+@model List<PRNFE.MVC.Models.Response.ServiceResponses>
 
 @{
     ViewData["Title"] = "Quản lý dịch vụ";
@@ -156,9 +156,9 @@
                                                     </span>
                                                 }
                                             </td>
-                                            <td>
+                                            @* <td>
                                                 <small class="text-muted">@item.CreateAt.ToString("dd/MM/yyyy")</small>
-                                            </td>
+                                            </td> *@
                                             <td class="text-center">
                                                 <div class="btn-group btn-group-sm" role="group">
                                                     <a href="@Url.Action("Details", "Services", new { id = item.Id })"

@@ -340,7 +340,7 @@ namespace PRNFE.MVC.Controllers
             };
             Response.Cookies.Append("RoomId", roomId.ToString(), options);
             Response.Cookies.Append("BuildingId", buildingId.ToString(), options);
-            return RedirectToAction("InvoiceInfo", "Tenant");
+            return RedirectToAction("ManageVehicle", "Tenant");
         }
 
         [HttpPost]

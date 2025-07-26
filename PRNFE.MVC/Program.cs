@@ -14,16 +14,20 @@ namespace PRNFE.MVC
             builder.Services.AddRazorPages();
             builder.Services.AddControllersWithViews();
 
-            builder.Services.AddHttpContextAccessor();
+
+			// Cấu hình ApiUrls
+			GetBaseUrl.Configure(builder.Configuration);
+
+			builder.Services.AddHttpContextAccessor();
             builder.Services.AddTransient<AuthHeaderHandler>();
             builder.Services.AddHttpClient("AuthorizedApiClient")
                 .AddHttpMessageHandler<AuthHeaderHandler>(); 
             builder.Services.ConfigureApplicationCookie(options =>
             {
-                options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Cho phép HTTP (qua gateway)
-                options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.HttpOnly = true;
-            });
+				options.Cookie.HttpOnly = true;
+				options.Cookie.SameSite = SameSiteMode.Lax; // Cho phép redirect từ PayOS
+				options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Cho phép HTTP
+			});
 
             var app = builder.Build();
 
@@ -36,10 +40,13 @@ namespace PRNFE.MVC
 
             app.UseRouting();
 
-            // Add custom authorization middleware
-            app.UseMiddleware<AuthorizationMiddleware>();
 
-            app.UseAuthorization();
+			app.UseAuthentication();
+			// Add custom authorization middleware
+			app.UseMiddleware<AuthorizationMiddleware>();
+
+		
+			app.UseAuthorization();
 
             app.MapRazorPages();
             
@@ -56,7 +63,7 @@ namespace PRNFE.MVC
 
             app.MapControllerRoute(
                 name: "tenant",
-                pattern: "Tenant/{action=InvoiceInfo}/{id?}",
+                pattern: "Tenant/{action=ManageVehicle}/{id?}",
                 defaults: new { controller = "Tenant" });
 
             app.MapControllerRoute(

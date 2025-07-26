@@ -2,7 +2,7 @@
 
 @{
     ViewData["Title"] = "Lọc và tìm kiếm dịch vụ";
-    var filteredServices = ViewBag.FilteredServices as List<PRNFE.MVC.Models.Response.ServiceResponse>;
+    var filteredServices = ViewBag.FilteredServices as List<PRNFE.MVC.Models.Response.ServiceResponses>;
     var filterApplied = ViewBag.FilterApplied as bool? ?? false;
     var resultCount = filteredServices?.Count ?? 0;
 }
@@ -261,9 +261,9 @@
                                                         </span>
                                                     }
                                                 </td>
-                                                <td>
+                                                @* <td>
                                                     <small class="text-muted">@service.CreateAt.ToString("dd/MM/yyyy")</small>
-                                                </td>
+                                                </td> *@
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
                                                         <a href="@Url.Action("Details", "Services", new { id = service.Id })"

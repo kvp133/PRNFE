@@ -1,0 +1,19 @@
+﻿@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isManageVehicle = currentAction == "ManageVehicle";
+    var isPaymentHistory = currentAction == "ManagePayment";
+}
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <div class="d-flex justify-content-center flex-wrap gap-2">
+            <a href="@Url.Action("ManageVehicle", "Tenant")"
+               class="btn btn-outline-secondary me-2 mb-2 @(isManageVehicle ? "active" : "")">
+                <i class="fas fa-car"></i> Quản lý phương tiện
+            </a>
+            <a href="@Url.Action("ManagePayment", "Tenant")"
+               class="btn btn-outline-info mb-2 @(isPaymentHistory ? "active" : "")">
+                <i class="fas fa-money-check-alt"></i> Lịch sử thanh toán
+            </a>
+        </div>
+    </div>
+</div>

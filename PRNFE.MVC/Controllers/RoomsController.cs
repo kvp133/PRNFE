@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
 using Microsoft.Extensions.Configuration;
+using PRNFE.MVC.Models.Response.dat;
 
 namespace PRNFE.MVC.Controllers
 {
@@ -865,7 +866,7 @@ namespace PRNFE.MVC.Controllers
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    var services = JsonConvert.DeserializeObject<List<ServiceResponse>>(json);
+                    var services = JsonConvert.DeserializeObject<List<ServiceResponses>>(json);
 
                     return services?.Where(s => s.IsActive).Select(s => new ServiceOption
                     {

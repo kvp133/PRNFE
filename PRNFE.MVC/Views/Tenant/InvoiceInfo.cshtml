@@ -4,6 +4,12 @@
 }
 
 <div class="container-fluid">
+
+
+    @section TenantQuickActions {
+        @await Html.PartialAsync("_TenantQuickActions")
+    }
+
     <div class="row">
         <div class="col-12">
             <div class="card">

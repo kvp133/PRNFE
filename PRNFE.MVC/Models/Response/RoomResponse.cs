@@ -113,7 +113,7 @@ namespace PRNFE.MVC.Models.Response
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string Notes { get; set; } = string.Empty;
-        public ServiceResponse? Service { get; set; }
+        public ServiceResponses? Service { get; set; }
     }
 
     public class ResidentResponse

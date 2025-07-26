@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using PRNFE.MVC.Models;
 using System.Text;
@@ -17,8 +17,18 @@ namespace PRNFE.MVC.Middleware
         public async Task InvokeAsync(HttpContext context)
         {
             var token = context.Request.Cookies["AccessToken"];
-            
-            if (!string.IsNullOrEmpty(token))
+
+			var path = context.Request.Path.Value?.ToLowerInvariant() ?? "";
+
+			if (path.StartsWith("/tenant/managepayment") )
+			{
+				await _next(context);
+				return;
+			}
+
+
+
+			if (!string.IsNullOrEmpty(token))
             {
                 try
                 {

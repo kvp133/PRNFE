@@ -28,11 +28,11 @@ namespace PRNFE.MVC.Controllers
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    var services = JsonConvert.DeserializeObject<List<ServiceResponse>>(json);
+                    var services = JsonConvert.DeserializeObject<List<ServiceResponses>>(json);
 
                     ViewBag.CurrentPage = page;
                     ViewBag.PageSize = size;
-                    ViewBag.Services = services ?? new List<ServiceResponse>();
+                    ViewBag.Services = services ?? new List<ServiceResponses>();
 
                     return View(services);
                 }
@@ -49,7 +49,7 @@ namespace PRNFE.MVC.Controllers
                 Console.WriteLine($"Error: {ex.Message}");
             }
 
-            return View(new List<ServiceResponse>());
+            return View(new List<ServiceResponses>());
         }
 
 
@@ -460,7 +460,7 @@ namespace PRNFE.MVC.Controllers
                 if (response.IsSuccessStatusCode)
                 {
                     var responseJson = await response.Content.ReadAsStringAsync();
-                    var services = JsonConvert.DeserializeObject<List<ServiceResponse>>(responseJson);
+                    var services = JsonConvert.DeserializeObject<List<ServiceResponses>>(responseJson);
 
                     // Apply client-side filtering for IsActive since API doesn't support it
                     if (request.IsActive.HasValue)
@@ -474,7 +474,7 @@ namespace PRNFE.MVC.Controllers
                         services = services.Take(request.PageSize).ToList();
                     }
 
-                    ViewBag.FilteredServices = services ?? new List<ServiceResponse>();
+                    ViewBag.FilteredServices = services ?? new List<ServiceResponses>();
                     ViewBag.FilterApplied = true;
                     TempData["Message"] = $"Tìm thấy {services?.Count ?? 0} dịch vụ phù hợp!";
                     TempData["IsSuccess"] = true;
@@ -482,7 +482,7 @@ namespace PRNFE.MVC.Controllers
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    ViewBag.FilteredServices = new List<ServiceResponse>();
+                    ViewBag.FilteredServices = new List<ServiceResponses>();
                     ViewBag.FilterApplied = true;
                     TempData["Message"] = $"Không thể lọc dịch vụ: {errorContent}";
                     TempData["IsSuccess"] = false;
@@ -493,7 +493,7 @@ namespace PRNFE.MVC.Controllers
             }
             catch (Exception ex)
             {
-                ViewBag.FilteredServices = new List<ServiceResponse>();
+                ViewBag.FilteredServices = new List<ServiceResponses>();
                 ViewBag.FilterApplied = true;
                 TempData["Message"] = "Có lỗi xảy ra khi lọc dịch vụ!";
                 TempData["IsSuccess"] = false;
@@ -552,7 +552,7 @@ namespace PRNFE.MVC.Controllers
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();
-                    var services = JsonConvert.DeserializeObject<List<ServiceResponse>>(json);
+                    var services = JsonConvert.DeserializeObject<List<ServiceResponses>>(json);
 
                     return Json(new
                     {

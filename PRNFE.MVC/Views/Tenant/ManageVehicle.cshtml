@@ -1,0 +1,144 @@
+﻿@model List<PRNFE.MVC.Models.Response.dat.VehicleResponsesDat>
+@using PRNFE.MVC.Models.EnumClass
+@using Enum = System.Enum
+
+@{
+    ViewData["Title"] = "Quản lý phương tiện";
+}
+
+@section TenantQuickActions {
+    @await Html.PartialAsync("_TenantQuickActions")
+}
+
+@section ToastMessage {
+    @await Html.PartialAsync("_ToastMessage", new {
+    message = TempData["ToastMessage"] as string,
+        type = TempData["ToastType"] as string ?? "success"
+    })
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="text-center mb-0">Quản lý phương tiện</h3>
+        <button class="btn btn-success" onclick="openAddModal()">
+            <i class="fas fa-plus"></i> Thêm phương tiện
+        </button>
+    </div>
+
+
+    <table class="table table-bordered table-hover">
+        <thead class="thead-light">
+            <tr>
+                <th>Biển số</th>
+                <th>Loại xe</th>
+                <th>Ngày tạo</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var vehicle in Model)
+            {
+                <tr>
+                    <td>@vehicle.LicensePlate</td>
+                    <td>@((VehicleTypes)int.Parse(vehicle.Type))</td>
+                    <td>@vehicle.CreateAt.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="openUpdateModal(@vehicle.Id, '@vehicle.LicensePlate', @vehicle.Type)">
+                            <i class="fas fa-edit"></i> Cập nhật
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteVehicle(@vehicle.Id)">
+                            <i class="fas fa-trash"></i> Hủy đăng ký
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Update Modal -->
+<div class="modal fade" id="updateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="updateForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cập nhật phương tiện</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="vehicleId" />
+                    <div class="mb-3">
+                        <label>Biển số</label>
+                        <input type="text" id="vehiclePlate" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label>Loại xe</label>
+                        <select id="vehicleType" class="form-control">
+                            @foreach (var t in Enum.GetValues(typeof(VehicleTypes)).Cast<VehicleTypes>())
+                            {
+                                <option value="@((int)t)">@t</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openUpdateModal(id, plate, type) {
+            $('#vehicleId').val(id);
+            $('#vehiclePlate').val(plate);
+            $('#vehicleType').val(type);
+            $('#updateModal').modal('show');
+        }
+
+        $('#updateForm').on('submit', function (e) {
+            e.preventDefault();
+            const plate = $('#vehiclePlate').val();
+            $('#updateModal').modal('hide');
+            showToast(`Đã cập nhật phương tiện ${plate}`, 'success');
+        });
+
+        function deleteVehicle(id) {
+            if (confirm("Bạn có chắc chắn muốn hủy đăng ký phương tiện này?")) {
+                showToast(`Đã hủy phương tiện có ID: ${id}`, 'success');
+            }
+        }
+
+             function openAddModal() {
+            $('#updateForm').attr('data-mode', 'add');
+            $('#vehicleId').val('');
+            $('#vehiclePlate').val('');
+            $('#vehicleType').val(0);
+            $('#updateModal').modal('show');
+        }
+
+        $('#updateForm').on('submit', function (e) {
+            e.preventDefault();
+
+            const mode = $(this).attr('data-mode');
+            const plate = $('#vehiclePlate').val();
+            const id = $('#vehicleId').val();
+            const type = $('#vehicleType').val();
+
+            $('#updateModal').modal('hide');
+
+            if (mode === 'add') {
+                showToast(`Đã thêm phương tiện mới ${plate}`, 'success');
+                // TODO: Gửi API thêm
+            } else {
+                showToast(`Đã cập nhật phương tiện ${plate}`, 'success');
+                // TODO: Gửi API cập nhật
+            }
+        });
+    </script>
+}

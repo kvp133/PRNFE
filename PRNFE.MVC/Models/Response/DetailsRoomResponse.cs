@@ -58,7 +58,7 @@
             public int ServiceId { get; set; }
             public bool IsActive { get; set; }
             public double CustomPrice { get; set; }
-            public ServiceResponses? Service { get; set; }
+            //public ServiceResponses? Service { get; set; }
         }
 
         public class UpdateServiceInRoomDto
