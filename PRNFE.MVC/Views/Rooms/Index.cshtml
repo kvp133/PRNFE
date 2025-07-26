@@ -223,14 +223,10 @@
                                     <label for="roomType" class="form-label">Loại phòng</label>
                                     <select name="RoomType" class="form-select" id="roomType">
                                         <option value="">Loại phòng</option>
-                                        @{
-                                            var selectedRoomType = Context.Request.Query["RoomType"].ToString();
-                                        }
                                         @foreach (var type in Enum.GetValues(typeof(FilterRoomRequest.RoomTypes)))
                                         {
                                             var typeInt = (int)type;
-                                            var isSelected = selectedRoomType == typeInt.ToString() ? "selected" : "";
-                                            <option value="@typeInt" selected="@isSelected">@type</option>
+                                            <option value="@typeInt" selected="@(Context.Request.Query["RoomType"] == typeInt.ToString())">@type</option>
                                         }
                                     </select>
                                 </div>
@@ -238,14 +234,10 @@
                                     <label for="status" class="form-label">Trạng thái</label>
                                     <select name="Status" class="form-select" id="status">
                                         <option value="">Trạng thái</option>
-                                        @{
-                                            var selectedStatus = Context.Request.Query["Status"].ToString();
-                                        }
                                         @foreach (var status in Enum.GetValues(typeof(FilterRoomRequest.RoomStatus)))
                                         {
                                             var statusInt = (int)status;
-                                            var isSelected = selectedStatus == statusInt.ToString() ? "selected" : "";
-                                            <option value="@statusInt" selected="@isSelected">@status</option>
+                                            <option value="@statusInt" selected="@(Context.Request.Query["Status"] == statusInt.ToString())">@status</option>
                                         }
                                     </select>
                                 </div>
