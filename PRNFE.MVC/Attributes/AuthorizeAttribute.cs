@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using PRNFE.MVC.Models;
+using Microsoft.AspNetCore.Mvc.Authorization;
 
 namespace PRNFE.MVC.Attributes
 {
@@ -50,10 +51,23 @@ namespace PRNFE.MVC.Attributes
     }
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-    public class RequireAdminAttribute : AuthorizeAttribute
+    public class RequireAdminAttribute : Attribute, IAuthorizationFilter
     {
-        public RequireAdminAttribute() : base(new[] { "Quản lý trọ" })
+        public void OnAuthorization(AuthorizationFilterContext context)
         {
+            var userInfo = context.HttpContext.Items["UserInfo"] as JwtTokenModel;
+            
+            if (userInfo == null)
+            {
+                context.Result = new RedirectToActionResult("Login", "Auth", null);
+                return;
+            }
+
+            if (!userInfo.IsAdmin)
+            {
+                context.Result = new ForbidResult();
+                return;
+            }
         }
     }
 

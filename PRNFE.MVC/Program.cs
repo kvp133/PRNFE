@@ -19,9 +19,26 @@ namespace PRNFE.MVC
 			GetBaseUrl.Configure(builder.Configuration);
 
 			builder.Services.AddHttpContextAccessor();
+
+            // Add Authentication and Authorization
+            builder.Services.AddAuthentication("Cookies")
+                .AddCookie("Cookies", options =>
+                {
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+                    options.Cookie.SameSite = SameSiteMode.Lax;
+                    options.Cookie.HttpOnly = true;
+                });
+
+            builder.Services.AddAuthorization();
+
+            builder.Services.AddHttpContextAccessor();
+
             builder.Services.AddTransient<AuthHeaderHandler>();
+            builder.Services.AddTransient<LoggingHandler>();
             builder.Services.AddHttpClient("AuthorizedApiClient")
-                .AddHttpMessageHandler<AuthHeaderHandler>(); 
+                .AddHttpMessageHandler<AuthHeaderHandler>()
+                .AddHttpMessageHandler<LoggingHandler>();
+
             builder.Services.ConfigureApplicationCookie(options =>
             {
 				options.Cookie.HttpOnly = true;
@@ -47,6 +64,7 @@ namespace PRNFE.MVC
 
 		
 			app.UseAuthorization();
+
 
             app.MapRazorPages();
             

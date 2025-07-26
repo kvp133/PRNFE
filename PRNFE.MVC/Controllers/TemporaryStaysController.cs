@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Newtonsoft.Json;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
@@ -17,13 +18,55 @@ namespace PRNFE.MVC.Controllers
         }
 
         // GET: TemporaryStaysController
-        public async Task<ActionResult> Index()
+        public async Task<ActionResult> Index(FilterTemporaryStayDto model, int page)
         {
-            var apiUrl = $"{_apiQLPTUrl}/api/TemporaryStays";          
-
-            var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<TemporaryStayResponse>>>(apiUrl);
-
-            return View(response.data);
+            string message = string.Empty;
+            try
+            {
+                ViewBag.FilterModel = model;
+                await SetFilterData();
+                var apiUrl = $"{_apiQLPTUrl}/api/TemporaryStays";
+                var queryParams = new List<string>();
+                if (TempData.ContainsKey("FilterModel"))
+                {
+                    model = JsonConvert.DeserializeObject<FilterTemporaryStayDto>(TempData["FilterModel"]?.ToString() ?? "{}");
+                    TempData.Keep("FilterModel");
+                }
+                if (model.ResidentIds != null && model.ResidentIds.Count > 0)
+                {
+                    queryParams.Add($"residentIds={string.Join(",", model.ResidentIds)}");
+                }
+                if (model.RoomIds != null && model.RoomIds.Count > 0)
+                {
+                    queryParams.Add($"roomIds={string.Join(",", model.RoomIds)}");
+                }
+                if (model.Status.HasValue)
+                {
+                    queryParams.Add($"status={model.Status.Value}");
+                }
+                if (queryParams.Count > 0)
+                {
+                    apiUrl = $"{_apiQLPTUrl}/api/TemporaryStays/filters";
+                    apiUrl += "?" + string.Join("&", queryParams);
+                    TempData["FilterModel"] = JsonConvert.SerializeObject(model);
+                }
+                var response = await _httpClient
+                    .GetFromJsonAsync<ApiResponse<List<TemporaryStayResponse>>>(apiUrl);
+                message = response.message;
+                Pagination pagination = new Pagination
+                {
+                    PageNumber = page,
+                    NotificationResponses = response!.data
+                };
+                ViewBag.Total = pagination;
+                return View(pagination.GetPaginatedItems());
+            }
+            catch
+            {
+                Console.WriteLine("Fail to run login in Filter(FilterTemporaryStayDto model)");
+                Console.WriteLine(message);
+                return View("Index", new List<TemporaryStayResponse>());
+            }
         }
 
         // GET: TemporaryStaysController/Details/5
@@ -35,26 +78,6 @@ namespace PRNFE.MVC.Controllers
             return View(response.data);
         }
 
-        //// GET: TemporaryStaysController/Create
-        //public ActionResult Create()
-        //{
-        //    return View();
-        //}
-
-        //// POST: TemporaryStaysController/Create
-        //[HttpPost]
-        //[ValidateAntiForgeryToken]
-        //public ActionResult Create(IFormCollection collection)
-        //{
-        //    try
-        //    {
-        //        return RedirectToAction(nameof(Index));
-        //    }
-        //    catch
-        //    {
-        //        return View();
-        //    }
-        //}
 
         // GET: TemporaryStaysController/Edit/5
         public async Task<ActionResult> Edit(int id)
@@ -120,6 +143,59 @@ namespace PRNFE.MVC.Controllers
                 ModelState.AddModelError(string.Empty, $"Error deleting temporary stay: {errorMessage}");
             }
             return View();
+        }
+
+        private async Task SetFilterData()
+        {
+            // get room
+            var roomApiUrl = $"{_apiQLPTUrl}/api/Rooms";
+            var roomResponse = await _httpClient.GetFromJsonAsync<ApiResponse<List<RoomResponse>>>(roomApiUrl);
+            // get resident
+            var residentApiUrl = $"{_apiQLPTUrl}/api/Residents";
+            var residentResponse = await _httpClient.GetFromJsonAsync<ApiResponse<List<ResidentResponse>>>(residentApiUrl);
+            // Prepare the view model
+            ViewBag.Rooms = roomResponse.data.Select(r => new SelectListItem
+            {
+                Value = r.Id.ToString(),
+                Text = r.RoomNumber
+            }).ToList();
+            ViewBag.Residents = residentResponse.data.Select(r => new SelectListItem
+            {
+                Value = r.Id.ToString(),
+                Text = r.FullName
+            }).ToList();
+        }
+
+        [HttpPost]
+        public IActionResult ClearFilterTempData()
+        {
+            TempData.Remove("FilterModel");
+            return Ok();
+        }
+
+        public class Pagination
+        {
+            public int PageNumber { get; set; } = 1;
+            public int PageSize { get; set; } = 2;
+            public List<TemporaryStayResponse> NotificationResponses { get; set; } = new List<TemporaryStayResponse>();
+            public int TotalCount => NotificationResponses.Count;
+            public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+
+            public List<TemporaryStayResponse> GetPaginatedItems()
+            {
+                try
+                {
+                    return NotificationResponses
+                                        .Skip((PageNumber - 1) * PageSize)
+                                        .Take(PageSize)
+                                        .ToList();
+                }
+                catch
+                {
+                    return new List<TemporaryStayResponse>();
+                }
+
+            }
         }
     }
 }

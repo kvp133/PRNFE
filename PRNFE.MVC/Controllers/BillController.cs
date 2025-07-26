@@ -1,51 +1,42 @@
 ﻿
 
+
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using BillResponse = PRNFE.MVC.Models.Request.BillResponses;
 
 namespace PRNFE.MVC.Controllers
 {
-    public class BillController : Controller
+    public class BillController : BaseController
     {
-        private readonly HttpClient _httpClient;
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<BillController> _logger;
         private readonly string _apiBaseUrl;
-        private readonly JsonSerializerOptions _jsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+        private readonly ILogger<BillController> _logger;
 
-        public BillController(HttpClient httpClient, IConfiguration configuration, ILogger<BillController> logger)
+        public BillController(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<BillController> logger)
+            : base(httpClientFactory, configuration)
         {
-            var handler = new HttpClientHandler { UseCookies = true, CookieContainer = new CookieContainer() };
-            _httpClient = httpClient;
-            _configuration = configuration;
+            _apiBaseUrl = configuration["ApiSettings:BaseUrl"] ?? throw new InvalidOperationException("API BaseUrl is not configured.");
             _logger = logger;
-            _apiBaseUrl = configuration.GetSection("ApiSettings:BaseUrl").Value ?? throw new InvalidOperationException("API BaseUrl is not configured.");
         }
 
-        private string GetBuildingIdFromCookie()
-        {
-            var buildingId = Request.Cookies["buildingId"];
-            if (string.IsNullOrEmpty(buildingId))
-            {
-                throw new InvalidOperationException("buildingId cookie không tồn tại hoặc rỗng.");
-            }
-            return buildingId;
-        }
-
+        // INDEX
         public async Task<IActionResult> Index(BillFilterRequests filter)
         {
             if (!ModelState.IsValid)
             {
                 ViewBag.Error = "Invalid filter parameters.";
+                return View();
+            }
+
+            if (!ValidateBuildingId())
+            {
+                ViewBag.Error = "Missing buildingId in cookies.";
                 return View();
             }
 
@@ -80,11 +71,19 @@ namespace PRNFE.MVC.Controllers
                 var fullUrl = $"{_apiBaseUrl}/api/Bills/filter{queryString}";
                 _logger.LogInformation("Gọi API: {Url}", fullUrl);
 
-                var request = new HttpRequestMessage(HttpMethod.Get, fullUrl);
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    ViewBag.Error = "Missing or invalid access token.";
+                    return View();
+                }
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await httpClient.GetAsync(fullUrl);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -113,7 +112,7 @@ namespace PRNFE.MVC.Controllers
                     return View();
                 }
 
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillResponse>>>(json, _jsonOptions);
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<BillResponse>>>(json);
                 var bills = apiResponse?.data ?? new List<BillResponse>();
 
                 if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
@@ -153,6 +152,7 @@ namespace PRNFE.MVC.Controllers
             }
         }
 
+        // DETAILS
         public async Task<IActionResult> Details(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -160,22 +160,39 @@ namespace PRNFE.MVC.Controllers
                 return NotFound();
             }
 
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Bills/{id}");
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Missing or invalid access token.";
+                    return RedirectToAction(nameof(Index));
+                }
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await httpClient.GetAsync($"{_apiBaseUrl}/api/Bills/{id}");
+
                 if (!response.IsSuccessStatusCode)
                 {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
                     return NotFound();
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(json, _jsonOptions);
-
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<BillResponse>>(json);
                 var bill = apiResponse?.data;
+
                 if (bill == null)
                 {
                     return NotFound();
@@ -191,9 +208,15 @@ namespace PRNFE.MVC.Controllers
             }
         }
 
-        //CREAET
+        // CREATE - GET
         public async Task<IActionResult> Create()
         {
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
                 await LoadCreateFormData();
@@ -212,44 +235,69 @@ namespace PRNFE.MVC.Controllers
             }
         }
 
+        // CREATE - POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(BillCreateRequests billRequest)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    var buildingId = GetBuildingIdFromCookie();
-                    var json = JsonSerializer.Serialize(billRequest, _jsonOptions);
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                    var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/Bills")
-                    {
-                        Content = content
-                    };
-                    request.Headers.Add("Cookie", $"buildingId={buildingId}");
-
-                    var response = await _httpClient.SendAsync(request);
-                    response.EnsureSuccessStatusCode();
-
-                    var jsonResponse = await response.Content.ReadAsStringAsync();
-                    var apiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(jsonResponse, _jsonOptions);
-
-                    TempData["SuccessMessage"] = "Hóa đơn đã được tạo thành công.";
-                    return RedirectToAction(nameof(Details), new { id = apiResponse?.data?.Id });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Lỗi khi tạo hóa đơn");
-                    ModelState.AddModelError("", "Có lỗi xảy ra khi tạo hóa đơn. Vui lòng thử lại.");
-                }
+                await LoadCreateFormData();
+                return View(billRequest);
             }
 
-            await LoadCreateFormData();
-            return View(billRequest);
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                await LoadCreateFormData();
+                return View(billRequest);
+            }
+
+            try
+            {
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    ModelState.AddModelError("", "Missing or invalid access token.");
+                    await LoadCreateFormData();
+                    return View(billRequest);
+                }
+
+                var json = JsonConvert.SerializeObject(billRequest);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await httpClient.PostAsync($"{_apiBaseUrl}/api/Bills", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    ModelState.AddModelError("", $"Có lỗi xảy ra khi tạo hóa đơn: {errorContent}");
+                    await LoadCreateFormData();
+                    return View(billRequest);
+                }
+
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<BillResponse>>(jsonResponse);
+
+                TempData["SuccessMessage"] = "Hóa đơn đã được tạo thành công.";
+                return RedirectToAction(nameof(Details), new { id = apiResponse?.data?.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo hóa đơn");
+                ModelState.AddModelError("", $"Có lỗi xảy ra khi tạo hóa đơn: {ex.Message}");
+                await LoadCreateFormData();
+                return View(billRequest);
+            }
         }
 
+        // EDIT - GET
         public async Task<IActionResult> Edit(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -257,24 +305,40 @@ namespace PRNFE.MVC.Controllers
                 return NotFound();
             }
 
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Bills/{id}");
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Missing or invalid access token.";
+                    return RedirectToAction(nameof(Index));
+                }
 
-                var billResponse = await _httpClient.SendAsync(request);
-                var servicesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
+                var billResponse = await httpClient.GetAsync($"{_apiBaseUrl}/api/Bills/{id}");
+                var servicesResponse = await httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
 
                 if (!billResponse.IsSuccessStatusCode)
                 {
+                    var errorContent = await billResponse.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", billResponse.StatusCode, errorContent);
                     return NotFound();
                 }
 
                 var billJson = await billResponse.Content.ReadAsStringAsync();
-                var billApiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(billJson, _jsonOptions);
-
+                var billApiResponse = JsonConvert.DeserializeObject<ApiResponse<BillResponse>>(billJson);
                 var bill = billApiResponse?.data;
+
                 if (bill == null)
                 {
                     return NotFound();
@@ -297,8 +361,14 @@ namespace PRNFE.MVC.Controllers
                 if (servicesResponse.IsSuccessStatusCode)
                 {
                     var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
-                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponses>>>(servicesJson, _jsonOptions);
+                    var servicesApiResponse = JsonConvert.DeserializeObject<ApiResponse<List<BillServiceResponses>>>(servicesJson);
                     services = servicesApiResponse?.data ?? new List<BillServiceResponses>();
+                }
+                else
+                {
+                    var errorContent = await servicesResponse.Content.ReadAsStringAsync();
+                    _logger.LogError("Services API Error: StatusCode={StatusCode}, Content={ErrorContent}", servicesResponse.StatusCode, errorContent);
+                    TempData["ErrorMessage"] = "Không thể tải danh sách dịch vụ.";
                 }
 
                 ViewBag.Services = services;
@@ -315,104 +385,176 @@ namespace PRNFE.MVC.Controllers
             }
         }
 
+        // EDIT - POST
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(string id, BillUpdateRequests updateRequest)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    var buildingId = GetBuildingIdFromCookie();
-                    var json = JsonSerializer.Serialize(updateRequest, _jsonOptions);
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                    var request = new HttpRequestMessage(HttpMethod.Put, $"{_apiBaseUrl}/api/Bills/{id}")
-                    {
-                        Content = content
-                    };
-                    request.Headers.Add("Cookie", $"buildingId={buildingId}");
-
-                    var response = await _httpClient.SendAsync(request);
-                    response.EnsureSuccessStatusCode();
-
-                    TempData["SuccessMessage"] = "Hóa đơn đã được cập nhật thành công.";
-                    return RedirectToAction(nameof(Details), new { id = id });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Lỗi khi cập nhật hóa đơn cho ID: {Id}", id);
-                    ModelState.AddModelError("", "Có lỗi xảy ra khi cập nhật hóa đơn. Vui lòng thử lại.");
-                }
+                await LoadEditFormData(id);
+                ViewBag.BillId = id;
+                return View(updateRequest);
             }
 
-            await LoadEditFormData(id);
-            ViewBag.BillId = id;
-            return View(updateRequest);
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                await LoadEditFormData(id);
+                ViewBag.BillId = id;
+                return View(updateRequest);
+            }
+
+            try
+            {
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    ModelState.AddModelError("", "Missing or invalid access token.");
+                    await LoadEditFormData(id);
+                    ViewBag.BillId = id;
+                    return View(updateRequest);
+                }
+
+                var json = JsonConvert.SerializeObject(updateRequest);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await httpClient.PutAsync($"{_apiBaseUrl}/api/Bills/{id}", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    ModelState.AddModelError("", $"Có lỗi xảy ra khi cập nhật hóa đơn: {errorContent}");
+                    await LoadEditFormData(id);
+                    ViewBag.BillId = id;
+                    return View(updateRequest);
+                }
+
+                TempData["SuccessMessage"] = "Hóa đơn đã được cập nhật thành công.";
+                return RedirectToAction(nameof(Details), new { id = id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi cập nhật hóa đơn cho ID: {Id}", id);
+                ModelState.AddModelError("", $"Có lỗi xảy ra khi cập nhật hóa đơn: {ex.Message}");
+                await LoadEditFormData(id);
+                ViewBag.BillId = id;
+                return View(updateRequest);
+            }
         }
 
+        // DELETE
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(string id)
         {
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Delete, $"{_apiBaseUrl}/api/Bills/{id}");
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
-
-                var response = await _httpClient.SendAsync(request);
-
-                if (response.IsSuccessStatusCode)
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
                 {
-                    TempData["SuccessMessage"] = "Hóa đơn đã được xóa thành công.";
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Missing or invalid access token.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var response = await httpClient.DeleteAsync($"{_apiBaseUrl}/api/Bills/{id}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    TempData["ErrorMessage"] = $"Không thể xóa hóa đơn: {errorContent}";
                 }
                 else
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["ErrorMessage"] = $"Không thể xóa hóa đơn: {errorContent}";
+                    TempData["SuccessMessage"] = "Hóa đơn đã được xóa thành công.";
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi xóa hóa đơn cho ID: {Id}", id);
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi xóa hóa đơn.";
+                TempData["ErrorMessage"] = $"Có lỗi xảy ra khi xóa hóa đơn: {ex.Message}";
             }
 
             return RedirectToAction(nameof(Index));
         }
 
+        // CREATE FOR BUILDING
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateForBuilding()
         {
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Missing buildingId in cookies.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/Bills/Building");
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Missing or invalid access token.";
+                    return RedirectToAction(nameof(Index));
+                }
 
-                var response = await _httpClient.SendAsync(request);
-                response.EnsureSuccessStatusCode();
+                var response = await httpClient.PostAsync($"{_apiBaseUrl}/api/Bills/Building", null);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    TempData["ErrorMessage"] = $"Không thể tạo hóa đơn cho tòa nhà: {errorContent}";
+                    return RedirectToAction(nameof(Index));
+                }
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillResponse>>>(jsonResponse, _jsonOptions);
-
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<BillResponse>>>(jsonResponse);
                 var createdBills = apiResponse?.data ?? new List<BillResponse>();
+
                 TempData["SuccessMessage"] = $"Đã tạo thành công {createdBills.Count} hóa đơn cho toàn bộ tòa nhà.";
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi tạo hóa đơn cho toàn bộ tòa nhà");
-                TempData["ErrorMessage"] = "Có lỗi xảy ra khi tạo hóa đơn cho tòa nhà.";
+                TempData["ErrorMessage"] = $"Có lỗi xảy ra khi tạo hóa đơn cho tòa nhà: {ex.Message}";
             }
 
             return RedirectToAction(nameof(Index));
         }
 
+        // CREATE FOR ROOMS
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateForRooms([FromBody] List<int> roomIds)
         {
+            if (!ValidateBuildingId())
+            {
+                return Json(new { success = false, message = "Missing buildingId in cookies." });
+            }
+
             try
             {
                 if (roomIds == null || !roomIds.Any())
@@ -420,22 +562,31 @@ namespace PRNFE.MVC.Controllers
                     return Json(new { success = false, message = "Vui lòng chọn ít nhất một phòng." });
                 }
 
-                var json = JsonSerializer.Serialize(roomIds, _jsonOptions);
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    return Json(new { success = false, message = "Missing or invalid access token." });
+                }
+
+                var json = JsonConvert.SerializeObject(roomIds);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/Bills/Rooms")
-                {
-                    Content = content
-                };
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                var response = await httpClient.PostAsync($"{_apiBaseUrl}/api/Bills/Rooms", content);
 
-                var response = await _httpClient.SendAsync(request);
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("API Error: {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    return Json(new { success = false, message = $"Không thể tạo hóa đơn cho các phòng: {errorContent}" });
+                }
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillResponse>>>(jsonResponse, _jsonOptions);
-
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<BillResponse>>>(jsonResponse);
                 var createdBills = apiResponse?.data ?? new List<BillResponse>();
 
                 return Json(new { success = true, message = $"Đã tạo thành công {createdBills.Count} hóa đơn." });
@@ -443,21 +594,32 @@ namespace PRNFE.MVC.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi tạo hóa đơn cho các phòng");
-                return Json(new { success = false, message = "Có lỗi xảy ra khi tạo hóa đơn cho các phòng." });
+                return Json(new { success = false, message = $"Có lỗi xảy ra khi tạo hóa đơn cho các phòng: {ex.Message}" });
             }
         }
 
-    
-
-            private async Task LoadCreateFormData()
+        private async Task LoadCreateFormData()
         {
             try
             {
-                var buildingId = GetBuildingIdFromCookie();
-                var roomsRequest = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Rooms");
-                roomsRequest.Headers.Add("buildingId", buildingId);
-                var roomsResponse = await _httpClient.SendAsync(roomsRequest);
-                var servicesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
+                if (!ValidateBuildingId())
+                {
+                    throw new InvalidOperationException("Missing buildingId in cookies.");
+                }
+
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    throw new InvalidOperationException("Missing or invalid access token.");
+                }
+
+                var roomsResponse = await httpClient.GetAsync($"{_apiBaseUrl}/api/Rooms");
+                var servicesResponse = await httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
 
                 var rooms = new List<BillRoomResponses>();
                 var services = new List<BillServiceResponses>();
@@ -466,7 +628,7 @@ namespace PRNFE.MVC.Controllers
                 {
                     var roomsJson = await roomsResponse.Content.ReadAsStringAsync();
                     _logger.LogInformation("Rooms API Response: {JsonResponse}", roomsJson);
-                    var roomsApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillRoomResponses>>>(roomsJson, _jsonOptions);
+                    var roomsApiResponse = JsonConvert.DeserializeObject<ApiResponse<List<BillRoomResponses>>>(roomsJson);
                     rooms = roomsApiResponse?.data ?? new List<BillRoomResponses>();
                 }
                 else
@@ -480,7 +642,7 @@ namespace PRNFE.MVC.Controllers
                 {
                     var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
                     _logger.LogInformation("Services API Response: {JsonResponse}", servicesJson);
-                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponses>>>(servicesJson, _jsonOptions);
+                    var servicesApiResponse = JsonConvert.DeserializeObject<ApiResponse<List<BillServiceResponses>>>(servicesJson);
                     services = servicesApiResponse?.data ?? new List<BillServiceResponses>();
                 }
                 else
@@ -506,12 +668,24 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Bills/{billId}");
-                var buildingId = GetBuildingIdFromCookie();
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                if (!ValidateBuildingId())
+                {
+                    throw new InvalidOperationException("Missing buildingId in cookies.");
+                }
 
-                var billResponse = await _httpClient.SendAsync(request);
-                var servicesResponse = await _httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    throw new InvalidOperationException("Missing or invalid access token.");
+                }
+
+                var billResponse = await httpClient.GetAsync($"{_apiBaseUrl}/api/Bills/{billId}");
+                var servicesResponse = await httpClient.GetAsync($"{_apiBaseUrl}/api/Services");
 
                 var services = new List<BillServiceResponses>();
                 BillRoomResponses room = null;
@@ -519,15 +693,25 @@ namespace PRNFE.MVC.Controllers
                 if (billResponse.IsSuccessStatusCode)
                 {
                     var billJson = await billResponse.Content.ReadAsStringAsync();
-                    var billApiResponse = JsonSerializer.Deserialize<ApiResponse<BillResponse>>(billJson, _jsonOptions);
+                    var billApiResponse = JsonConvert.DeserializeObject<ApiResponse<BillResponse>>(billJson);
                     room = billApiResponse?.data?.Room;
+                }
+                else
+                {
+                    var errorContent = await billResponse.Content.ReadAsStringAsync();
+                    _logger.LogError("Bill API Error: StatusCode={StatusCode}, Content={ErrorContent}", billResponse.StatusCode, errorContent);
                 }
 
                 if (servicesResponse.IsSuccessStatusCode)
                 {
                     var servicesJson = await servicesResponse.Content.ReadAsStringAsync();
-                    var servicesApiResponse = JsonSerializer.Deserialize<ApiResponse<List<BillServiceResponses>>>(servicesJson, _jsonOptions);
+                    var servicesApiResponse = JsonConvert.DeserializeObject<ApiResponse<List<BillServiceResponses>>>(servicesJson);
                     services = servicesApiResponse?.data ?? new List<BillServiceResponses>();
+                }
+                else
+                {
+                    var errorContent = await servicesResponse.Content.ReadAsStringAsync();
+                    _logger.LogError("Services API Error: StatusCode={StatusCode}, Content={ErrorContent}", servicesResponse.StatusCode, errorContent);
                 }
 
                 ViewBag.Services = services;

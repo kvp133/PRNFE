@@ -1,29 +1,24 @@
 ﻿
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 
 namespace PRNFE.MVC.Controllers
 {
-    public class ResidentController : Controller
+    public class ResidentController : BaseController
     {
-        private readonly HttpClient _httpClient;
-        private readonly JsonSerializerOptions _jsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
         private readonly string _apiBaseUrl;
 
-        public ResidentController(HttpClient httpClient, IConfiguration configuration)
+        public ResidentController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+            : base(httpClientFactory, configuration)
         {
-            var handler = new HttpClientHandler { UseCookies = true, CookieContainer = new CookieContainer() };
-            _httpClient = httpClient;
-            _apiBaseUrl = configuration.GetSection("ApiSettings:BaseUrl").Value ?? throw new InvalidOperationException("API BaseUrl is not configured.");
+            _apiBaseUrl = configuration["ApiSettings:Url_qlpt"] ?? throw new InvalidOperationException("API BaseUrl is not configured.");
         }
 
         // INDEX
@@ -35,46 +30,52 @@ namespace PRNFE.MVC.Controllers
                 return View(new ResidentFilterResponses());
             }
 
-            var queryParams = new List<string>
-    {
-        $"Page={filter.Page}",
-        $"PageSize={filter.PageSize}"
-    };
-
-            if (!string.IsNullOrEmpty(filter.FullName))
+            if (!ValidateBuildingId())
             {
-                queryParams.Add($"FullName={Uri.EscapeDataString(filter.FullName)}");
-            }
-
-            if (!string.IsNullOrEmpty(filter.PhoneNumber))
-            {
-                queryParams.Add($"PhoneNumber={Uri.EscapeDataString(filter.PhoneNumber)}");
-            }
-
-            if (filter.RoomIds != null && filter.RoomIds.Length > 0)
-            {
-                queryParams.Add($"RoomIds={string.Join(",", filter.RoomIds)}");
+                ViewBag.Error = "Missing buildingId in cookies.";
+                return View(new ResidentFilterResponses());
             }
 
             try
             {
+                var queryParams = new List<string>
+                {
+                    $"Page={filter.Page}",
+                    $"PageSize={filter.PageSize}"
+                };
+
+                if (!string.IsNullOrEmpty(filter.FullName))
+                {
+                    queryParams.Add($"FullName={Uri.EscapeDataString(filter.FullName)}");
+                }
+
+                if (!string.IsNullOrEmpty(filter.PhoneNumber))
+                {
+                    queryParams.Add($"PhoneNumber={Uri.EscapeDataString(filter.PhoneNumber)}");
+                }
+
+                if (filter.RoomIds != null && filter.RoomIds.Length > 0)
+                {
+                    queryParams.Add($"RoomIds={string.Join(",", filter.RoomIds)}");
+                }
+
                 var queryString = string.Join("&", queryParams);
                 var fullUrl = $"{_apiBaseUrl}/api/Residents/filter?{queryString}";
                 System.Diagnostics.Debug.WriteLine($"Request URL: {fullUrl}");
 
-                var request = new HttpRequestMessage(HttpMethod.Get, fullUrl);
-                var buildingId = Request.Cookies["buildingId"];
-                if (!string.IsNullOrEmpty(buildingId))
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
                 {
-                    request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                 }
-                else
+                else if (!await RefreshTokenIfNeeded())
                 {
-                    ViewBag.Error = "Missing buildingId in cookies.";
+                    ViewBag.Error = "Missing or invalid access token.";
                     return View(new ResidentFilterResponses());
                 }
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await httpClient.GetAsync(fullUrl);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -93,7 +94,7 @@ namespace PRNFE.MVC.Controllers
                     return View(new ResidentFilterResponses());
                 }
 
-                var result = JsonSerializer.Deserialize<ResidentFilterResponses>(json, _jsonOptions);
+                var result = JsonConvert.DeserializeObject<ResidentFilterResponses>(json);
                 ViewBag.Filter = filter;
                 return View(result ?? new ResidentFilterResponses());
             }
@@ -106,8 +107,7 @@ namespace PRNFE.MVC.Controllers
             }
         }
 
-
-        //// CREATE - GET
+        // CREATE - GET
         public IActionResult Create() => View(new ResidentRequests
         {
             DateOfBirth = DateTime.Now.AddYears(-18),
@@ -124,36 +124,39 @@ namespace PRNFE.MVC.Controllers
                 return View(model);
             }
 
+            if (!ValidateBuildingId())
+            {
+                ModelState.AddModelError(string.Empty, "Thiếu buildingId trong cookies.");
+                return View(model);
+            }
+
             try
             {
-                // Sinh userId bằng GUID để đảm bảo duy nhất
-                model.UserId = $"user_{Guid.NewGuid().ToString("N").Substring(0, 6)}"; // Ví dụ: user_a1b2c3
+                model.UserId = $"user_{Guid.NewGuid().ToString("N").Substring(0, 6)}";
 
-                var buildingId = Request.Cookies["buildingId"];
-                if (string.IsNullOrEmpty(buildingId))
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
                 {
-                    ModelState.AddModelError(string.Empty, "Thiếu buildingId trong cookies.");
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    ModelState.AddModelError(string.Empty, "Thiếu token xác thực.");
                     return View(model);
                 }
 
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl}/api/Residents")
-                {
-                    Content = new StringContent(
-                        JsonSerializer.Serialize(model, _jsonOptions),
-                        Encoding.UTF8,
-                        "application/json"
-                    )
-                };
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                var json = JsonConvert.SerializeObject(model);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await httpClient.PostAsync($"{_apiBaseUrl}/api/Residents", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
                     try
                     {
-                        var errorResponse = JsonSerializer.Deserialize<Dictionary<string, string>>(errorContent, _jsonOptions);
+                        var errorResponse = JsonConvert.DeserializeObject<Dictionary<string, string>>(errorContent);
                         foreach (var error in errorResponse ?? new Dictionary<string, string>())
                         {
                             ModelState.AddModelError(string.Empty, error.Value);
@@ -175,21 +178,32 @@ namespace PRNFE.MVC.Controllers
                 return View(model);
             }
         }
+
         // EDIT - GET
         public async Task<IActionResult> Edit(int id)
         {
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Thiếu buildingId.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Residents/{id}");
-                var buildingId = Request.Cookies["buildingId"];
-                if (string.IsNullOrEmpty(buildingId))
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
                 {
-                    TempData["ErrorMessage"] = "Thiếu buildingId.";
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Thiếu token xác thực.";
                     return RedirectToAction(nameof(Index));
                 }
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await httpClient.GetAsync($"{_apiBaseUrl}/api/Residents/{id}");
+
                 if (!response.IsSuccessStatusCode)
                 {
                     TempData["ErrorMessage"] = $"Không tìm thấy cư dân với ID {id}.";
@@ -197,13 +211,13 @@ namespace PRNFE.MVC.Controllers
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<ResidentResponses>>(json, _jsonOptions);
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<ResidentResponses>>(json);
                 if (apiResponse?.success != true || apiResponse.data == null)
                 {
                     TempData["ErrorMessage"] = $"Không tìm thấy cư dân với ID {id}.";
                     return RedirectToAction(nameof(Index));
                 }
-                
+
                 var model = new ResidentUpdateRequests
                 {
                     FullName = apiResponse.data.FullName,
@@ -212,8 +226,8 @@ namespace PRNFE.MVC.Controllers
                     DateOfBirth = apiResponse.data.DateOfBirth,
                     Address = apiResponse.data.Address,
                     Gender = apiResponse.data.Gender,
-                    Rooms = apiResponse.data.Rooms?.Select(r => new RoomCreateDtos { RoomId = r.RoomId }).ToList() ?? [],
-                    Vehicles = apiResponse.data.Vehicles?.Select(v => new VehicleUpdateDtos { Type = v.Type, LicensePlate = v.LicensePlate }).ToList() ?? [],
+                    Rooms = apiResponse.data.Rooms?.Select(r => new RoomCreateDtos { RoomId = r.RoomId }).ToList() ?? new List<RoomCreateDtos>(),
+                    Vehicles = apiResponse.data.Vehicles?.Select(v => new VehicleUpdateDtos { Type = v.Type, LicensePlate = v.LicensePlate }).ToList() ?? new List<VehicleUpdateDtos>(),
                     TemporaryStay = apiResponse.data.TemporaryStay != null ? new TemporaryStayUpdateDtos
                     {
                         FromDate = apiResponse.data.TemporaryStay.FromDate,
@@ -243,29 +257,37 @@ namespace PRNFE.MVC.Controllers
                 return View(model);
             }
 
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Thiếu buildingId.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
-                var buildingId = Request.Cookies["buildingId"];
-                if (string.IsNullOrEmpty(buildingId))
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
                 {
-                    TempData["ErrorMessage"] = "Thiếu buildingId.";
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Thiếu token xác thực.";
                     return RedirectToAction(nameof(Index));
                 }
 
-                var request = new HttpRequestMessage(HttpMethod.Put, $"{_apiBaseUrl}/api/Residents/{id}")
-                {
-                    Content = new StringContent(JsonSerializer.Serialize(model), Encoding.UTF8, "application/json")
-                };
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
+                var json = JsonConvert.SerializeObject(model);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await httpClient.PutAsync($"{_apiBaseUrl}/api/Residents/{id}", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
                     try
                     {
-                        var errorResponse = JsonSerializer.Deserialize<Dictionary<string, string>>(errorContent, _jsonOptions);
+                        var errorResponse = JsonConvert.DeserializeObject<Dictionary<string, string>>(errorContent);
                         foreach (var error in errorResponse ?? new Dictionary<string, string>())
                         {
                             ModelState.AddModelError(string.Empty, error.Value);
@@ -273,7 +295,7 @@ namespace PRNFE.MVC.Controllers
                     }
                     catch
                     {
-                        ModelState.AddModelError(string.Empty, "Lỗi từ API: " + errorContent);
+                        ModelState.AddModelError(string.Empty, $"Lỗi từ API: {errorContent}");
                     }
 
                     ViewBag.ResidentId = id;
@@ -297,7 +319,19 @@ namespace PRNFE.MVC.Controllers
         {
             try
             {
-                var response = await _httpClient.DeleteAsync($"{_apiBaseUrl}/api/Residents/{id}");
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Thiếu token xác thực.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var response = await httpClient.DeleteAsync($"{_apiBaseUrl}/api/Residents/{id}");
                 TempData[response.IsSuccessStatusCode ? "SuccessMessage" : "ErrorMessage"] =
                     response.IsSuccessStatusCode ? "Resident deleted successfully!" : $"Error deleting resident: {response.StatusCode}";
             }
@@ -311,35 +345,42 @@ namespace PRNFE.MVC.Controllers
         // DETAILS
         public async Task<IActionResult> Details(int id)
         {
+            if (!ValidateBuildingId())
+            {
+                TempData["ErrorMessage"] = "Thiếu buildingId.";
+                return RedirectToAction(nameof(Index));
+            }
+
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiBaseUrl}/api/Residents/{id}");
-                var buildingId = Request.Cookies["buildingId"];
-
-                if (string.IsNullOrEmpty(buildingId))
+                using var httpClient = CreateHttpClientWithCookies();
+                var token = GetAccessToken();
+                if (!string.IsNullOrEmpty(token))
                 {
+                    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+                else if (!await RefreshTokenIfNeeded())
+                {
+                    TempData["ErrorMessage"] = "Thiếu token xác thực.";
                     return RedirectToAction(nameof(Index));
                 }
-                request.Headers.Add("Cookie", $"buildingId={buildingId}");
-                var response = await _httpClient.SendAsync(request);
+
+                var response = await httpClient.GetAsync($"{_apiBaseUrl}/api/Residents/{id}");
+
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
+                    TempData["ErrorMessage"] = $"Không tìm thấy cư dân với ID {id}: {errorContent}";
                     return RedirectToAction(nameof(Index));
                 }
+
                 var json = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<ResidentResponses>>(json, _jsonOptions)
+                var apiResponse = JsonConvert.DeserializeObject<ApiResponse<ResidentResponses>>(json)
                     ?? throw new InvalidOperationException($"Deserialization returned null for resident ID {id}");
-                if (!apiResponse.success)
+
+                if (!apiResponse.success || apiResponse.data == null || apiResponse.data.Id != id)
                 {
-                    return RedirectToAction(nameof(Index));
-                }
-                if (apiResponse.data == null)
-                {
-                    return RedirectToAction(nameof(Index));
-                }
-                if (apiResponse.data.Id != id)
-                {
+                    TempData["ErrorMessage"] = $"Không tìm thấy cư dân với ID {id}.";
                     return RedirectToAction(nameof(Index));
                 }
 

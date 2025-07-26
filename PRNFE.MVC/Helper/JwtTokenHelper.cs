@@ -31,4 +31,26 @@ public class JwtTokenHelper
         var role = GetClaim(token, "role");
         return role == "Thuê trọ";
     }
+
+    public static bool IsTokenExpired(string token)
+    {
+        if (string.IsNullOrEmpty(token))
+            return true;
+
+        var handler = new JwtSecurityTokenHandler();
+
+        try
+        {
+            var jwtToken = handler.ReadJwtToken(token);
+            var expiry = jwtToken.ValidTo;
+
+            // Convert to local time (optional)
+            return expiry < DateTime.UtcNow;
+        }
+        catch
+        {
+            // Invalid token format
+            return true;
+        }
+    }
 }

@@ -1,286 +1,343 @@
-﻿using System.Text;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using PRNFE.MVC.Helper;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
+using System.Net.Http.Json;
+using System.Reflection;
+using System.Text;
 
 namespace PRNFE.MVC.Controllers
 {
     public class NotificationsController : BaseController
     {
-        public NotificationsController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
-            : base(httpClientFactory, configuration)
+        public NotificationsController(IHttpClientFactory httpClientFactory, IConfiguration configuration) : base(httpClientFactory, configuration)
         {
         }
 
-        public async Task<IActionResult> Index(FilterNotificationRequest filter)
+        public override void OnActionExecuting(ActionExecutingContext context)
         {
-            if (!ValidateBuildingId())
+            var cookieValue = Request.Cookies["AccessToken"];
+            if (JwtTokenHelper.IsTokenExpired(cookieValue))
             {
-                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
-                TempData["IsSuccess"] = false;
-                return RedirectToAction("Login", "Auth");
+                context.Result = new RedirectToRouteResult(
+                    new RouteValueDictionary(new { controller = "Auth", action = "Login" })
+);
+                return;
             }
-
-            var buildingId = GetBuildingId();
-            using var httpClient = CreateHttpClientWithCookies();
-
-            string url = $"{_apiQLPTUrl}/api/Notifications";
-
-            if (HasFilter(filter))
+            if (!JwtTokenHelper.IsLandlord(cookieValue))
             {
-                url += "/filter";
+                context.Result = new RedirectToRouteResult(
+                    new RouteValueDictionary(new { controller = "Home", action = "Index" })
+);
+                return;
+            }
+            base.OnActionExecuting(context);
+        }
 
+
+
+        // GET: NotificationsController
+        public async Task<ActionResult> Index(FilterNotificationRequest model, int page = 1)
+        {
+            // You can fetch notifications from an API or database here
+            // For now, we will just return an empty view
+            try
+            {
+                var apiUrl = $"{_apiQLPTUrl}/api/Notifications/filter";
                 var queryParams = new List<string>();
-                if (!string.IsNullOrEmpty(filter.Title))
-                    queryParams.Add($"Title={Uri.EscapeDataString(filter.Title)}");
-                if (!string.IsNullOrEmpty(filter.Content))
-                    queryParams.Add($"Content={Uri.EscapeDataString(filter.Content)}");
-                if (filter.TypeTarget.HasValue)
-                    queryParams.Add($"TypeTarget={filter.TypeTarget.Value}");
-                if (filter.PublishDate.HasValue)
-                    queryParams.Add($"PublishDate={filter.PublishDate.Value:yyyy-MM-dd}");
-                if (filter.FromDate.HasValue)
-                    queryParams.Add($"FromDate={filter.FromDate.Value:yyyy-MM-dd}");
-                if (filter.ToDate.HasValue)
-                    queryParams.Add($"ToDate={filter.ToDate.Value:yyyy-MM-dd}");
-                if (filter.Status.HasValue)
-                    queryParams.Add($"Status={filter.Status.Value}");
-
+                if (TempData.ContainsKey("FilterModel"))
+                {
+                    model = JsonConvert.DeserializeObject<FilterNotificationRequest>(TempData["FilterModel"]?.ToString() ?? "{}");
+                    TempData.Keep("FilterModel");
+                }
+                if (!string.IsNullOrEmpty(model.Title))
+                {
+                    queryParams.Add($"Title={model.Title}");
+                }
+                if (!string.IsNullOrEmpty(model.Content))
+                {
+                    queryParams.Add($"Content={model.Content}");
+                }
+                if (model.TypeTarget.HasValue)
+                {
+                    queryParams.Add($"TypeTarget={model.TypeTarget.Value}");
+                }
+                if (model.PublishDate.HasValue)
+                {
+                    queryParams.Add($"PublishDate={model.PublishDate.Value}");
+                }
+                if (model.FromDate.HasValue)
+                {
+                    queryParams.Add($"FromDate={model.FromDate.Value}");
+                }
+                if (model.ToDate.HasValue)
+                {
+                    queryParams.Add($"ToDate={model.ToDate.Value}");
+                }
+                if (model.Status.HasValue)
+                {
+                    queryParams.Add($"status={model.Status.Value}");
+                }
                 if (queryParams.Count > 0)
                 {
-                    url += "?" + string.Join("&", queryParams);
+                    apiUrl += "?" + string.Join("&", queryParams);
+                    TempData["FilterModel"] = JsonConvert.SerializeObject(model);
                 }
+                var response = await _httpClient
+                    .GetFromJsonAsync<ApiResponse<List<NotificationResponse>>>(apiUrl);
+                if (response != null && !response.success)
+                {
+                    TempData["Message"] = response.message;
+                    return View("Index", new List<NotificationResponse>());
+                }
+                Pagination pagination = new Pagination
+                {
+                    PageNumber = page,
+                    NotificationResponses = response!.data
+                };
+                ViewBag.Total = pagination;
+                return View(pagination.GetPaginatedItems());
             }
-
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Add("buildingId", buildingId);
-
-            var response = await httpClient.SendAsync(request);
-            var json = await response.Content.ReadAsStringAsync();
-
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<List<NotificationResponse>>>(json);
-
-            if (!response.IsSuccessStatusCode || apiResponse == null || !apiResponse.success)
+            catch (Exception ex)
             {
-                TempData["Message"] = apiResponse?.message ?? "Lỗi khi tải danh sách thông báo.";
-                TempData["IsSuccess"] = false;
+                Console.WriteLine($"Error creating HttpClient: {ex.Message}");
+                TempData["Message"] = "Không thể tải thông báo. Vui lòng thử lại sau.";
                 return View(new List<NotificationResponse>());
             }
-
-            ViewBag.Filter = filter;
-            return View(apiResponse.data);
         }
 
-        private bool HasFilter(FilterNotificationRequest filter)
-        {
-            return filter != null &&
-                (!string.IsNullOrEmpty(filter.Title) || !string.IsNullOrEmpty(filter.Content) ||
-                 filter.TypeTarget.HasValue || filter.PublishDate.HasValue ||
-                 filter.FromDate.HasValue || filter.ToDate.HasValue || filter.Status.HasValue);
-        }
 
-        // GET: Notifications/Details/{id}
-        public async Task<IActionResult> Details(Guid id)
+        
+        // GET: NotificationsController/Details/5
+        [Route("Notifications/Details/{id:guid}")]
+        public async Task<ActionResult> Details(Guid id)
         {
-            if (!ValidateBuildingId())
+            try
             {
-                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
-                TempData["IsSuccess"] = false;
-                return RedirectToAction("Login", "Auth");
+                var notifications = await _httpClient
+                .GetFromJsonAsync<ApiResponse<DetailsNotificationResponse>>($"{_apiQLPTUrl}/api/notifications/{id}");
+                if (notifications == null)
+                {
+                    notifications.data = new DetailsNotificationResponse();
+                }
+                return View(notifications!.data);
             }
-
-            using var httpClient = CreateHttpClientWithCookies();
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiQLPTUrl}/api/Notifications/{id}");
-            request.Headers.Add("buildingId", GetBuildingId());
-
-            var response = await httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-                return NotFound();
-
-            var json = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<DetailsNotificationResponse>>(json);
-
-            if (apiResponse == null || !apiResponse.success || apiResponse.data == null)
-                return NotFound();
-
-            return View(apiResponse.data);
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating HttpClient: {ex.Message}");
+                TempData["Message"] = "Không thể tải thông báo. Vui lòng thử lại sau.";
+                return View(new DetailsNotificationResponse());
+            }
         }
 
-        // GET: Notifications/Create
-        public IActionResult Create()
+        // GET: NotificationsController/Create
+        [HttpGet]
+        [Route("Notifications/Create")]
+        public async Task<ActionResult> Create()
         {
-            return View(new CreateNotificationRequest { PublishDate = DateTime.Today });
+            // get all room from api
+            await setDataForCreate();
+            return View();
         }
 
-        // POST: Notifications/Create
+        private async Task setDataForCreate()
+        {
+            var rooms = await _httpClient.GetFromJsonAsync<ApiResponse<List<RoomResponse>>>($"{_apiQLPTUrl}/api/rooms");
+            if (rooms == null)
+            {
+                TempData["Message"] = "Không thể tải room";
+            }
+            ViewBag.Rooms = rooms.data.Select(r => new SelectListItem
+            {
+                Value = r.Id.ToString(),
+                Text = r.RoomNumber.ToString()
+            })
+                .ToList();
+            var residents = await _httpClient.GetFromJsonAsync<ApiResponse<List<ResidentDto>>>($"{_apiQLPTUrl}/api/residents");
+            if (residents == null)
+            {
+                TempData["Message"] = "Không thể tải resident";
+            }
+            ViewBag.Residents = residents.data.Select(r => new SelectListItem
+            {
+                Value = r.Id.ToString(),
+                Text = r?.FullName?.ToString()
+            });
+        }
+
+        // POST: NotificationsController/Create
+        [HttpPost]
+        [Route("Notifications/Create")]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> Create(CreateNotificationRequest collection)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    await setDataForCreate();
+                    return View(collection);
+                }
+                
+                var apiUrl = $"{ _apiQLPTUrl}/api/notifications";
+                var content = new StringContent(JsonConvert.SerializeObject(collection), 
+                    Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync(apiUrl, content);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    ModelState.AddModelError(string.Empty, $"Error creating notification: {errorResponse}");
+                    await setDataForCreate();
+                    return View(collection);
+                }
+                TempData["IsSuccess"] = true;
+                TempData["Message"] = "Notification created successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch
+            {
+                await setDataForCreate();
+                return View(collection);
+            }
+        }
+
+        // GET: NotificationsController/Edit/5
+        public async Task<ActionResult> Edit(Guid id)
+        {
+            var notifications = await _httpClient
+                .GetFromJsonAsync<ApiResponse<DetailsNotificationResponse>>($"{_apiQLPTUrl}/api/notifications/{id}");
+            if (notifications == null)
+            {
+                notifications.data = new DetailsNotificationResponse();
+            }
+            var updateNoti = new UpdateNotificationRequest()
+            {
+                Title = notifications.data.Title,
+                Content = notifications.data.Content,
+                TypeTarget = notifications.data.TypeTarget,
+                PublishDate = notifications.data.PublishDate,
+                Status = notifications.data.Status
+            };
+            return View(updateNoti);
+        }
+
+        // POST: NotificationsController/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CreateNotificationRequest model)
+        public async Task<ActionResult> Edit(Guid id, UpdateNotificationRequest collection)
         {
-            if (!ModelState.IsValid)
-                return View(model);
-
-            if (!ValidateBuildingId())
+            try
             {
-                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
-                TempData["IsSuccess"] = false;
-                return RedirectToAction("Login", "Auth");
+                if (!ModelState.IsValid)
+                {
+                    return View(collection);
+                }
+                var apiUrl = $"{_apiQLPTUrl}/api/notifications/{id}";
+                var content = new StringContent(JsonConvert.SerializeObject(collection),
+                    Encoding.UTF8, "application/json");
+                var response = await _httpClient.PutAsync(apiUrl, content);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    TempData["Message"] = errorResponse;
+                    return View(collection);
+                }
+                TempData["IsSuccess"] = true;
+                TempData["Message"] = "Cập nhật thành công";
+                return RedirectToAction(nameof(Index));
             }
-
-            using var httpClient = CreateHttpClientWithCookies();
-
-            var json = JsonConvert.SerializeObject(model);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiQLPTUrl}/api/Notifications")
+            catch
             {
-                Content = content
-            };
-            request.Headers.Add("buildingId", GetBuildingId());
-
-            var response = await httpClient.SendAsync(request);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                ModelState.AddModelError("", "Tạo thông báo thất bại.");
-                return View(model);
+                return View();
             }
-
-            return RedirectToAction(nameof(Index));
         }
 
-        // GET: Notifications/Edit/{id}
-        public async Task<IActionResult> Edit(Guid id)
-        {
-            if (!ValidateBuildingId())
-            {
-                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
-                TempData["IsSuccess"] = false;
-                return RedirectToAction("Login", "Auth");
-            }
-
-            using var httpClient = CreateHttpClientWithCookies();
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiQLPTUrl}/api/Notifications/{id}");
-            request.Headers.Add("buildingId", GetBuildingId());
-
-            var response = await httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-                return NotFound();
-
-            var json = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<DetailsNotificationResponse>>(json);
-
-            if (apiResponse == null || !apiResponse.success || apiResponse.data == null)
-                return NotFound();
-
-            // Map DetailsNotificationResponse => UpdateNotificationRequest
-            var notification = apiResponse.data;
-            var model = new UpdateNotificationRequest
-            {
-                Title = notification.Title,
-                Content = notification.Content,
-                TypeTarget = notification.TypeTarget,
-                PublishDate = notification.PublishDate,
-                Status = notification.Status,
-               
-                ResidentIds = notification.NotificationTargets?
-    .Select(nt => nt.ResidentId)
-    .Where(id => id > 0)
-    .ToList()
-
-            };
-
-            return View(model);
-        }
-
-        // POST: Notifications/Edit/{id}
+     
+        // POST: NotificationsController/Delete/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, UpdateNotificationRequest model)
+        public async Task<ActionResult> Delete(Guid id, IFormCollection collection)
         {
-            if (!ModelState.IsValid)
-                return View(model);
-
-            if (!ValidateBuildingId())
+            try
             {
-                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
-                TempData["IsSuccess"] = false;
-                return RedirectToAction("Login", "Auth");
+                var apiUrl = $"{_apiQLPTUrl}/api/notifications/{id}";
+                var response = await _httpClient.DeleteAsync(apiUrl);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    ModelState.AddModelError(string.Empty, $"Error deleting notification: {errorResponse}");
+                    TempData["Message"] = errorResponse;
+                    return View();
+                }
+                TempData["IsSuccess"] = true;
+                TempData["Message"] = "Notification deleted successfully.";
+                return RedirectToAction(nameof(Index));
             }
-
-            using var httpClient = CreateHttpClientWithCookies();
-
-            var json = JsonConvert.SerializeObject(model);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var request = new HttpRequestMessage(HttpMethod.Put, $"{_apiQLPTUrl}/api/Notifications/{id}")
+            catch
             {
-                Content = content
-            };
-            request.Headers.Add("buildingId", GetBuildingId());
-
-            var response = await httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                ModelState.AddModelError("", "Cập nhật thông báo thất bại.");
-                return View(model);
+                return View();
             }
-
-            return RedirectToAction(nameof(Index));
+        }
+        // POST: NotificationsController/Push/5
+        [HttpPost]
+        public async Task<ActionResult> Push(Guid id)
+        {
+            try
+            {
+                var apiUrl = $"{_apiQLPTUrl}/api/notifications/push/{id}";
+                var response = await _httpClient.PostAsync(apiUrl, 
+                    new StringContent(string.Empty, Encoding.UTF8, "application/json"));
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    ModelState.AddModelError(string.Empty, $"Error pushing notification: {errorResponse}");
+                    TempData["Message"] = errorResponse;
+                    return View();
+                }
+                TempData["IsSuccess"] = true;
+                TempData["Message"] = "Notification pushed successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch
+            {
+                return View();
+            }
+        }
+        [HttpPost]
+        public IActionResult ClearFilterTempData()
+        {
+            TempData.Remove("FilterModel");
+            return Ok();
         }
 
-        // GET: Notifications/Delete/{id}
-        public async Task<IActionResult> Delete(Guid id)
+        public class Pagination
         {
-            if (!ValidateBuildingId())
+            public int PageNumber { get; set; } = 1;
+            public int PageSize { get; set; } = 10;
+            public List<NotificationResponse> NotificationResponses { get; set; } = new List<NotificationResponse>();
+            public int TotalCount => NotificationResponses.Count;
+            public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+
+            public List<NotificationResponse> GetPaginatedItems()
             {
-                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
-                TempData["IsSuccess"] = false;
-                return RedirectToAction("Login", "Auth");
+                try
+                {
+                    return NotificationResponses
+                                        .Skip((PageNumber - 1) * PageSize)
+                                        .Take(PageSize)
+                                        .ToList();
+                }
+                catch
+                {
+                    return new List<NotificationResponse>();
+                }
+                
             }
-
-            using var httpClient = CreateHttpClientWithCookies();
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{_apiQLPTUrl}/api/Notifications/{id}");
-            request.Headers.Add("buildingId", GetBuildingId());
-
-            var response = await httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-                return NotFound();
-
-            var json = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonConvert.DeserializeObject<ApiResponse<DetailsNotificationResponse>>(json);
-
-            if (apiResponse == null || !apiResponse.success || apiResponse.data == null)
-                return NotFound();
-
-            return View(apiResponse.data);
-        }
-
-        // POST: Notifications/Delete/{id}
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(Guid id)
-        {
-            if (!ValidateBuildingId())
-            {
-                TempData["Message"] = "Không tìm thấy thông tin tòa nhà. Vui lòng đăng nhập lại!";
-                TempData["IsSuccess"] = false;
-                return RedirectToAction("Login", "Auth");
-            }
-
-            using var httpClient = CreateHttpClientWithCookies();
-            var request = new HttpRequestMessage(HttpMethod.Delete, $"{_apiQLPTUrl}/api/Notifications/{id}");
-            request.Headers.Add("buildingId", GetBuildingId());
-
-            var response = await httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                TempData["Message"] = "Xóa thông báo thất bại!";
-                TempData["IsSuccess"] = false;
-                return RedirectToAction(nameof(Delete), new { id });
-            }
-
-            return RedirectToAction(nameof(Index));
         }
     }
 }

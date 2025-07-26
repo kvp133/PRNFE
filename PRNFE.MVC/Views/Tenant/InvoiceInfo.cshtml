@@ -128,6 +128,80 @@
     </div>
 </div>
 
+@* ////// *@
+<div class="container mt-5">
+    <h2>Dashboard thuê trọ</h2>
+    <div class="row mt-4">
+        
+        <div class="col-md-4">
+            <a href="/TemporaryStays/Index" class="card text-center shadow-sm p-4" style="text-decoration:none;">
+                <div class="card-body">
+                    <i class="fas fa-users fa-3x mb-2"></i>
+                    <h4>Tạm trú tạm vắng</h4>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Add Dormitory Modal -->
+<div class="modal fade" id="addDormitoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thêm trọ mới</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addDormitoryForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Tên trọ</label>
+                                <input type="text" class="form-control" id="dormitoryName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Mã trọ</label>
+                                <input type="text" class="form-control" id="dormitoryCode" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Địa chỉ</label>
+                        <textarea class="form-control" id="dormitoryAddress" rows="3" required></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Số tầng</label>
+                                <input type="number" class="form-control" id="dormitoryFloors" min="1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Số phòng mỗi tầng</label>
+                                <input type="number" class="form-control" id="roomsPerFloor" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Mô tả</label>
+                        <textarea class="form-control" id="dormitoryDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="addDormitory()">Thêm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         $(document).ready(function() {

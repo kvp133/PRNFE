@@ -92,8 +92,18 @@
                         @(string.IsNullOrEmpty(fullName) ? userName : fullName)
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
+                        @if (isAdmin)
+                        {
+                            <li>
+                                <a class="dropdown-item" href="@Url.Action("UserManagement", "Admin")">
+                                    <i class="fas fa-users-cog me-2"></i>
+                                    Quản lý người dùng
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                        }
                         <li>
-                            <a class="dropdown-item" href="#">
+                            <a class="dropdown-item" href="@Url.Action("UpdateProfile", "User")">
                                 <i class="fas fa-user me-2"></i>
                                 Thông tin cá nhân
                             </a>

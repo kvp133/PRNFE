@@ -1,13 +1,22 @@
-﻿@using PRNFE.MVC.Helper
+﻿@using Newtonsoft.Json
+@using PRNFE.MVC.Helper
+@using static PRNFE.MVC.Controllers.TemporaryStaysController
 @model IEnumerable<PRNFE.MVC.Models.Response.TemporaryStayResponse>
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 
 @{
     ViewData["Title"] = "TemporaryStay";
     var cookieValue = HttpContextAccessor.HttpContext?.Request.Cookies["AccessToken"];
+    var json = TempData["FilterModel"]?.ToString();
+    var filtermodel = JsonConvert.DeserializeObject<FilterTemporaryStayDto>(json ?? "{}");
+    var pagination = (Pagination)ViewBag.Total;
+    TempData.Keep("FilterModel");
 }
 
 <h1>TemporaryStay</h1>
+
+@Html.Partial("_Filter", filtermodel)
+
 <table class="table">
     <thead>
         <tr>
@@ -38,45 +47,70 @@
             <th></th>
         </tr>
     </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Id)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Resident.FullName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.FromDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ToDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Note)
-            </td>
-            <td>
-               
-                @Enum.GetName(typeof(TemporaryStayResponse.TemporaryStayStatus), item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreateAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UpdatedAt)
-            </td>
-            <td>
-                @if (JwtTokenHelper.IsLandlord(cookieValue))
-                    {
-                        @Html.ActionLink("Edit", "Edit", new { id = item.Id }, new { @class = "btn" })
-                    }
-                    @Html.ActionLink("Details", "Details", new { id = item.Id }, new { @class = "btn" })
-            </td>
-        </tr>
-}
-    </tbody>
+    @if(Model != null && Model.Any()){
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Id)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Resident.FullName)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.FromDate)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.ToDate)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Note)
+                    </td>
+                    <td>
+
+                        @Enum.GetName(typeof(TemporaryStayResponse.TemporaryStayStatus), item.Status)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.CreateAt)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.UpdatedAt)
+                    </td>
+                    <td>
+                        @if (JwtTokenHelper.IsLandlord(cookieValue))
+                        {
+                            @Html.ActionLink("Edit", "Edit", new { id = item.Id }, new { @class = "btn" })
+                        }
+                        @Html.ActionLink("Details", "Details", new { id = item.Id }, new { @class = "btn" })
+                    </td>
+                </tr>
+            }
+        </tbody>
+    }
+    else{
+        <p>Không có dữ liệu</p>
+    }
+    
 </table>
+<nav>
+    <ul class="pagination justify-content-center">
+        <li class="page-item @(pagination.PageNumber == 1 ? "disabled" : "")">
+            <a class="page-link" as asp-action="Index" asp-route-page="@(pagination.PageNumber - 1)">Previous</a>
+        </li>
+
+        @for (int i = 1; i <= pagination.TotalPages; i++)
+        {
+            <li class="page-item @(pagination.PageNumber == i ? "active" : "")">
+                <a class="page-link" asp-action="Index" asp-route-page="@i">@i</a>
+            </li>
+        }
+
+        <li class="page-item @(pagination.PageNumber == pagination.TotalPages ? "disabled" : "")">
+            <a class="page-link" asp-action="Index" asp-route-page="@(pagination.PageNumber + 1)">Next</a>
+        </li>
+    </ul>
+</nav>
 
 <style>
     body {
@@ -135,4 +169,18 @@
             background-color: #99004d;
         }
 </style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $("#filterTempoForm").on("reset", function (e) {
+                fetch("/TemporaryStays/ClearFilterTempData", {
+                    method: "POST"
+                }).then(() => {
+                    window.location.href = "/TemporaryStays/Index";
+                });
+            });
+        });
+    </script>
+}
 
