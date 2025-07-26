@@ -27,12 +27,12 @@ namespace PRNFE.MVC.Controllers
 
 		//	// Tạo dữ liệu giả cho phương tiện
 		//	var mockVehicles = new List<VehicleResponsesDat>
-	 //       {
+		//       {
 		//        new VehicleResponsesDat
 		//        {
 		//	        Id = "1",
 		//	        Type = "0", // 0 = Car, hoặc bạn có enum cũng được
-  //                  LicensePlate = "59A-123.45",
+		//                  LicensePlate = "59A-123.45",
 		//	        CreateAt = DateTime.Now.AddMonths(-2),
 		//	        UpdatedAt = DateTime.Now
 		//        },
@@ -40,33 +40,90 @@ namespace PRNFE.MVC.Controllers
 		//		{
 		//	        Id = "1",
 		//	        Type = "1", // 1 = Motorbike
-  //                  LicensePlate = "84B-456.78",
+		//                  LicensePlate = "84B-456.78",
 		//	        CreateAt = DateTime.Now.AddMonths(-1),
 		//	        UpdatedAt = DateTime.Now
 		//        }
-	 //       };
+		//       };
 
 		//	return View(mockVehicles);
 		//}
 
 
-		public IActionResult ManageVehicle()
+		public async Task<IActionResult> ManageVehicle()
 		{
-			var userInfo = GetUserInfo();
-			ViewBag.UserInfo = userInfo;
+			
 
-			TempData["ToastMessage"] = "Cập nhật thành công!";
-			TempData["ToastType"] = "success"; // hoặc "error", "warning"
+			var baseUrl = GetBaseUrl.UrlQlpt?.TrimEnd('/');
 
+			// 🔹 Lấy Resident hiện tại
+			var userUrl = $"{baseUrl}/api/Residents/user";
+			var userResp = await _httpClient.GetAsync(userUrl);
 
-			// Dữ liệu mock
-			var vehicles = new List<VehicleResponsesDat>
+			if (!userResp.IsSuccessStatusCode)
 			{
-				new VehicleResponsesDat { Id = "1", Type = "2", LicensePlate = "59A-888.88", CreateAt = DateTime.Now.AddMonths(-2) },
-				new VehicleResponsesDat { Id = "2", Type = "0", LicensePlate = "84B-123.45", CreateAt = DateTime.Now.AddMonths(-1) }
-			};
+				TempData["ToastMessage"] = "Không lấy được thông tin người dùng.";
+				TempData["ToastType"] = "error";
+				return View(new List<VehicleResponsesDat>());
+			}
+
+			var userJson = await userResp.Content.ReadAsStringAsync();
+			var userResult = JsonConvert.DeserializeObject<ApiResult<List<ResidentResponseDat>>>(userJson);
+
+			if (userResult == null || userResult.Data == null || userResult.Data.Count == 0)
+			{
+				TempData["ToastMessage"] = "Không tìm thấy resident.";
+				TempData["ToastType"] = "error";
+				return View(new List<VehicleResponsesDat>());
+			}
+
+			var residentId = userResult.Data.First().Id;
+
+			// 🔹 Gọi API lấy danh sách phương tiện
+			var vehicleUrl = $"{baseUrl}/api/Vehicles/filters?ResidentIds={residentId}";
+			var vehicleResp = await _httpClient.GetAsync(vehicleUrl);
+
+			if (!vehicleResp.IsSuccessStatusCode)
+			{
+				TempData["ToastMessage"] = "Không lấy được phương tiện.";
+				TempData["ToastType"] = "error";
+				return View(new List<VehicleResponsesDat>());
+			}
+
+			var vehicleJson = await vehicleResp.Content.ReadAsStringAsync();
+			var vehicleResult = JsonConvert.DeserializeObject<ApiResult<List<VehicleResponsesDat>>>(vehicleJson);
+
+			var vehicles = vehicleResult?.Data ?? new List<VehicleResponsesDat>();
 
 			return View(vehicles);
+		}
+
+
+		[HttpPost]
+		public async Task<IActionResult> UpdateVehicle([FromBody] VehicleResponseDat model)
+		{
+			try
+			{
+				var apiUrl = $"{GetBaseUrl.UrlQlpt?.TrimEnd('/')}/api/Vehicles/{model.Id}";
+
+				var json = JsonConvert.SerializeObject(new
+				{
+					licensePlate = model.LicensePlate,
+					type = model.Type
+				});
+
+				var content = new StringContent(json, Encoding.UTF8, "application/json");
+				var response = await _httpClient.PutAsync(apiUrl, content);
+
+				if (response.IsSuccessStatusCode)
+					return Json(new { success = true });
+
+				return StatusCode((int)response.StatusCode, new { success = false, message = "Update failed" });
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, new { success = false, message = ex.Message });
+			}
 		}
 
 
@@ -89,6 +146,7 @@ namespace PRNFE.MVC.Controllers
 				try
 				{
 					var payBaseUrl = GetBaseUrl.UrlPayment?.TrimEnd('/');
+					var ResdentBaseUrl = GetBaseUrl.UrlQlpt?.TrimEnd('/');
 					var statusUrl = $"{payBaseUrl}/api/Payment/payos/status/{orderCode}";
 
 					var statusResp = await _httpClient.GetAsync(statusUrl);
@@ -99,6 +157,58 @@ namespace PRNFE.MVC.Controllers
 
 						string status = statusResult?.Data?.Status?.ToUpperInvariant();
 
+						// ✅ Nếu thanh toán thành công → lấy invoice và update
+						if (status == "PAID")
+						{
+							// 👉 Gọi API lấy chi tiết invoice để lấy ra BillId
+							var getInvoiceUrl = $"{payBaseUrl}/api/Invoice/invoice-getById-{orderCode}"; // hoặc dùng /{invoiceId} nếu bạn có
+							var invoiceResp = await _httpClient.GetAsync(getInvoiceUrl);
+
+							if (invoiceResp.IsSuccessStatusCode)
+							{
+								var invoiceJson = await invoiceResp.Content.ReadAsStringAsync();
+								var invoiceResult = JsonConvert.DeserializeObject<ApiResult<InvoiceResponseDat>>(invoiceJson);
+
+								if (invoiceResult?.Success == true && invoiceResult.Data != null)
+								{
+									// 👉 Gọi API cập nhật trạng thái Invoice
+									var updateInvoiceUrl = $"{payBaseUrl}/api/Invoice/update-status/{invoiceResult.Data.Id}";
+									var updateInvoicePayload = new
+									{
+										status = 2 // 2 = Paid
+									};
+									var updateInvoiceContent = new StringContent(JsonConvert.SerializeObject(updateInvoicePayload), Encoding.UTF8, "application/json");
+
+									var updateInvoiceResp = await _httpClient.PutAsync(updateInvoiceUrl, updateInvoiceContent);
+									if (!updateInvoiceResp.IsSuccessStatusCode)
+									{
+										TempData["ToastMessage"] += " ⚠️ Nhưng cập nhật trạng thái hóa đơn (Invoice) thất bại.";
+										TempData["ToastType"] = "warning";
+									}
+
+
+									var billId = invoiceResult.Data.BillId;
+
+									// 👉 Gọi API cập nhật trạng thái Bill
+									var updateBillUrl = $"{ResdentBaseUrl}/api/Bills/UpdateStatus/{billId}";
+									var updatePayload = new
+									{
+										status = 2 // 2 = Paid trong BillStatusDat
+									};
+									var updateContent = new StringContent(JsonConvert.SerializeObject(updatePayload), Encoding.UTF8, "application/json");
+
+									var updateResp = await _httpClient.PutAsync(updateBillUrl, updateContent);
+									if (!updateResp.IsSuccessStatusCode)
+									{
+										TempData["ToastMessage"] += " ⚠️ Nhưng cập nhật trạng thái hóa đơn thất bại.";
+										TempData["ToastType"] = "warning";
+									}
+								}
+							}
+						}
+
+
+						// Hiển thị toast dù thành công hay không
 						string message = status switch
 						{
 							"PAID" => $"💰 Thanh toán thành công cho đơn hàng #{orderCode}!",
@@ -115,20 +225,17 @@ namespace PRNFE.MVC.Controllers
 						TempData["ToastMessage"] = message;
 						TempData["ToastType"] = type;
 					}
-					else
-					{
-						TempData["ToastMessage"] = "Không kiểm tra được trạng thái thanh toán từ PayOS.";
-						TempData["ToastType"] = "warning";
-					}
 				}
 				catch (Exception ex)
 				{
-					TempData["ToastMessage"] = "Lỗi khi kiểm tra trạng thái thanh toán: " + ex.Message;
+					TempData["ToastMessage"] = "Lỗi kiểm tra thanh toán: " + ex.Message;
 					TempData["ToastType"] = "error";
 				}
 			}
 
-			// 🔁 Load danh sách hóa đơn
+		
+
+		// 🔁 Load danh sách hóa đơn
 			var baseUrl = GetBaseUrl.UrlPayment?.TrimEnd('/');
 			var url = $"{baseUrl}/api/Invoice/list-by-room-building" +
 					  $"?buildingId={buildingId}&roomId={roomId}&page={page}&pageSize={size}";
@@ -227,7 +334,7 @@ namespace PRNFE.MVC.Controllers
 				var payload = new
 				{
 					
-						orderCode = 11111111,
+						orderCode = 10,
 						amount = (int)2000,
 						description = $"Thanh toán hóa đơn {orderCode}"
 					
