@@ -20,34 +20,34 @@ namespace PRNFE.MVC.Controllers
 
 
 
-		public IActionResult InvoiceInfo()
-		{
-			var userInfo = GetUserInfo();
-			ViewBag.UserInfo = userInfo;
+		//public IActionResult InvoiceInfo()
+		//{
+		//	var userInfo = GetUserInfo();
+		//	ViewBag.UserInfo = userInfo;
 
-			// Tạo dữ liệu giả cho phương tiện
-			var mockVehicles = new List<VehicleResponsesDat>
-	        {
-		        new VehicleResponsesDat
-		        {
-			        Id = "1",
-			        Type = "0", // 0 = Car, hoặc bạn có enum cũng được
-                    LicensePlate = "59A-123.45",
-			        CreateAt = DateTime.Now.AddMonths(-2),
-			        UpdatedAt = DateTime.Now
-		        },
-		        new VehicleResponsesDat
-				{
-			        Id = "1",
-			        Type = "1", // 1 = Motorbike
-                    LicensePlate = "84B-456.78",
-			        CreateAt = DateTime.Now.AddMonths(-1),
-			        UpdatedAt = DateTime.Now
-		        }
-	        };
+		//	// Tạo dữ liệu giả cho phương tiện
+		//	var mockVehicles = new List<VehicleResponsesDat>
+	 //       {
+		//        new VehicleResponsesDat
+		//        {
+		//	        Id = "1",
+		//	        Type = "0", // 0 = Car, hoặc bạn có enum cũng được
+  //                  LicensePlate = "59A-123.45",
+		//	        CreateAt = DateTime.Now.AddMonths(-2),
+		//	        UpdatedAt = DateTime.Now
+		//        },
+		//        new VehicleResponsesDat
+		//		{
+		//	        Id = "1",
+		//	        Type = "1", // 1 = Motorbike
+  //                  LicensePlate = "84B-456.78",
+		//	        CreateAt = DateTime.Now.AddMonths(-1),
+		//	        UpdatedAt = DateTime.Now
+		//        }
+	 //       };
 
-			return View(mockVehicles);
-		}
+		//	return View(mockVehicles);
+		//}
 
 
 		public IActionResult ManageVehicle()
