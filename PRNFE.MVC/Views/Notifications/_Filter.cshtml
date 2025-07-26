@@ -1,0 +1,65 @@
+﻿@model PRNFE.MVC.Models.Request.FilterNotificationRequest
+
+<div class="container-fluid pe-2 my-4">
+    <div class="card shadow" style="background-color: #ffe6f0; border: none;">
+        <div class="card-body">
+            <form asp-action="Index" id="filterNotiForm" class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                    <label asp-for="Title" class="form-label fw-bold text-danger"></label>
+                    <input asp-for="Title" class="form-control border-danger-subtle" />
+                    <span asp-validation-for="Title" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <label asp-for="Content" class="form-label fw-bold text-danger"></label>
+                    <input asp-for="Content" class="form-control border-danger-subtle" />
+                    <span asp-validation-for="Content" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <label asp-for="TypeTarget" class="form-label fw-bold text-danger"></label>
+                    <select asp-for="TypeTarget" asp-items="Html.GetEnumSelectList<FilterNotificationRequest.NotificationTypeTarget>()" class="form-select border-danger-subtle">
+                        <option value="">Chọn kiểu thông báo</option>
+                    </select>
+                    <span asp-validation-for="TypeTarget" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <label asp-for="PublishDate" class="form-label fw-bold text-danger"></label>
+                    <input asp-for="PublishDate" class="form-control border-danger-subtle" />
+                    <span asp-validation-for="PublishDate" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <label asp-for="FromDate" class="form-label fw-bold text-danger"></label>
+                    <input asp-for="FromDate" class="form-control border-danger-subtle" />
+                    <span asp-validation-for="FromDate" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <label asp-for="ToDate" class="form-label fw-bold text-danger"></label>
+                    <input asp-for="ToDate" class="form-control border-danger-subtle" />
+                    <span asp-validation-for="ToDate" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <label asp-for="Status" class="form-label fw-bold text-danger"></label>
+                    <select asp-for="Status" asp-items="Html.GetEnumSelectList<FilterNotificationRequest.NotificationStatus>()" class="form-select border-danger-subtle">
+                        <option value="">Chọn trạng thái</option>
+                    </select>
+                    <span asp-validation-for="Status" class="text-danger small"></span>
+                </div>
+
+
+                <div class="col-12 mt-3 d-flex justify-content-center gap-3">
+                    <button type="submit" class="btn btn-primary px-4">🔍 Tìm kiếm</button>
+                    <button type="reset" class="btn btn-danger px-4">Reset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

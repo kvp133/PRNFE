@@ -1,16 +1,21 @@
-﻿@using PRNFE.MVC.Helper
+﻿@using Newtonsoft.Json
+@using PRNFE.MVC.Helper
+@using static PRNFE.MVC.Controllers.TemporaryStaysController
 @model IEnumerable<PRNFE.MVC.Models.Response.TemporaryStayResponse>
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 
 @{
     ViewData["Title"] = "TemporaryStay";
     var cookieValue = HttpContextAccessor.HttpContext?.Request.Cookies["AccessToken"];
-    var filterModel = new FilterTemporaryStayDto();
+    var json = TempData["FilterModel"]?.ToString();
+    var filtermodel = JsonConvert.DeserializeObject<FilterTemporaryStayDto>(json ?? "{}");
+    var pagination = (Pagination)ViewBag.Total;
+    TempData.Keep("FilterModel");
 }
 
 <h1>TemporaryStay</h1>
 
-@Html.Partial("_Filter", filterModel)
+@Html.Partial("_Filter", filtermodel)
 
 <table class="table">
     <thead>
@@ -88,6 +93,24 @@
     }
     
 </table>
+<nav>
+    <ul class="pagination justify-content-center">
+        <li class="page-item @(pagination.PageNumber == 1 ? "disabled" : "")">
+            <a class="page-link" as asp-action="Index" asp-route-page="@(pagination.PageNumber - 1)">Previous</a>
+        </li>
+
+        @for (int i = 1; i <= pagination.TotalPages; i++)
+        {
+            <li class="page-item @(pagination.PageNumber == i ? "active" : "")">
+                <a class="page-link" asp-action="Index" asp-route-page="@i">@i</a>
+            </li>
+        }
+
+        <li class="page-item @(pagination.PageNumber == pagination.TotalPages ? "disabled" : "")">
+            <a class="page-link" asp-action="Index" asp-route-page="@(pagination.PageNumber + 1)">Next</a>
+        </li>
+    </ul>
+</nav>
 
 <style>
     body {
@@ -146,4 +169,18 @@
             background-color: #99004d;
         }
 </style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $("#filterTempoForm").on("reset", function (e) {
+                fetch("/TemporaryStays/ClearFilterTempData", {
+                    method: "POST"
+                }).then(() => {
+                    window.location.href = "/TemporaryStays/Index";
+                });
+            });
+        });
+    </script>
+}
 
