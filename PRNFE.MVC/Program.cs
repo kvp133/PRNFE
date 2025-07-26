@@ -14,6 +14,17 @@ namespace PRNFE.MVC
             builder.Services.AddRazorPages();
             builder.Services.AddControllersWithViews();
 
+            // Add Authentication and Authorization
+            builder.Services.AddAuthentication("Cookies")
+                .AddCookie("Cookies", options =>
+                {
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+                    options.Cookie.SameSite = SameSiteMode.Lax;
+                    options.Cookie.HttpOnly = true;
+                });
+
+            builder.Services.AddAuthorization();
+
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddTransient<AuthHeaderHandler>();
             builder.Services.AddHttpClient("AuthorizedApiClient")
@@ -36,10 +47,12 @@ namespace PRNFE.MVC
 
             app.UseRouting();
 
+            // Add Authentication and Authorization middleware
+            app.UseAuthentication();
+            app.UseAuthorization();
+
             // Add custom authorization middleware
             app.UseMiddleware<AuthorizationMiddleware>();
-
-            app.UseAuthorization();
 
             app.MapRazorPages();
             
