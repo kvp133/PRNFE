@@ -1,0 +1,136 @@
+﻿@model List<PRNFE.MVC.Models.Response.dat.VehicleResponsesDat>
+@using PRNFE.MVC.Models.EnumClass
+@using Enum = System.Enum
+
+@{
+    ViewData["Title"] = "Quản lý phương tiện";
+}
+
+@section TenantQuickActions {
+    @await Html.PartialAsync("_TenantQuickActions")
+}
+
+@section ToastMessage {
+    @await Html.PartialAsync("_ToastMessage", new {
+    message = TempData["ToastMessage"] as string,
+        type = TempData["ToastType"] as string ?? "success"
+    })
+}
+
+<div class="container">
+   
+
+
+    <table class="table table-bordered table-hover">
+        <thead class="thead-light">
+            <tr>
+                <th>Biển số</th>
+                <th>Loại xe</th>
+                <th>Ngày tạo</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var vehicle in Model)
+            {
+                <tr>
+                    <td>@vehicle.LicensePlate</td>
+                    <td>@((VehicleTypes)int.Parse(vehicle.Type))</td>
+                    <td>@vehicle.CreateAt.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="openUpdateModal(@vehicle.Id, '@vehicle.LicensePlate', @vehicle.Type)">
+                            <i class="fas fa-edit"></i> Cập nhật
+                        </button>
+                       
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Update Modal -->
+<div class="modal fade" id="updateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="updateForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cập nhật phương tiện</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="vehicleId" />
+                    <div class="mb-3">
+                        <label>Biển số</label>
+                        <input type="text" id="vehiclePlate" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label>Loại xe</label>
+                        <select id="vehicleType" class="form-control">
+                            @foreach (var t in Enum.GetValues(typeof(VehicleTypes)).Cast<VehicleTypes>())
+                            {
+                                <option value="@((int)t)">@t</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Mở modal và đổ dữ liệu cũ vào
+        function openUpdateModal(id, plate, type) {
+            $('#vehicleId').val(id);
+            $('#vehiclePlate').val(plate);
+            $('#vehicleType').val(type);
+            $('#updateForm').attr('data-mode', 'update');
+            $('#updateModal').modal('show');
+        }
+
+        // Bắt sự kiện submit form
+        $('#updateForm').on('submit', function (e) {
+            e.preventDefault();
+
+            const id = parseInt($('#vehicleId').val());
+            const plate = $('#vehiclePlate').val();
+            const type = parseInt($('#vehicleType').val());
+
+            const payload = {
+                id: id,
+                licensePlate: plate,
+                type: type
+            };
+
+            // Gửi dữ liệu về controller bằng fetch
+            fetch('/Tenant/UpdateVehicle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Lỗi khi cập nhật");
+                return res.json();
+            })
+            .then(data => {
+                $('#updateModal').modal('hide');
+                showToast(`✅ Đã cập nhật phương tiện ${plate}`, 'success');
+                setTimeout(() => location.reload(), 1000);
+            })
+            .catch(err => {
+                $('#updateModal').modal('hide');
+                showToast('❌ Cập nhật thất bại!', 'error');
+            });
+        });
+    </script>
+}

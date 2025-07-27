@@ -1,0 +1,131 @@
+﻿@model PRNFE.MVC.Models.Response.dat.PaginatedData<PRNFE.MVC.Models.Response.dat.InvoiceResponseDat>
+@using PRNFE.MVC.Models.EnumClass
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Quản lý thanh toán";
+}
+
+<div class="container mt-4">
+    <h3 class="mb-4 text-center">🧾 Quản lý hóa đơn</h3>
+
+    <div class="table-responsive shadow rounded border">
+        <table class="table table-hover table-bordered align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th class="text-center">Mã hóa đơn</th>
+                    <th class="text-center">Tòa nhà</th>
+                    <th class="text-center">Phòng</th>
+                    <th class="text-end">Số tiền</th>
+                    <th class="text-center">Hạn thanh toán</th>
+                    <th class="text-center">Trạng thái</th>
+                    <th class="text-center">Chi tiết thanh toán</th>
+                    <th class="text-center">Thao tác</th>
+
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model?.Data == null || Model.Data.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-receipt-x fs-3"></i> Không có hóa đơn nào.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var invoice in Model.Data)
+                    {
+                        <tr>
+                            <td class="text-center">@invoice.Id</td>
+                            <td class="text-center">@invoice.BuildingID</td>
+                            <td class="text-center">@invoice.RoomID</td>
+                            <td class="text-end">@string.Format("{0:N0} VND", Convert.ToDecimal(invoice.TotalAmount))</td>
+                            <td class="text-center">@invoice.DueDate.ToString("dd/MM/yyyy")</td>
+                            <td class="text-center">
+                                @if (invoice.Status == InvoiceStatus.Paid)
+                                {
+                                    <span class="badge bg-success">Đã thanh toán</span>
+                                }
+                                else if (invoice.DueDate < DateTime.Today)
+                                {
+                                    <span class="badge bg-danger">Quá hạn</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">Chờ thanh toán</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (invoice.Payment != null)
+                                {
+                                    <div class="text-nowrap">
+                                        <i class="bi bi-credit-card"></i> @invoice.Payment.PaymentMethod <br />
+                                        <span class="text-muted">@string.Format("{0:N0} VND", Convert.ToDecimal(invoice.Payment.Amount))</span><br />
+                                        <small class="text-muted">@invoice.Payment.PaymentDate.ToString("dd/MM/yyyy")</small>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted"><i class="bi bi-cash-stack"></i> Chưa thanh toán</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <a asp-controller="Tenant" asp-action="GetBillDetail"
+                                   asp-route-invoiceId="@invoice.Id"
+                                   asp-route-billId="@invoice.BillId"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Chi tiết
+                                </a>
+
+
+                            </td>
+
+                        </tr>
+                    }
+
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @* PHÂN TRANG *@
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(Model.HasPreviousPage == true ? "" : "disabled")">
+                    <a class="page-link" href="?page=@(Model.PageNumber - 1)&size=@Model.PageSize" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                        <a class="page-link" href="?page=@i&size=@Model.PageSize">@i</a>
+                    </li>
+                }
+
+                <li class="page-item @(Model.HasNextPage == true ? "" : "disabled")">
+                    <a class="page-link" href="?page=@(Model.PageNumber + 1)&size=@Model.PageSize" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
+
+
+@section ToastMessage {
+    @await Html.PartialAsync("_ToastMessage", new {
+    message = TempData["ToastMessage"]?.ToString(),
+        type = TempData["ToastType"]?.ToString() ?? "success"
+    })
+}
+
+@section TenantQuickActions {
+    @await Html.PartialAsync("_TenantQuickActions")
+}

@@ -14,6 +14,12 @@ namespace PRNFE.MVC
             builder.Services.AddRazorPages();
             builder.Services.AddControllersWithViews();
 
+
+			// Cấu hình ApiUrls
+			GetBaseUrl.Configure(builder.Configuration);
+
+			builder.Services.AddHttpContextAccessor();
+
             // Add Authentication and Authorization
             builder.Services.AddAuthentication("Cookies")
                 .AddCookie("Cookies", options =>
@@ -26,6 +32,7 @@ namespace PRNFE.MVC
             builder.Services.AddAuthorization();
 
             builder.Services.AddHttpContextAccessor();
+
             builder.Services.AddTransient<AuthHeaderHandler>();
             builder.Services.AddTransient<LoggingHandler>();
             builder.Services.AddHttpClient("AuthorizedApiClient")
@@ -34,10 +41,10 @@ namespace PRNFE.MVC
 
             builder.Services.ConfigureApplicationCookie(options =>
             {
-                options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Cho phép HTTP (qua gateway)
-                options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.HttpOnly = true;
-            });
+				options.Cookie.HttpOnly = true;
+				options.Cookie.SameSite = SameSiteMode.Lax; // Cho phép redirect từ PayOS
+				options.Cookie.SecurePolicy = CookieSecurePolicy.None; // Cho phép HTTP
+			});
 
             var app = builder.Build();
 
@@ -50,12 +57,14 @@ namespace PRNFE.MVC
 
             app.UseRouting();
 
-            // Add Authentication and Authorization middleware
-            app.UseAuthentication();
-            app.UseAuthorization();
 
-            // Add custom authorization middleware
-            app.UseMiddleware<AuthorizationMiddleware>();
+			app.UseAuthentication();
+			// Add custom authorization middleware
+			app.UseMiddleware<AuthorizationMiddleware>();
+
+		
+			app.UseAuthorization();
+
 
             app.MapRazorPages();
             
@@ -72,7 +81,7 @@ namespace PRNFE.MVC
 
             app.MapControllerRoute(
                 name: "tenant",
-                pattern: "Tenant/{action=InvoiceInfo}/{id?}",
+                pattern: "Tenant/{action=ManageVehicle}/{id?}",
                 defaults: new { controller = "Tenant" });
 
             app.MapControllerRoute(

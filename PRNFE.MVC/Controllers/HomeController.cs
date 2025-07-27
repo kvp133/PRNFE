@@ -55,7 +55,7 @@ namespace PRNFE.MVC.Controllers
                         return base.View();
                     return RedirectToAction("SelectRoom", "Auth");
                 }
-                return RedirectToAction("InvoiceInfo", "Tenant");
+                return RedirectToAction("ManageVehicle", "Tenant");
             }
 
             // Default fallback

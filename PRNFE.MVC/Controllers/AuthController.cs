@@ -48,7 +48,7 @@ namespace PRNFE.MVC.Controllers
                 if (response.IsSuccessStatusCode)
                 {
                     var apiResponse = JsonConvert.DeserializeObject<ApiResponse<LoginResponse>>(result);
-                    if (apiResponse.success)
+                    if (apiResponse != null && apiResponse.success)
                     {
                         // Store tokens in cookies
                         var accessTokenOptions = new CookieOptions
@@ -96,7 +96,7 @@ namespace PRNFE.MVC.Controllers
                                     var buildingsResponse = await _httpClient.SendAsync(requestMessage);
                                     var buildingsResult = await buildingsResponse.Content.ReadAsStringAsync();
                                     var buildingsApiResponse = JsonConvert.DeserializeObject<PRNFE.MVC.Models.Response.ApiResponse<List<PRNFE.MVC.Models.Response.BuildingResponse>>>(buildingsResult);
-                                    if (buildingsApiResponse.success && buildingsApiResponse.data != null)
+                                    if (buildingsApiResponse != null && buildingsApiResponse.success && buildingsApiResponse.data != null)
                                     {
                                         var landlordBuildings = buildingsApiResponse.data
                                             .Where(b => b.OwnerId != null && b.OwnerId.ToString() == tokenData.user_name)
@@ -142,7 +142,7 @@ namespace PRNFE.MVC.Controllers
                                     var roomsResponse = await _httpClient.SendAsync(requestMessage);
                                     var roomsResult = await roomsResponse.Content.ReadAsStringAsync();
                                     var roomsApiResponse = JsonConvert.DeserializeObject<PRNFE.MVC.Models.Response.ApiResponse<List<PRNFE.MVC.Models.Response.RoomResponse>>>(roomsResult);
-                                    if (roomsApiResponse.success && roomsApiResponse.data != null)
+                                    if (roomsApiResponse != null && roomsApiResponse.success && roomsApiResponse.data != null)
                                     {
                                         var tenantRooms = roomsApiResponse.data;
                                         if (tenantRooms.Count == 1)
@@ -255,7 +255,7 @@ namespace PRNFE.MVC.Controllers
                 var response = await _httpClient.SendAsync(requestMessage);
                 var result = await response.Content.ReadAsStringAsync();
                 var apiResponse = JsonConvert.DeserializeObject<PRNFE.MVC.Models.Response.ApiResponse<List<PRNFE.MVC.Models.Response.BuildingResponse>>>(result);
-                if (apiResponse.success && apiResponse.data != null)
+                if (apiResponse != null && apiResponse.success && apiResponse.data != null)
                 {
                     // Lấy user_name từ token
                     var token = accessToken;
@@ -315,7 +315,7 @@ namespace PRNFE.MVC.Controllers
                 var response = await _httpClient.SendAsync(requestMessage);
                 var result = await response.Content.ReadAsStringAsync();
                 var apiResponse = JsonConvert.DeserializeObject<PRNFE.MVC.Models.Response.ApiResponse<List<PRNFE.MVC.Models.Response.RoomResponse>>>(result);
-                if (apiResponse.success && apiResponse.data != null)
+                if (apiResponse != null && apiResponse.success && apiResponse.data != null)
                 {
                     rooms = apiResponse.data;
                 }
@@ -340,7 +340,7 @@ namespace PRNFE.MVC.Controllers
             };
             Response.Cookies.Append("RoomId", roomId.ToString(), options);
             Response.Cookies.Append("BuildingId", buildingId.ToString(), options);
-            return RedirectToAction("InvoiceInfo", "Tenant");
+            return RedirectToAction("ManageVehicle", "Tenant");
         }
 
         [HttpPost]
