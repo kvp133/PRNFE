@@ -2,7 +2,9 @@
 using Newtonsoft.Json;
 using PRNFE.MVC.Attributes;
 using PRNFE.MVC.Helper;
+using PRNFE.MVC.Models.Response;
 using PRNFE.MVC.Models.Response.dat;
+using System.Net.Http.Headers;
 using System.Text;
 
 namespace PRNFE.MVC.Controllers
@@ -143,6 +145,7 @@ namespace PRNFE.MVC.Controllers
 			// ✅ Nếu có orderCode → gọi PayOS để check trạng thái
 			if (!string.IsNullOrEmpty(orderCode))
 			{
+				
 				try
 				{
 					var payBaseUrl = GetBaseUrl.UrlPayment?.TrimEnd('/');
@@ -171,42 +174,65 @@ namespace PRNFE.MVC.Controllers
 
 								if (invoiceResult?.Success == true && invoiceResult.Data != null)
 								{
-									// 👉 Gọi API cập nhật trạng thái Invoice
-									var updateInvoiceUrl = $"{payBaseUrl}/api/Invoice/update-status/{invoiceResult.Data.Id}";
+									var invoiceData = invoiceResult.Data;
+
+									// ✅ Tạo DTO thủ công để map dữ liệu, đảm bảo enum là int
 									var updateInvoicePayload = new
 									{
-										status = 2 // 2 = Paid
+										id = invoiceData.Id,
+										buildingID = invoiceData.BuildingID,
+										roomID = invoiceData.RoomID,
+										totalAmount = Convert.ToDecimal(invoiceData.TotalAmount),
+										status = 1,
+										dueDate = invoiceData.DueDate,
+										billId = invoiceData.BillId
 									};
-									var updateInvoiceContent = new StringContent(JsonConvert.SerializeObject(updateInvoicePayload), Encoding.UTF8, "application/json");
 
+
+									var updateInvoiceJson = JsonConvert.SerializeObject(updateInvoicePayload);
+									var updateInvoiceContent = new StringContent(updateInvoiceJson, Encoding.UTF8, "application/json");
+
+									var updateInvoiceUrl = $"{payBaseUrl}/api/Invoice/invoice-update";
 									var updateInvoiceResp = await _httpClient.PutAsync(updateInvoiceUrl, updateInvoiceContent);
+
 									if (!updateInvoiceResp.IsSuccessStatusCode)
 									{
 										TempData["ToastMessage"] += " ⚠️ Nhưng cập nhật trạng thái hóa đơn (Invoice) thất bại.";
 										TempData["ToastType"] = "warning";
 									}
 
-
-									var billId = invoiceResult.Data.BillId;
-
 									// 👉 Gọi API cập nhật trạng thái Bill
-									var updateBillUrl = $"{ResdentBaseUrl}/api/Bills/UpdateStatus/{billId}";
-									var updatePayload = new
-									{
-										status = 2 // 2 = Paid trong BillStatusDat
-									};
-									var updateContent = new StringContent(JsonConvert.SerializeObject(updatePayload), Encoding.UTF8, "application/json");
+									var token = await GetAccessTokenAsync();
 
-									var updateResp = await _httpClient.PutAsync(updateBillUrl, updateContent);
+									var billId = invoiceData.BillId;
+									var updateBillUrl = $"{ResdentBaseUrl}/api/Bills/UpdateStatus/{billId}";
+
+									var request = new HttpRequestMessage(HttpMethod.Patch, updateBillUrl)
+									{
+										Content = new StringContent(JsonConvert.SerializeObject(2), Encoding.UTF8, "application/json")
+									};
+
+									// 👉 Gắn token vừa login được
+									request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+									var updateResp = await _httpClient.SendAsync(request);
+
 									if (!updateResp.IsSuccessStatusCode)
 									{
-										TempData["ToastMessage"] += " ⚠️ Nhưng cập nhật trạng thái hóa đơn thất bại.";
+										var respContent = await updateResp.Content.ReadAsStringAsync();
+										Console.WriteLine($"Lỗi cập nhật trạng thái bill: {respContent}");
+
+										TempData["ToastMessage"] += " ⚠️ Nhưng cập nhật trạng thái bill thất bại.";
 										TempData["ToastType"] = "warning";
 									}
-								}
-							}
-						}
 
+								}
+
+
+
+							}
+
+						}
 
 						// Hiển thị toast dù thành công hay không
 						string message = status switch
@@ -232,6 +258,8 @@ namespace PRNFE.MVC.Controllers
 					TempData["ToastType"] = "error";
 				}
 			}
+
+
 
 		
 
@@ -271,6 +299,25 @@ namespace PRNFE.MVC.Controllers
 		}
 
 
+		private async Task<string> GetAccessTokenAsync()
+		{
+			var loginPayload = new
+			{
+				userName = "thuetro",
+				password = "123123"
+			};
+
+			using var loginClient = new HttpClient(); // Tạo HttpClient riêng để login
+			var loginResponse = await loginClient.PostAsJsonAsync("http://103.149.252.12:8888/users/api/Auth/login", loginPayload);
+
+			if (!loginResponse.IsSuccessStatusCode)
+			{
+				throw new Exception("Login failed.");
+			}
+
+			var result = await loginResponse.Content.ReadFromJsonAsync<ApiResponse<AuthResultDat>>();
+			return result.data.AccessToken;
+		}
 
 
 
@@ -317,6 +364,8 @@ namespace PRNFE.MVC.Controllers
 			}
 		}
 
+		
+
 
 
 		[HttpPost]
@@ -335,7 +384,7 @@ namespace PRNFE.MVC.Controllers
 				{
 					
 						orderCode = orderCode,
-						amount = (int)2000,
+						amount = (int)amount,
 						description = $"Thanh toán hóa đơn {orderCode}"
 					
 				};
