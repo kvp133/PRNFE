@@ -334,7 +334,7 @@ namespace PRNFE.MVC.Controllers
 				var payload = new
 				{
 					
-						orderCode = 10,
+						orderCode = orderCode,
 						amount = (int)2000,
 						description = $"Thanh toán hóa đơn {orderCode}"
 					
