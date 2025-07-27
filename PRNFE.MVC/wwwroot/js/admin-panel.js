@@ -67,12 +67,20 @@ async function apiCall(url, method = "GET", data = null) {
     try {
         showLoading()
 
+        // Lấy token từ cookie
+        const token = getCookie("AccessToken")
+        
         const options = {
             method: method,
             headers: {
                 "Content-Type": "application/json",
                 RequestVerificationToken: document.querySelector('input[name="__RequestVerificationToken"]')?.value,
             },
+        }
+
+        // Thêm Authorization header nếu có token
+        if (token) {
+            options.headers["Authorization"] = `Bearer ${token}`
         }
 
         if (data && method !== "GET") {
@@ -90,6 +98,16 @@ async function apiCall(url, method = "GET", data = null) {
         return { success: false, message: error.message }
     }
 }
+
+// Helper function để lấy cookie
+function getCookie(name) {
+    const value = `; ${document.cookie}`
+    const parts = value.split(`; ${name}=`)
+    if (parts.length === 2) return parts.pop().split(';').shift()
+    return null
+}
+
+
 
 // Load User Management Page
 async function loadUserManagement() {

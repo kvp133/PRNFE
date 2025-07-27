@@ -24,8 +24,8 @@ namespace PRNFE.MVC.Controllers
             // Route based on user role
             if (userInfo.IsAdmin)
             {
-                // Admin users go to user management
-                return RedirectToAction("UserManagement", "Admin");
+                // Admin users go to dashboard
+                return RedirectToAction("Dashboard", "Admin");
             }
             else if (userInfo.IsLandlord)
             {
