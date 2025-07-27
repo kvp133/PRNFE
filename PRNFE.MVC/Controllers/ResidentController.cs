@@ -132,7 +132,6 @@ namespace PRNFE.MVC.Controllers
 
             try
             {
-                //model.UserId = $"user_{Guid.NewGuid().ToString("N").Substring(0, 6)}"; 
 
                 using var httpClient = CreateHttpClientWithCookies();
                 var token = GetAccessToken();

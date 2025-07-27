@@ -157,7 +157,7 @@ namespace PRNFE.MVC.Controllers
                                             };
                                             Response.Cookies.Append("BuildingId", tenantRooms[0].BuildingId.ToString(), buildingIdOptions);
                                             Response.Cookies.Append("RoomId", tenantRooms[0].Id.ToString(), buildingIdOptions);
-                                            return RedirectToAction("InvoiceInfo", "Tenant");
+                                            return RedirectToAction("ManageVehicle", "Tenant");
                                         }
                                         else if (tenantRooms.Count > 1)
                                         {
