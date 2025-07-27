@@ -344,6 +344,59 @@ namespace PRNFE.MVC.Controllers
         }
 
         [HttpPost]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.RefreshToken))
+                {
+                    return Json(new { success = false, message = "Refresh token không hợp lệ" });
+                }
+
+                var refreshRequest = new { refreshToken = request.RefreshToken };
+                var apiUrl = $"{_apiBaseUrl}/users/api/Auth/refresh";
+                var content = new StringContent(JsonConvert.SerializeObject(refreshRequest), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync(apiUrl, content);
+                var result = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var apiResponse = JsonConvert.DeserializeObject<ApiResponse<LoginResponse>>(result);
+                    if (apiResponse.success)
+                    {
+                        // Update cookies with new tokens
+                        var accessTokenOptions = new CookieOptions
+                        {
+                            HttpOnly = true,
+                            Secure = true,
+                            SameSite = SameSiteMode.Strict,
+                            Expires = DateTime.UtcNow.AddHours(1)
+                        };
+
+                        var refreshTokenOptions = new CookieOptions
+                        {
+                            HttpOnly = true,
+                            Secure = true,
+                            SameSite = SameSiteMode.Strict,
+                            Expires = DateTime.UtcNow.AddDays(7)
+                        };
+
+                        Response.Cookies.Append("AccessToken", apiResponse.data.accessToken, accessTokenOptions);
+                        Response.Cookies.Append("RefreshToken", apiResponse.data.refreshToken, refreshTokenOptions);
+
+                        return Json(new { success = true, message = "Token đã được refresh thành công" });
+                    }
+                }
+
+                return Json(new { success = false, message = "Không thể refresh token" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Có lỗi xảy ra: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
         public new IActionResult Logout()
         {
             // Xóa toàn bộ cookie liên quan
