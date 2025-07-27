@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PRNFE.MVC.Models.Request;
 using PRNFE.MVC.Models.Response;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace PRNFE.MVC.Controllers
 {
@@ -108,12 +109,38 @@ namespace PRNFE.MVC.Controllers
         }
 
         // CREATE - GET
-        public IActionResult Create() => View(new ResidentRequests
+        public async Task<IActionResult> Create() {
+
+            await SetFilterData();
+        
+            return View(new ResidentRequests
+            {
+                DateOfBirth = DateTime.Now.AddYears(-18),
+                Vehicles = new List<VehicleCreateDtos>(),
+                Rooms = new List<RoomCreateDtos>()
+            });
+        } 
+
+        private async Task SetFilterData()
         {
-            DateOfBirth = DateTime.Now.AddYears(-18),
-            Vehicles = new List<VehicleCreateDtos>(),
-            Rooms = new List<RoomCreateDtos>()
-        });
+            // get room
+            var roomApiUrl = $"{_apiQLPTUrl}/api/Rooms";
+            var roomResponse = await _httpClient.GetFromJsonAsync<ApiResponse<List<RoomResponse>>>(roomApiUrl);
+            // get resident
+            //var residentApiUrl = $"{_apiQLPTUrl}/api/Residents";
+            //var residentResponse = await _httpClient.GetFromJsonAsync<ApiResponse<List<ResidentResponse>>>(residentApiUrl);
+            // Prepare the view model
+            ViewBag.Rooms = roomResponse.data.Select(r => new SelectListItem
+            {
+                Value = r.Id.ToString(),
+                Text = r.RoomNumber
+            }).ToList();
+            //ViewBag.Residents = residentResponse.data.Select(r => new SelectListItem
+            //{
+            //    Value = r.Id.ToString(),
+            //    Text = r.FullName
+            //}).ToList();
+        }
 
         // POST: Create
         [HttpPost, ValidateAntiForgeryToken]
@@ -121,12 +148,14 @@ namespace PRNFE.MVC.Controllers
         {
             if (!ModelState.IsValid)
             {
+                await SetFilterData();
                 return View(model);
             }
 
             if (!ValidateBuildingId())
             {
                 ModelState.AddModelError(string.Empty, "Thiếu buildingId trong cookies.");
+                await SetFilterData();
                 return View(model);
             }
 
@@ -141,6 +170,7 @@ namespace PRNFE.MVC.Controllers
                 }
                 else if (!await RefreshTokenIfNeeded())
                 {
+                    await SetFilterData();
                     ModelState.AddModelError(string.Empty, "Thiếu token xác thực.");
                     return View(model);
                 }
@@ -163,6 +193,7 @@ namespace PRNFE.MVC.Controllers
                     }
                     catch
                     {
+                        await SetFilterData();
                         ModelState.AddModelError(string.Empty, $"Lỗi từ API: {errorContent}");
                     }
                     return View(model);
@@ -174,6 +205,7 @@ namespace PRNFE.MVC.Controllers
             catch (Exception ex)
             {
                 ModelState.AddModelError(string.Empty, $"Lỗi hệ thống: {ex.Message}");
+                await SetFilterData();
                 return View(model);
             }
         }

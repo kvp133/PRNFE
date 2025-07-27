@@ -6,14 +6,14 @@
             <div class="form-group">
                  <label asp-for="RoomIds" class="control-label"></label>
                 <select asp-for="RoomIds" multiple asp-items="@ViewBag.Rooms" class="form-select select-2 mb-3" style="width: 100%;">
-                    <option disabled>Chọn phòng</option>
+                    <option selected disabled>Chọn phòng</option>
                 </select>
              </div>
 
             <div class="form-group">
                 <label asp-for="ResidentIds" class="control-label"></label>
                 <select asp-for="ResidentIds" multiple asp-items="@ViewBag.Residents" class="form-select select-2 mb-3" style="width: 100%;">
-                    <option disabled>Chọn cư dân</option>
+                    <option selected disabled>Chọn cư dân</option>
                 </select>
             </div>
 

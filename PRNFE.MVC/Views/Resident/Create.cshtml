@@ -127,20 +127,12 @@
 
                 <div id="roomsContainer">
                     <div class="room-item">
-                        <div class="input-group-glass">
-                            <i class="fas fa-door-open input-icon"></i>
-                            <input type="number" class="form-control glass-input" name="Rooms[0].RoomId" placeholder="Room ID" min="1" required data-val="true" data-val-required="Room ID là bắt buộc">
-                            <button type="button" class="btn btn-outline-danger btn-sm remove-room" style="display: none;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                            <span asp-validation-for="Rooms[0].RoomId" class="text-danger small"></span>
-                        </div>
+                        <label name="Rooms[0].RoomId" class="control-label"></label>
+                        <select name="Rooms[0].RoomId" id="Rooms[0].RoomId" asp-items="@ViewBag.Rooms" class="form-select select-2 mb-3" style="width: 100%;">
+                            <option selected disabled>Chọn phòng</option>
+                        </select>
                     </div>
                 </div>
-                <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="addRoom()">
-                    <i class="fas fa-plus me-1"></i>
-                    Thêm phòng
-                </button>
 
                 <!-- Vehicles Section -->
                 <div class="section-header mt-4">
