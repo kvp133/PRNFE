@@ -591,5 +591,55 @@ namespace PRNFE.MVC.Controllers
                 return View("Index", new List<ServiceResponse>());
             }
         }
+
+
+        public async Task<IActionResult> Delete(int id)
+        {
+            if (!IsAuthenticated())
+            {
+                TempData["Message"] = "Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var token = GetAccessToken();
+            if (string.IsNullOrEmpty(token) && !await RefreshTokenIfNeeded())
+            {
+                TempData["Message"] = "Không thể làm mới token. Vui lòng đăng nhập lại!";
+                TempData["IsSuccess"] = false;
+                return RedirectToAction("Login", "Auth");
+            }
+
+            using var httpClient = CreateHttpClientWithCookies();
+            if (!string.IsNullOrEmpty(token))
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            try
+            {
+                var url = $"{_apiQLPTUrl}/api/Services/{id}";
+                System.Diagnostics.Debug.WriteLine($"Request URL: {url}");
+                var response = await httpClient.DeleteAsync(url);
+
+               
+                TempData["IsSuccess"] = response.IsSuccessStatusCode;
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    return RedirectToAction("Login", "Auth");
+            }
+            catch (HttpRequestException ex)
+            {
+                TempData["Message"] = $"Lỗi kết nối đến API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+            }
+            catch (JsonException ex)
+            {
+                TempData["Message"] = $"Lỗi phân tích dữ liệu từ API: {ex.Message}";
+                TempData["IsSuccess"] = false;
+                System.Diagnostics.Debug.WriteLine($"Exception: {ex}");
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

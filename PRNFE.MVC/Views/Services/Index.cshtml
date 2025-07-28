@@ -167,7 +167,12 @@
                                                        class="btn btn-outline-pink" title="Xem chi tiết">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                  
+                                                    <form asp-action="Delete" asp-controller="Services" method="post" style="display:inline">
+                                                        <input type="hidden" name="id" value="@item.Id" />
+                                                        <button type="submit" class="btn btn-outline-pink" title="Xóa" onclick="return confirm('Bạn có chắc muốn xóa không?')">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
                                                     
                                                 </div>
                                             </td>
